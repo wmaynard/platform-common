@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Platform.CSharp.Common.Web;
+using RestSharp;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -39,6 +43,67 @@ namespace Rumble.Platform.Common.Web
 			foreach (PropertyInfo fi in bar.GetType().GetProperties())
 				result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(bar, null);
 			return result;
+		}
+
+		protected static JToken ExtractOptionalValue(string name, JObject body)
+		{
+			return ExtractValue(name, body, required: false);
+		}
+		protected static JToken ExtractRequiredValue(string name, JObject body)
+		{
+			return ExtractValue(name, body);
+		}
+		private static JToken ExtractValue(string name, JObject body, bool required = true)
+		{
+			JToken output = body[name];
+			if (required && output == null)
+				throw new BadHttpRequestException($"Required field '{name}' was not provided.");
+			return output;
+		}
+		
+		/// <summary>
+		/// Sends a GET request to a token service (currently player-service) to validate a token.
+		/// </summary>
+		/// <param name="verificationEndpoint">e.g. http://localhost:8081/player/verify</param>
+		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
+		/// <returns>Information encoded in the token.</returns>
+		protected TokenInfo ValidateToken(string verificationEndpoint, string token)
+		{
+			Dictionary<string, object> result = InternalApiCall(verificationEndpoint, token);
+			TokenInfo output = new TokenInfo()
+			{
+				IsValid = (bool)result["valid"],
+				AccountId = (string)result["aid"]
+			};
+			if (!output.IsValid)
+				throw new InvalidTokenException();
+			return output;
+		}
+		/// <summary>
+		/// Call on other Rumble web services.  Currently only supports GET requests.
+		/// </summary>
+		/// <param name="endpoint">The full URL to request.</param>
+		/// <param name="authorization">The token to pass along.</param>
+		/// <returns>A Dictionary<string, object> of the JSON response.</returns>  TODO: Return JSON
+		private static Dictionary<string, object> InternalApiCall(string endpoint, string authorization = null)
+		{
+			Uri baseUrl = new Uri(endpoint);
+			IRestClient client = new RestClient(baseUrl);
+			IRestRequest request = new RestRequest("get", Method.GET);
+			
+			if (authorization != null)
+				request.AddHeader("Authorization", authorization);
+
+			IRestResponse<Dictionary<string, object>> response = client.Execute<Dictionary<string, object>>(request);
+			if (!response.IsSuccessful)
+				throw new Exception(response.ErrorMessage);
+			
+			return response.Data;
+		}
+		protected struct TokenInfo
+		{
+			public bool IsValid { get; set; }
+			public string AccountId { get; set; }
 		}
 	}
 }
