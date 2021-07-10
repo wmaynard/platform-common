@@ -11,8 +11,10 @@ using RestSharp;
 
 namespace Rumble.Platform.Common.Web
 {
-	public class RumbleController : ControllerBase
+	public abstract class RumbleController : ControllerBase
 	{
+		protected const string AUTH = "Authorization";
+		protected abstract string TokenAuthEndpoint { get; }
 		internal void Throw(string message, Exception exception = null)
 		{
 			throw new Exception(message, innerException: exception);
@@ -67,15 +69,16 @@ namespace Rumble.Platform.Common.Web
 		/// <param name="verificationEndpoint">e.g. http://localhost:8081/player/verify</param>
 		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
 		/// <returns>Information encoded in the token.</returns>
-		protected TokenInfo ValidateToken(string verificationEndpoint, string token)
+		protected TokenInfo ValidateToken(string token)
 		{
-			Dictionary<string, object> result = InternalApiCall(verificationEndpoint, token);
+			Dictionary<string, object> result = InternalApiCall(TokenAuthEndpoint, token);
 			TokenInfo output = new TokenInfo()
 			{
-				IsValid = (bool)result["valid"],
-				AccountId = (string)result["aid"]
+				AccountId = (string)result["aid"],
+				Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
+				Issuer = (string)result["issuer"]
 			};
-			if (!output.IsValid)
+			if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
 				throw new InvalidTokenException();
 			return output;
 		}
@@ -102,8 +105,9 @@ namespace Rumble.Platform.Common.Web
 		}
 		protected struct TokenInfo
 		{
-			public bool IsValid { get; set; }
 			public string AccountId { get; set; }
+			public DateTime Expiration { get; set; }
+			public string Issuer { get; set; }
 		}
 	}
 }
