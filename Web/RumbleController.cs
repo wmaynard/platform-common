@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Dynamic;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Newtonsoft.Json.Linq;
+using platform_CSharp_library.Web;
 using Platform.CSharp.Common.Web;
 using RestSharp;
 
@@ -33,18 +36,33 @@ namespace Rumble.Platform.Common.Web
 			return base.Ok(Merge(new { Success = true }, value));
 		}
 
-		private static object Merge(object foo, object bar)
+		protected static object Merge(object foo, object bar)
 		{
 			if (foo == null || bar == null)
 				return foo ?? bar ?? new ExpandoObject();
 
 			ExpandoObject expando = new ExpandoObject();
 			IDictionary<string, object> result = (IDictionary<string, object>)expando;
-			foreach (PropertyInfo fi in foo.GetType().GetProperties())
-				result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(foo, null);
-			foreach (PropertyInfo fi in bar.GetType().GetProperties())
-				result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(bar, null);
+			
+			if (foo is ExpandoObject oof)	// Special handling is required when trying to merge two ExpandoObjects together.
+				MergeExpando(ref result, oof);
+			else
+				foreach (PropertyInfo fi in foo.GetType().GetProperties())
+					result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(foo, null);
+			
+			if (bar is ExpandoObject rab)
+				MergeExpando(ref result, rab);
+			else
+				foreach (PropertyInfo fi in bar.GetType().GetProperties())
+					result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(bar, null);
 			return result;
+		}
+
+		private static void MergeExpando(ref IDictionary<string, object> expando, ExpandoObject expando2)
+		{
+			IDictionary<string, object> dict = (IDictionary<string, object>) expando2;
+			foreach (string key in dict.Keys)
+				expando[JsonNamingPolicy.CamelCase.ConvertName(key)] = dict[key];
 		}
 
 		protected static JToken ExtractOptionalValue(string name, JObject body)
@@ -59,7 +77,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			JToken output = body[name];
 			if (required && output == null)
-				throw new BadHttpRequestException($"Required field '{name}' was not provided.");
+				throw new FieldNotProvidedException(name);
 			return output;
 		}
 		
@@ -71,6 +89,8 @@ namespace Rumble.Platform.Common.Web
 		/// <returns>Information encoded in the token.</returns>
 		protected TokenInfo ValidateToken(string token)
 		{
+			if (token == null)
+				throw new InvalidTokenException();
 			Dictionary<string, object> result = InternalApiCall(TokenAuthEndpoint, token);
 			TokenInfo output = new TokenInfo()
 			{

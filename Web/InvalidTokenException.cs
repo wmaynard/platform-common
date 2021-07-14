@@ -1,13 +1,12 @@
 using System;
 using System.Runtime.Serialization;
+using platform_CSharp_library.Web;
 
 namespace Platform.CSharp.Common.Web
 {
-	public class InvalidTokenException : Exception
+	public class InvalidTokenException : RumbleException
 	{
-		public InvalidTokenException() : this("Token is invalid."){}
-		public InvalidTokenException(SerializationInfo info, StreamingContext context) : base(info, context){}
-		public InvalidTokenException(string message) : base(message){}
-		public InvalidTokenException(string message, Exception inner) : base(message, inner) {}
+		public InvalidTokenException() : base("Token is invalid."){}
+		public InvalidTokenException(string reason) : base($"Token is invalid. ({reason})"){}
 	}
 }
