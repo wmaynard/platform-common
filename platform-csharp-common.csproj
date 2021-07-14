@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>net5.0</TargetFramework>
 		<RootNamespace>platform_CSharp_library</RootNamespace>
+		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>
