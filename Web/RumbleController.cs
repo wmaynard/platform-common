@@ -36,6 +36,14 @@ namespace Rumble.Platform.Common.Web
 			return base.Ok(Merge(new { Success = true }, value));
 		}
 
+		protected static object Merge(params object[] objects)
+		{
+			object output = new { };
+			foreach (object o in objects)
+				output = Merge(foo: output, bar: o);
+			return output;
+		}
+
 		protected static object Merge(object foo, object bar)
 		{
 			if (foo == null || bar == null)
@@ -123,11 +131,7 @@ namespace Rumble.Platform.Common.Web
 			
 			return response.Data;
 		}
-		protected struct TokenInfo
-		{
-			public string AccountId { get; set; }
-			public DateTime Expiration { get; set; }
-			public string Issuer { get; set; }
-		}
 	}
 }
+//dotnet pack --configuration Release
+//dotnet nuget push "bin/Release/OctocatApp.1.0.0.nupkg"  --api-key YOUR_GITHUB_PAT --source "github"
