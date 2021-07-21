@@ -6,11 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using platform_CSharp_library.Web;
-using Platform.CSharp.Common.Web;
-using Rumble.Platform.Common.Web;
 
-namespace Rumble.Platform.ChatService.Utilities
+namespace Rumble.Platform.Common.Web
 {
 	/// <summary>
 	/// This class is designed to catch Exceptions that the API throws.  Our API should not be dumping stack traces

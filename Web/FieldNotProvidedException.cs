@@ -1,4 +1,4 @@
-namespace platform_CSharp_library.Web
+namespace Rumble.Platform.Common.Web
 {
 	public class FieldNotProvidedException : RumbleException
 	{

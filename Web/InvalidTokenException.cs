@@ -1,8 +1,7 @@
 using System;
 using System.Runtime.Serialization;
-using platform_CSharp_library.Web;
 
-namespace Platform.CSharp.Common.Web
+namespace Rumble.Platform.Common.Web
 {
 	public class InvalidTokenException : RumbleException
 	{

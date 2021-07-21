@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Newtonsoft.Json.Linq;
-using platform_CSharp_library.Web;
-using Platform.CSharp.Common.Web;
 using RestSharp;
 
 namespace Rumble.Platform.Common.Web
