@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -16,6 +17,9 @@ namespace Rumble.Platform.Common.Web
 	{
 		protected const string AUTH = "Authorization";
 		protected abstract string TokenAuthEndpoint { get; }
+
+		protected readonly IConfiguration _config;
+		protected RumbleController(IConfiguration config) => _config = config;
 		internal void Throw(string message, Exception exception = null)
 		{
 			throw new Exception(message, innerException: exception);
@@ -93,20 +97,40 @@ namespace Rumble.Platform.Common.Web
 		/// <param name="verificationEndpoint">e.g. http://localhost:8081/player/verify</param>
 		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
 		/// <returns>Information encoded in the token.</returns>
-		protected TokenInfo ValidateToken(string token)
+		protected TokenInfo ValidateToken(string token, bool superuser = false)
 		{
+			if (superuser)	// TODO: Update player service to create sudo tokens from server auth
+				throw new InvalidTokenException("Superuser is not yet implemented.", new NotImplementedException());
+			
 			if (token == null)
 				throw new InvalidTokenException();
-			Dictionary<string, object> result = InternalApiCall(TokenAuthEndpoint, token);
-			TokenInfo output = new TokenInfo()
+			Dictionary<string, object> result = null;
+
+			try
 			{
-				AccountId = (string)result["aid"],
-				Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
-				Issuer = (string)result["issuer"]
-			};
-			if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
-				throw new InvalidTokenException();
-			return output;
+				result = InternalApiCall(TokenAuthEndpoint, token);
+			}
+			catch (Exception e)
+			{
+				throw new InvalidTokenException($"Exception encountered in request to {TokenAuthEndpoint}", e);
+			}
+
+			try
+			{
+				TokenInfo output = new TokenInfo()
+				{
+					AccountId = (string)result["aid"],
+					Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
+					Issuer = (string)result["issuer"]
+				};
+				if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
+					throw new InvalidTokenException();
+				return output;
+			}
+			catch (Exception e)
+			{
+				throw new InvalidTokenException($"Could not verify token '{token}'.");
+			}
 		}
 		/// <summary>
 		/// Call on other Rumble web services.  Currently only supports GET requests.
