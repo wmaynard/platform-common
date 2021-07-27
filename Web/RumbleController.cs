@@ -90,18 +90,22 @@ namespace Rumble.Platform.Common.Web
 				throw new FieldNotProvidedException(name);
 			return output;
 		}
+
+		protected TokenInfo ValidateAdminToken(string token)
+		{
+			TokenInfo output = ValidateToken(token);
+			if (!output.IsAdmin)
+				throw new InvalidTokenException("Unauthorized");
+			return output;
+		}
 		
 		/// <summary>
 		/// Sends a GET request to a token service (currently player-service) to validate a token.
 		/// </summary>
-		/// <param name="verificationEndpoint">e.g. http://localhost:8081/player/verify</param>
 		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
 		/// <returns>Information encoded in the token.</returns>
-		protected TokenInfo ValidateToken(string token, bool superuser = false)
+		protected TokenInfo ValidateToken(string token)
 		{
-			if (superuser)	// TODO: Update player service to create sudo tokens from server auth
-				throw new InvalidTokenException("Superuser is not yet implemented.", new NotImplementedException());
-			
 			if (token == null)
 				throw new InvalidTokenException();
 			Dictionary<string, object> result = null;
@@ -121,7 +125,8 @@ namespace Rumble.Platform.Common.Web
 				{
 					AccountId = (string)result["aid"],
 					Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
-					Issuer = (string)result["issuer"]
+					Issuer = (string)result["issuer"],
+					IsAdmin = (bool)result["isAdmin"]
 				};
 				if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
 					throw new InvalidTokenException();
@@ -153,7 +158,10 @@ namespace Rumble.Platform.Common.Web
 			
 			return response.Data;
 		}
+		
+		[HttpGet, Route(template: "/health")]
+		public abstract ActionResult HealthCheck();
 	}
 }
 //dotnet pack --configuration Release
-//dotnet nuget push "bin/Release/OctocatApp.1.0.0.nupkg"  --api-key YOUR_GITHUB_PAT --source "github"
+//dotnet nuget push "bin/Release/myPackage.1.0.0.nupkg"  --api-key YOUR_GITHUB_PAT --source "github"
