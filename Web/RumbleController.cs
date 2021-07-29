@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Dynamic;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -36,6 +37,11 @@ namespace Rumble.Platform.Common.Web
 		public override OkObjectResult Ok(object value)
 		{
 			return base.Ok(Merge(new { Success = true }, value));
+		}
+
+		public OkObjectResult Ok(params object[] objects)
+		{
+			return this.Ok(value: Merge(objects));
 		}
 
 		protected static object Merge(params object[] objects)
@@ -125,9 +131,10 @@ namespace Rumble.Platform.Common.Web
 				{
 					AccountId = (string)result["aid"],
 					Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
-					Issuer = (string)result["issuer"],
-					IsAdmin = (bool)result["isAdmin"]
+					Issuer = (string)result["issuer"]
+					// IsAdmin = (bool)result["isAdmin"]
 				};
+				output.IsAdmin = result.ContainsKey("isAdmin") && (bool)result["isAdmin"];
 				if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
 					throw new InvalidTokenException();
 				return output;
@@ -164,4 +171,4 @@ namespace Rumble.Platform.Common.Web
 	}
 }
 //dotnet pack --configuration Release
-//dotnet nuget push "bin/Release/myPackage.1.0.0.nupkg"  --api-key YOUR_GITHUB_PAT --source "github"
+//dotnet nuget push bin/Release/platform-csharp-common.1.x.x.nupkg --api-key YOUR_GITHUB_PAT --source github
