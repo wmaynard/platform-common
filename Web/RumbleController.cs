@@ -124,24 +124,24 @@ namespace Rumble.Platform.Common.Web
 			{
 				throw new InvalidTokenException($"Exception encountered in request to {TokenAuthEndpoint}", e);
 			}
-
+			bool success = (bool)result["success"];
+			if (!success)
+				throw new InvalidTokenException((string) result["error"]);
 			try
 			{
 				TokenInfo output = new TokenInfo()
 				{
-					AccountId = (string)result["aid"],
-					Expiration = DateTime.UnixEpoch.AddSeconds((long)result["expiration"]),
-					Issuer = (string)result["issuer"]
-					// IsAdmin = (bool)result["isAdmin"]
+					AccountId = (string) result["aid"],
+					Expiration = DateTime.UnixEpoch.AddSeconds((long) result["expiration"]),
+					Issuer = (string) result["issuer"],
+					SecondsRemaining = (double) result["secondsRemaining"]
 				};
-				output.IsAdmin = result.ContainsKey("isAdmin") && (bool)result["isAdmin"];
-				if (output.Expiration.Subtract(DateTime.Now).TotalMilliseconds <= 0)
-					throw new InvalidTokenException();
+				output.IsAdmin = result.ContainsKey("isAdmin") && (bool) result["isAdmin"];
 				return output;
 			}
 			catch (Exception e)
 			{
-				throw new InvalidTokenException($"Could not verify token '{token}'.");
+				throw new InvalidTokenException($"Could not verify token.", e);
 			}
 		}
 		/// <summary>

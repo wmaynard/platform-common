@@ -8,5 +8,6 @@ namespace Rumble.Platform.Common.Web
 		public DateTime Expiration { get; set; }
 		public string Issuer { get; set; }
 		public bool IsAdmin { get; set; }
+		public double SecondsRemaining { get; set; }
 	}
 }

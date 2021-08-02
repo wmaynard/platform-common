@@ -37,7 +37,7 @@ namespace Rumble.Platform.Common.Web
 			if (context.Exception == null)
 				return;
 
-			Exception ex = context.Exception?.InnerException ?? context.Exception;
+			Exception ex = context.Exception;
 
 			string code = ex switch
 			{
