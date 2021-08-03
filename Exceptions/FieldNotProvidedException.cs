@@ -1,4 +1,4 @@
-namespace Rumble.Platform.Common.Web
+namespace Rumble.Platform.Common.Exceptions
 {
 	public class FieldNotProvidedException : RumbleException
 	{

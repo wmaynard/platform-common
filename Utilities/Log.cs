@@ -4,6 +4,7 @@ namespace Rumble.Platform.Common.Utilities
 {
 	public static class Log
 	{
+		// TODO: Tie to loggly
 		public static string Timestamp => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss\t");
 		public static readonly DateTime Start = DateTime.Now;
 

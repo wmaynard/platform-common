@@ -1,6 +1,6 @@
 using System;
 
-namespace Rumble.Platform.Common.Web
+namespace Rumble.Platform.Common.Exceptions
 {
 	public class RumbleException : Exception
 	{

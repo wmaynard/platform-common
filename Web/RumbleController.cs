@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using Rumble.Platform.Common.Exceptions;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -34,7 +35,7 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		public new OkObjectResult Ok() => Ok(null);
-		public override OkObjectResult Ok(object value)
+		private OkObjectResult Ok(object value)
 		{
 			return base.Ok(Merge(new { Success = true }, value));
 		}
@@ -46,6 +47,8 @@ namespace Rumble.Platform.Common.Web
 
 		protected static object Merge(params object[] objects)
 		{
+			if (objects == null)
+				return null;
 			object output = new { };
 			foreach (object o in objects)
 				output = Merge(foo: output, bar: o);
@@ -149,7 +152,7 @@ namespace Rumble.Platform.Common.Web
 		/// </summary>
 		/// <param name="endpoint">The full URL to request.</param>
 		/// <param name="authorization">The token to pass along.</param>
-		/// <returns>A Dictionary<string, object> of the JSON response.</returns>  TODO: Return JSON
+		/// <returns>A Dictionary<string, object> of the JSON response.</returns>
 		private static Dictionary<string, object> InternalApiCall(string endpoint, string authorization = null)
 		{
 			Uri baseUrl = new Uri(endpoint);

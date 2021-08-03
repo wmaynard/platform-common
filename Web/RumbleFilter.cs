@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -45,7 +47,7 @@ namespace Rumble.Platform.Common.Web
 				ArgumentNullException => ex.Message,
 				RumbleException => ex.Message,
 				BadHttpRequestException => ex.Message,
-				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})" // TODO: Log these as warnings
+				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
 			string debug = ex switch
 			{
@@ -57,6 +59,8 @@ namespace Rumble.Platform.Common.Web
 				errorCode: code,
 				debugText: debug
 			));
+
+			Log.Write($"Encountered {ex.GetType().Name}: {code}");
 			context.ExceptionHandled = true;
 		}
 	}

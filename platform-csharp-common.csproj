@@ -5,7 +5,7 @@
 		<RootNamespace>Rumble.Platform.CSharp.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.0.8</PackageVersion>
+		<PackageVersion>1.0.9</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	</PropertyGroup>
 

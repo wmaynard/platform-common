@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace Rumble.Platform.Common.Web
+namespace Rumble.Platform.Common.Exceptions
 {
 	public class InvalidTokenException : RumbleException
 	{
