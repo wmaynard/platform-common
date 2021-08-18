@@ -35,7 +35,7 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		public new OkObjectResult Ok() => Ok(null);
-		private OkObjectResult Ok(object value)
+		private new OkObjectResult Ok(object value)
 		{
 			return base.Ok(Merge(new { Success = true }, value));
 		}
@@ -135,8 +135,10 @@ namespace Rumble.Platform.Common.Web
 				TokenInfo output = new TokenInfo()
 				{
 					AccountId = (string) result["aid"],
+					Discriminator = Convert.ToInt32(result["discriminator"]),
 					Expiration = DateTime.UnixEpoch.AddSeconds((long) result["expiration"]),
 					Issuer = (string) result["issuer"],
+					ScreenName = (string) result["screenName"],
 					SecondsRemaining = (double) result["secondsRemaining"]
 				};
 				output.IsAdmin = result.ContainsKey("isAdmin") && (bool) result["isAdmin"];
@@ -171,7 +173,15 @@ namespace Rumble.Platform.Common.Web
 		
 		[HttpGet, Route(template: "/health")]
 		public abstract ActionResult HealthCheck();
+
+		public static object CollectionResponseObject(IEnumerable<object> objects)
+		{
+			ExpandoObject expando = new ExpandoObject();
+			IDictionary<string, object> output = (IDictionary<string, object>) expando;
+			output[objects.First().GetType().Name + "s"] = objects;
+			return output;
+		}
 	}
 }
-//dotnet pack --configuration Release
-//dotnet nuget push bin/Release/platform-csharp-common.1.x.x.nupkg --api-key YOUR_GITHUB_PAT --source github
+// dotnet pack --configuration Release
+// dotnet nuget push bin/Release/platform-csharp-common.1.x.x.nupkg --api-key YOUR_GITHUB_PAT --source github

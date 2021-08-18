@@ -5,12 +5,16 @@
 		<RootNamespace>Rumble.Platform.CSharp.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.0.9</PackageVersion>
+		<PackageVersion>1.0.10</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	</PropertyGroup>
 
+	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+	  <NoWarn>1701;1702;NU5100</NoWarn>
+	</PropertyGroup>
+
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
+	  <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
 	  <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
 	  <PackageReference Include="MongoDB.Driver.Core" Version="2.13.0" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
