@@ -178,7 +178,8 @@ namespace Rumble.Platform.Common.Web
 		{
 			ExpandoObject expando = new ExpandoObject();
 			IDictionary<string, object> output = (IDictionary<string, object>) expando;
-			output[objects.First().GetType().Name + "s"] = objects;
+			// Use the Type from the IEnumerable; otherwise if it's an empty enumerable it will throw an exception
+			output[objects.GetType().GetGenericArguments()[0].Name + "s"] = objects;
 			return output;
 		}
 	}
