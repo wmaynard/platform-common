@@ -18,8 +18,5 @@ build_app:
     - dotnet restore
     - dotnet build --no-restore --configuration Release
     - echo $(ls bin/Release/net5.0/)
-    - dotnet nuget add source --username eric.sheris --password $NUGET_PAT --store-password-in-clear-text --name gitlab "https://gitlab.cdrentertainment.com/api/v4/groups/5/-/packages/nuget/index.json"
-    - dotnet nuget push bin/Release/net5.0/package.nupkg --source gitlab
-  artifacts:
-    paths:
-      - bin/Release/net5.0/*
+    - dotnet nuget add source "$CI_SERVER_URL/api/v4/groups/5/-/packages/nuget/index.json" --username eric.sheris --password $NUGET_PAT --store-password-in-clear-text --name gitlab 
+    - dotnet nuget push "$PWD/bin/Release/net5.0/*.nupkg" --source gitlab
