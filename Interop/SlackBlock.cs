@@ -26,7 +26,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		
 		public SlackBlock(BlockType type, string text = null)
 		{
-			if (text.Length > SLACK_JSON_LENGTH_LIMIT)
+			if (text != null && text.Length > SLACK_JSON_LENGTH_LIMIT)
 				throw new RumbleException("Text is too long to be sent to Slack.");
 			_blockType = type;
 			Type = null;
