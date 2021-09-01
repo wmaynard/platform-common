@@ -23,7 +23,6 @@ namespace Rumble.Platform.Common.Utilities
 		private static void ReadLocalSecretsFile()
 		{
 			LocalSecrets ??= new Dictionary<string, string>();
-#if DEBUG
 			try
 			{
 				JObject json = (JObject) JsonConvert.DeserializeObject(File.ReadAllText(FILE));
@@ -34,7 +33,6 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				Log.Write("RumbleEnvironment was unable to read the 'environment.json' file.");
 			}
-#endif
 		}
 		
 		public static string Variable(string name)
