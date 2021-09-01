@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -21,11 +22,12 @@ namespace Rumble.Platform.Common.Web
 		protected abstract string TokenAuthEndpoint { get; }
 
 		protected readonly IConfiguration _config;
-		protected RumbleController(IConfiguration config) => _config = config;
-		internal void Throw(string message, Exception exception = null)
+		protected RumbleController(IConfiguration config)
 		{
-			throw new Exception(message, innerException: exception);
+			_config = config;
+			TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
 		}
+		protected WebRequest TokenVerification { get; set; }
 
 		public ObjectResult Problem(string detail) => Problem(value: new { DebugText = detail });
 
@@ -34,7 +36,8 @@ namespace Rumble.Platform.Common.Web
 			return base.Ok(Merge(new { Success = false }, value));
 		}
 
-		public new OkObjectResult Ok() => Ok(null);
+		public new OkObjectResult Ok() => base.Ok(null);
+		public OkObjectResult Ok(string message) => Ok( new { Message = message });
 		private new OkObjectResult Ok(object value)
 		{
 			return base.Ok(Merge(new { Success = true }, value));
@@ -121,7 +124,9 @@ namespace Rumble.Platform.Common.Web
 
 			try
 			{
-				result = InternalApiCall(TokenAuthEndpoint, token);
+				// new WebRequest(TokenAuthEndpoint, Method.GET, token);
+				// result = InternalApiCall(TokenAuthEndpoint, token);
+				result = WebRequest.Get(TokenAuthEndpoint, token);
 			}
 			catch (Exception e)
 			{
@@ -148,27 +153,6 @@ namespace Rumble.Platform.Common.Web
 			{
 				throw new InvalidTokenException($"Could not verify token.", e);
 			}
-		}
-		/// <summary>
-		/// Call on other Rumble web services.  Currently only supports GET requests.
-		/// </summary>
-		/// <param name="endpoint">The full URL to request.</param>
-		/// <param name="authorization">The token to pass along.</param>
-		/// <returns>A Dictionary<string, object> of the JSON response.</returns>
-		private static Dictionary<string, object> InternalApiCall(string endpoint, string authorization = null)
-		{
-			Uri baseUrl = new Uri(endpoint);
-			IRestClient client = new RestClient(baseUrl);
-			IRestRequest request = new RestRequest("get", Method.GET);
-			
-			if (authorization != null)
-				request.AddHeader("Authorization", authorization);
-
-			IRestResponse<Dictionary<string, object>> response = client.Execute<Dictionary<string, object>>(request);
-			if (!response.IsSuccessful)
-				throw new Exception(response.ErrorMessage);
-			
-			return response.Data;
 		}
 		
 		[HttpGet, Route(template: "/health")]
