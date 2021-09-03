@@ -139,14 +139,14 @@ namespace Rumble.Platform.Common.Web
 			{
 				TokenInfo output = new TokenInfo()
 				{
-					AccountId = (string) result["aid"],
-					Discriminator = Convert.ToInt32(result["discriminator"]),
-					Expiration = DateTime.UnixEpoch.AddSeconds((long) result["expiration"]),
-					Issuer = (string) result["issuer"],
-					ScreenName = (string) result["screenName"],
-					SecondsRemaining = (double) result["secondsRemaining"]
+					AccountId = ExtractRequiredValue("aid", result).ToObject<string>(),
+					Discriminator = ExtractOptionalValue("discriminator", result)?.ToObject<int?>() ?? -1,
+					Expiration = DateTime.UnixEpoch.AddSeconds(ExtractRequiredValue("expiration", result).ToObject<long>()),
+					Issuer = ExtractRequiredValue("issuer", result).ToObject<string>(),
+					ScreenName = ExtractOptionalValue("screenName", result).ToObject<string>(),
+					SecondsRemaining = ExtractRequiredValue("secondsRemaining", result).ToObject<double>(),
+					IsAdmin = ExtractOptionalValue("isAdmin", result)?.ToObject<bool>() ?? false 
 				};
-				output.IsAdmin = result.ContainsKey("isAdmin") && (bool) result["isAdmin"];
 				return output;
 			}
 			catch (Exception e)
