@@ -13,7 +13,8 @@ namespace Rumble.Platform.Common.Utilities
 	{
 		private static readonly LogglyClient Loggly = new LogglyClient();
 		private const string ROUTE_ATTRIBUTE_NAME = "RouteAttribute";
-		private enum LogType { LOCAL, INFO, WARNING, ERROR, CRITICAL }
+		private static readonly bool VerboseEnabled = RumbleEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
+		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
 		
 		[JsonIgnore]
 		private readonly Owner _owner;
@@ -46,7 +47,7 @@ namespace Rumble.Platform.Common.Utilities
 		private static readonly DateTime ServiceStart = DateTime.UtcNow;
 
 		[JsonIgnore]
-		private string ElapsedTime
+		private static string ElapsedTime
 		{
 			get
 			{
@@ -58,14 +59,16 @@ namespace Rumble.Platform.Common.Utilities
 			}
 		}
 		[JsonIgnore]
-		private static readonly bool LocalDev = RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
+		public static readonly bool LocalDev = RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
 		[JsonIgnore]
 		private static readonly int MaxOwnerNameLength = !LocalDev ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
 		[JsonIgnore] 
 		private static readonly int MaxSeverityLength = !LocalDev ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
 		[JsonIgnore]
-		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')}{ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Message ?? "(No Message)"}";
+		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')}{ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Caller}: {Message ?? "(No Message)"}";
+		[JsonIgnore]
+		private string Caller { get; set; }
 		
 		private Log(LogType type, Owner owner)
 		{
@@ -73,6 +76,12 @@ namespace Rumble.Platform.Common.Utilities
 			_owner = owner;
 			Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
 			Endpoint = FetchEndpoint();
+			
+			if (!LocalDev) 
+				return;
+			
+			MethodBase method = new StackFrame(3).GetMethod();
+			Caller = $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
 		}
 
 		private Log Send()
@@ -84,15 +93,24 @@ namespace Rumble.Platform.Common.Utilities
 			return this;
 		}
 
+		public static void Verbose(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		{
+			if (!LocalDev || !VerboseEnabled)
+				return;
+			Write(LogType.VERBOSE, owner, message, token, data, exception);
+		}
 		public static void Local(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
 			if (!LocalDev)
 				return;
 			Write(LogType.LOCAL, owner, message, token, data, exception);
 		}
-		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null, bool localIfNotDeployed = false)
 		{
-			Write(LogType.INFO, owner, message, token, data, exception);
+			if (localIfNotDeployed && LocalDev)
+				Write(LogType.LOCAL, owner, message, token, data, exception);
+			else
+				Write(LogType.INFO, owner, message, token, data, exception);
 		}
 		public static void Warn(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{

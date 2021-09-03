@@ -2,12 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public struct SlackBlock
 	{
-		public const int SLACK_JSON_LENGTH_LIMIT = 2900; // Actually set to 3001, but best to leave some extra room.
+		public const int SLACK_HEADER_LENGTH_LIMIT = 150;
+		public const int SLACK_JSON_LENGTH_LIMIT = 2000; // Actually set to 3001, but best to leave some extra room for serialization.
+		public const int SLACK_JSON_HARD_LENGTH_LIMIT = 3000; // TODO: Any blocks longer than this should not be sent.
 		public enum BlockType { HEADER, DIVIDER, MARKDOWN }
 
 		[JsonIgnore]
@@ -27,7 +30,10 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public SlackBlock(BlockType type, string text = null)
 		{
 			if (text != null && text.Length > SLACK_JSON_LENGTH_LIMIT)
-				throw new RumbleException("Text is too long to be sent to Slack.");
+				Log.Verbose(Owner.Will, "SlackBlock text approaching Slack limit and may fail.", data: new
+				{
+					TextLength = text.Length
+				});
 			_blockType = type;
 			Type = null;
 			_Text = null;
@@ -59,6 +65,15 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				default:
 					break;
 			}
+		}
+
+		public static bool WouldOverflow(string text, BlockType type = BlockType.MARKDOWN)
+		{
+			return text.Length > type switch
+			{
+				BlockType.HEADER => SLACK_HEADER_LENGTH_LIMIT,
+				_ => SLACK_JSON_LENGTH_LIMIT
+			};
 		}
 
 		public static List<SlackBlock> Compress(List<SlackBlock> blocks)
