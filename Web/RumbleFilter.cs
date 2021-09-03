@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -59,8 +60,7 @@ namespace Rumble.Platform.Common.Web
 				errorCode: code,
 				debugText: debug
 			));
-
-			Log.Write($"Encountered {ex.GetType().Name}: {code}");
+			Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
 			context.ExceptionHandled = true;
 		}
 	}

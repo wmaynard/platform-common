@@ -4,6 +4,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Utilities
 {
@@ -31,7 +32,7 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch
 			{
-				Log.Write("RumbleEnvironment was unable to read the 'environment.json' file.");
+				Log.Local(Owner.Will, message: "RumbleEnvironment was unable to read the 'environment.json' file.");
 			}
 		}
 		
