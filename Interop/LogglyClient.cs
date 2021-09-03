@@ -41,10 +41,9 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public static readonly LogglyClient Loggly = new LogglyClient();
 		private const string ROUTE_ATTRIBUTE_NAME = "RouteAttribute";
 		public enum LogType { INFO, WARNING, ERROR, CRITICAL }
-		public enum LogOwner { WILL, SEAN }
 		
 		[JsonIgnore]
-		private readonly LogOwner _owner;
+		private readonly Owner _owner;
 
 		[JsonProperty]
 		public string Owner => _owner.ToString();
@@ -65,35 +64,52 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string Endpoint { get; set; }
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		public object Data { get; set; }
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		public Exception Exception { get; set; }
 
-		private LogData(LogType type, LogOwner owner)
+		private LogData(LogType type, Owner owner)
 		{
 			_severity = type;
 			_owner = owner;
 			Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
 			Endpoint = FetchEndpoint();
 		}
-		public LogData(LogType type, LogOwner owner, string message) : this(type, owner)
+
+		private LogData Send()
 		{
-			Message = message;
+			Loggly.Send(this);
+			return this;
 		}
 
-		public LogData(LogType type, LogOwner owner, Exception exception) : this(type, owner)
+		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			Message = exception.Message;
-			StackTrace = exception.StackTrace;
+			Write(LogType.INFO, owner, message, token, data, exception);
+		}
+		public static void Warn(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		{
+			Write(LogType.WARNING, owner, message, token, data, exception);
+		}
+		public static void Error(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		{
+			Write(LogType.ERROR, owner, message, token, data, exception);
+		}
+		public static void Critical(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		{
+			Write(LogType.CRITICAL, owner, message, token, data, exception);
 		}
 
-		public static void Info(LogOwner owner, string message, TokenInfo token = null)
+		private static void Write(LogType type, Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			LogData data = new LogData(LogType.INFO, owner, message)
+			LogData log = new LogData(type, owner)
 			{
-				Token = token
-			};
-			
-			Loggly.Send(data);
+				Data = data,
+				Message = message ?? exception?.Message,
+				Token = token,
+				Exception = exception
+			}.Send();
 		}
-
 		/// <summary>
 		/// Uses the stack trace to find the most recent endpoint call.  This method looks for the Route attribute
 		/// and, if it finds a method with it, outputs the formatted endpoint.
