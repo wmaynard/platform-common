@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 
@@ -21,11 +22,11 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				: $"Bearer {token}";
 		}
 
-		public Dictionary<string, object> Send(SlackMessage message)
+		public JObject Send(SlackMessage message)
 		{
 			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
-			Dictionary<string, object> response = null;
+			JObject response = null;
 			message.Channel = Channel;
 
 			try

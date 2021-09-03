@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -36,5 +37,12 @@ namespace Rumble.Platform.Common.Web
 		[BsonIgnore]
 		[JsonIgnore]
 		public static long UnixTime => DateTimeOffset.Now.ToUnixTimeSeconds();
+		
+		[BsonIgnore]
+		[JsonIgnore]
+		public string JSON => JsonConvert.SerializeObject(
+			this,
+			new JsonSerializerSettings(){ContractResolver = new CamelCasePropertyNamesContractResolver()}
+		);
 	}
 }

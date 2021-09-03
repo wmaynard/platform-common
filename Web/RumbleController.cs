@@ -120,7 +120,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			if (token == null)
 				throw new InvalidTokenException();
-			Dictionary<string, object> result = null;
+			JObject result = null;
 
 			try
 			{
