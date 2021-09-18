@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
-	public class SlackMessage
+	public class SlackMessage : RumbleModel
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public List<SlackAttachment> Attachments { get; set; }
@@ -13,12 +14,6 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public List<SlackBlock> Blocks { get; set; }
 		[JsonProperty]
 		public string Channel { get; set; }
-		
-		[JsonIgnore]
-		public string JSON => JsonConvert.SerializeObject(
-			this,
-			new JsonSerializerSettings(){ContractResolver = new CamelCasePropertyNamesContractResolver()}
-		);
 
 		public SlackMessage(List<SlackBlock> blocks, params SlackAttachment[] attachments)
 		{

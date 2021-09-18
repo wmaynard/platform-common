@@ -21,6 +21,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public void Compress()
 		{
 			Blocks = SlackBlock.Compress(Blocks);
+			// TODO: If more than 50 blocks, need a new attachment
 		}
 	}
 }

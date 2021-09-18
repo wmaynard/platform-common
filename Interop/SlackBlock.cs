@@ -14,7 +14,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public enum BlockType { HEADER, DIVIDER, MARKDOWN }
 
 		[JsonIgnore]
-		private BlockType _blockType;
+		private readonly BlockType _blockType;
 		[JsonProperty]
 		public string Type { get; set; }
 		
@@ -25,8 +25,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		private string _Text { get; set; }
 
 		public SlackBlock(string text) : this(BlockType.MARKDOWN, text) { }
-		
-		
+
 		public SlackBlock(BlockType type, string text = null)
 		{
 			if (text != null && text.Length > SLACK_JSON_LENGTH_LIMIT)
@@ -86,7 +85,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			string tempText = blocks.First()._Text ?? "";
 			for (int i = 1; i < blocks.Count; i++)
 			{
-				int newLength = tempText.Length + (blocks[i]._Text ?? "").Length;
+				int newLength = (tempText?.Length ?? 0) + (blocks[i]._Text ?? "").Length;
 				if (tempType == BlockType.DIVIDER || tempType != blocks[i]._blockType || newLength > SLACK_JSON_LENGTH_LIMIT)
 				{
 					output.Add(new SlackBlock(tempType, tempText));
