@@ -1,12 +1,18 @@
 using System;
 using System.Runtime.Serialization;
+using Newtonsoft.Json;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
 	public class InvalidTokenException : RumbleException
 	{
-		public InvalidTokenException() : base("Token is invalid."){}
-		public InvalidTokenException(string reason) : base($"Token is invalid. ({reason})"){}
-		public InvalidTokenException(string reason, Exception inner) : base($"Token is invalid. ({reason})", inner){}
+		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		public string Token { get; private set; }
+		
+		public InvalidTokenException(string token, Exception inner = null) : base($"Token is invalid.", inner)
+		{
+			Token = token?.Replace("Bearer ", "");
+		}
 	}
 }

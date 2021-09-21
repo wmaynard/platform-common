@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
+using RestSharp;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.CSharp.Common.Interop;
 
@@ -12,7 +15,6 @@ namespace Rumble.Platform.Common.Utilities
 	public class Log : RumbleModel
 	{
 		private static readonly LogglyClient Loggly = new LogglyClient();
-		private const string ROUTE_ATTRIBUTE_NAME = "RouteAttribute";
 		private static readonly bool VerboseEnabled = RumbleEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
 		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
 		
@@ -70,12 +72,18 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonIgnore]
 		private string Caller { get; set; }
 		
-		private Log(LogType type, Owner owner)
+		private Log(LogType type, Owner owner, Exception exception = null)
 		{
 			_severity = type;
 			_owner = owner;
 			Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
-			Endpoint = FetchEndpoint();
+			Exception = exception;
+
+			if (exception is RumbleException)
+				Endpoint = ((RumbleException) Exception)?.Endpoint ?? Diagnostics.FindEndpoint();
+			else
+				Endpoint = Diagnostics.FindEndpoint();
+			
 			
 			if (!LocalDev) 
 				return;
@@ -127,46 +135,12 @@ namespace Rumble.Platform.Common.Utilities
 
 		private static void Write(LogType type, Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			Log log = new Log(type, owner)
+			Log log = new Log(type, owner, exception)
 			{
 				Data = data,
 				Message = message ?? exception?.Message,
-				Token = token,
-				Exception = exception
+				Token = token
 			}.Send();
-		}
-		/// <summary>
-		/// Uses the stack trace to find the most recent endpoint call.  This method looks for the Route attribute
-		/// and, if it finds a method with it, outputs the formatted endpoint.
-		/// </summary>
-		/// <param name="lookBehind">The maximum number of StackFrames to inspect.</param>
-		/// <returns>A formatted endpoint as a string, or null if one isn't found or an Exception is encountered.</returns>
-		private static string FetchEndpoint(int lookBehind = 10)
-		{
-			string endpoint = null;
-			try
-			{
-				// Finds the first method with a Route attribute
-				MethodBase method = new StackTrace()
-					.GetFrames()
-					.Take(lookBehind)
-					.Select(frame => frame.GetMethod())
-					.First(method => method.CustomAttributes
-						.Any(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME));
-				
-				endpoint = "/" + string.Join('/', 
-					method
-						.DeclaringType
-						.CustomAttributes
-						.Union(method.CustomAttributes)
-						.Where(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME)
-						.SelectMany(data => data.ConstructorArguments)
-						.Select(arg => arg.Value?.ToString())
-				);
-			}
-			catch {}
-
-			return endpoint;
 		}
 	}
 }

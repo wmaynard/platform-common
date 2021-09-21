@@ -107,7 +107,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			TokenInfo output = ValidateToken(token);
 			if (!output.IsAdmin)
-				throw new InvalidTokenException("Unauthorized");
+				throw new InvalidTokenException(token);
 			return output;
 		}
 		
@@ -119,7 +119,7 @@ namespace Rumble.Platform.Common.Web
 		protected TokenInfo ValidateToken(string token)
 		{
 			if (token == null)
-				throw new InvalidTokenException();
+				throw new InvalidTokenException(token);
 			JObject result = null;
 
 			try
@@ -130,11 +130,11 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (Exception e)
 			{
-				throw new InvalidTokenException($"Exception encountered in request to {TokenAuthEndpoint}", e);
+				throw new InvalidTokenException(token, e);
 			}
 			bool success = (bool)result["success"];
 			if (!success)
-				throw new InvalidTokenException((string) result["error"]);
+				throw new InvalidTokenException(token, new Exception((string) result["error"]));
 			try
 			{
 				TokenInfo output = new TokenInfo()
@@ -151,7 +151,7 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (Exception e)
 			{
-				throw new InvalidTokenException($"Could not verify token.", e);
+				throw new InvalidTokenException(token, e);
 			}
 		}
 		

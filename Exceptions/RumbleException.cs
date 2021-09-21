@@ -1,12 +1,22 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
 	public class RumbleException : Exception
 	{
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		public string Endpoint { get; private set; }
+		
 		public RumbleException() : this("No message provided."){}
-		public RumbleException(string message) : base(message){}
-		public RumbleException(string message, Exception inner) : base(message, inner){}
+		public RumbleException(string message, Exception inner = null) : base(message, inner)
+		{
+			Endpoint = Diagnostics.FindEndpoint();
+		}
 
 		public string Detail
 		{
