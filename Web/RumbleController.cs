@@ -107,7 +107,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			TokenInfo output = ValidateToken(token);
 			if (!output.IsAdmin)
-				throw new InvalidTokenException(token);
+				throw new InvalidTokenException(token, TokenAuthEndpoint);
 			return output;
 		}
 		
@@ -119,39 +119,37 @@ namespace Rumble.Platform.Common.Web
 		protected TokenInfo ValidateToken(string token)
 		{
 			if (token == null)
-				throw new InvalidTokenException(token);
+				throw new InvalidTokenException(token, TokenAuthEndpoint);
 			JObject result = null;
 
 			try
 			{
-				// new WebRequest(TokenAuthEndpoint, Method.GET, token);
-				// result = InternalApiCall(TokenAuthEndpoint, token);
 				result = WebRequest.Get(TokenAuthEndpoint, token);
 			}
 			catch (Exception e)
 			{
-				throw new InvalidTokenException(token, e);
+				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
 			bool success = (bool)result["success"];
 			if (!success)
-				throw new InvalidTokenException(token, new Exception((string) result["error"]));
+				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string) result["error"]));
 			try
 			{
-				TokenInfo output = new TokenInfo()
+				TokenInfo output = new TokenInfo(token)
 				{
-					AccountId = ExtractRequiredValue("aid", result).ToObject<string>(),
-					Discriminator = ExtractOptionalValue("discriminator", result)?.ToObject<int?>() ?? -1,
-					Expiration = DateTime.UnixEpoch.AddSeconds(ExtractRequiredValue("expiration", result).ToObject<long>()),
-					Issuer = ExtractRequiredValue("issuer", result).ToObject<string>(),
-					ScreenName = ExtractOptionalValue("screenName", result).ToObject<string>(),
-					SecondsRemaining = ExtractRequiredValue("secondsRemaining", result).ToObject<double>(),
-					IsAdmin = ExtractOptionalValue("isAdmin", result)?.ToObject<bool>() ?? false 
+					AccountId = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, result).ToObject<string>(),
+					Discriminator = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_DISCRIMINATOR, result)?.ToObject<int?>() ?? -1,
+					Expiration = DateTime.UnixEpoch.AddSeconds(ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_EXPIRATION, result).ToObject<long>()),
+					Issuer = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_ISSUER, result).ToObject<string>(),
+					ScreenName = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_SCREENNAME, result).ToObject<string>(),
+					SecondsRemaining = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING, result).ToObject<double>(),
+					IsAdmin = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_IS_ADMIN, result)?.ToObject<bool>() ?? false 
 				};
 				return output;
 			}
 			catch (Exception e)
 			{
-				throw new InvalidTokenException(token, e);
+				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
 		}
 		
@@ -168,5 +166,3 @@ namespace Rumble.Platform.Common.Web
 		}
 	}
 }
-// dotnet pack --configuration Release
-// dotnet nuget push bin/Release/platform-csharp-common.1.x.x.nupkg --api-key YOUR_GITHUB_PAT --source github

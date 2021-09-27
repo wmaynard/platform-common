@@ -7,6 +7,7 @@ namespace Rumble.Platform.Common.Utilities
 		Eitan,
 		Eric,
 		Ernesto,
+		Nathan,
 		Sean,
 		System,
 		Will

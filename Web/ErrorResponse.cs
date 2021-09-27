@@ -1,3 +1,7 @@
+using System;
+using Newtonsoft.Json;
+using Rumble.Platform.Common.Exceptions;
+
 namespace Rumble.Platform.Common.Web
 {
 	/// <summary>
@@ -6,12 +10,13 @@ namespace Rumble.Platform.Common.Web
 	/// </summary>
 	public class ErrorResponse : StandardResponse
 	{
-		public string ErrorCode { get; set; }
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		public string Message { get; set; }
 
-		public ErrorResponse(string errorCode, string debugText) : base(debugText)
+		public ErrorResponse(string message, Exception data) : base(data)
 		{
 			Success = false;
-			ErrorCode = errorCode;
+			Message = message;
 		}
 	}
 }

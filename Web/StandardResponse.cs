@@ -1,3 +1,7 @@
+using System.Linq;
+using Newtonsoft.Json;
+using Rumble.Platform.Common.Utilities;
+
 namespace Rumble.Platform.Common.Web
 {
 	/// <summary>
@@ -5,24 +9,16 @@ namespace Rumble.Platform.Common.Web
 	/// </summary>
 	public class StandardResponse
 	{
+		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
 		public bool Success { get; set; }
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public object Data { get; set; }
-		
-#if DEBUG
-		public string DebugText { get; set; }
-#endif
 
-		public StandardResponse(string debugText)
+		public StandardResponse(object data)
 		{
 			Success = true;
-#if DEBUG
-			DebugText = debugText;
-#endif
-		}
-
-		public StandardResponse(string debugText, object data) : this(debugText)
-		{
-			Data = data;
+			if (RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local"))
+				Data = data;
 		}
 	}
 }
