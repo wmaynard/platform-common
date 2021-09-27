@@ -27,7 +27,10 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		{
 			try
 			{
-				Request.Send(log.JSON);
+				Async.Do($"Send data to Loggly ({log.Message})", task: () =>
+				{
+					Request.Send(log.JSON);
+				});
 			}
 			catch (Exception e)
 			{

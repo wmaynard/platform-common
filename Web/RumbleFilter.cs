@@ -50,15 +50,10 @@ namespace Rumble.Platform.Common.Web
 				BadHttpRequestException => ex.Message,
 				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
-			string debug = ex switch
-			{
-				RumbleException exception => exception.Detail,
-				_ => "(No information provided)"
-			};
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
-				errorCode: code,
-				debugText: debug
+				message: code,
+				data: ex
 			));
 			Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
 			context.ExceptionHandled = true;
