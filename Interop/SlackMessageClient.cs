@@ -24,6 +24,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		public JObject Send(SlackMessage message)
 		{
+			// TODO: Async.Do
 			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
 			JObject response = null;

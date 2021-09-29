@@ -9,7 +9,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Rumble.Platform.Common.Web
 {
-	public class RumbleModel
+	public abstract class RumbleModel
 	{
 		/// <summary>
 		/// A self-containing wrapper for use in generating JSON responses for models.  All models should

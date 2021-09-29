@@ -22,24 +22,26 @@ namespace Rumble.Platform.Common.Utilities
 
 		public static readonly bool IsLocal = Variable("RUMBLE_DEPLOYMENT")?.Contains("local") ?? false;
 
-		private static void ReadLocalSecretsFile()
+		private static Dictionary<string, string> ReadLocalSecretsFile()
 		{
-			LocalSecrets ??= new Dictionary<string, string>();
+			Dictionary<string, string> output = new Dictionary<string, string>();
 			try
 			{
 				JObject json = (JObject) JsonConvert.DeserializeObject(File.ReadAllText(FILE));
 				foreach (JProperty prop in json.Properties())
-					LocalSecrets[prop.Name] = prop.Value.ToObject<string>();
+					output[prop.Name] = prop.Value.ToObject<string>();
 			}
 			catch
 			{
 				Log.Local(Owner.Will, message: "RumbleEnvironment was unable to read the 'environment.json' file.");
 			}
+
+			return output;
 		}
 		
 		public static string Variable(string name)
 		{
-			ReadLocalSecretsFile();
+			LocalSecrets ??= ReadLocalSecretsFile();
 			try
 			{
 				return Environment.GetEnvironmentVariable(name) ?? LocalSecrets[name];

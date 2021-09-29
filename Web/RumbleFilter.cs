@@ -31,12 +31,6 @@ namespace Rumble.Platform.Common.Web
 		/// <param name="context"></param>
 		public void OnActionExecuted(ActionExecutedContext context)
 		{
-			
-			// {
-			// 	"success": false,
-			// 	"errorCode": "authentication",
-			// 	"debugText": "authentication"
-			// }
 			if (context.Exception == null)
 				return;
 

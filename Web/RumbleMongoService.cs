@@ -39,7 +39,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			try
 			{
-				_database.RunCommandAsync((Command<BsonDocument>) "{ping:1}").Wait();
+				_database.RunCommandAsync((Command<BsonDocument>) "{ping:1}").Wait(); // TODO: This evidently isn't working as expected.  When we had issues with a mongo connection string, this wasn't catching it.
 			}
 			catch
 			{
