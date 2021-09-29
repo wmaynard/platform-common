@@ -126,6 +126,8 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 | `FieldNotProvidedException` | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property. |
 | `InvalidTokenException` | Raised when the token passed in the Authorization header fails validation. |
 | `RumbleException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
+| `RumbleMongoException` | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them. |
+| `RumbleSerializationException` | A kind of catch-all Exception to use when JSON serialization fails. |
 
 ## Interop
 

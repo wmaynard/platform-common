@@ -12,9 +12,13 @@ namespace Rumble.Platform.Common.Utilities
 {
 	public class Async : IDisposable
 	{
+		[JsonIgnore]
 		private Func<dynamic> Task { get; set; }
+		[JsonIgnore]
 		private Action<dynamic> OnComplete { get; set; }
+		[JsonIgnore]
 		private Action OnTimeout { get; set; }
+		[JsonIgnore]
 		private Action<Exception> OnFailure { get; set; }
 		private Thread Thread { get; set; }
 		[JsonIgnore]
@@ -129,7 +133,7 @@ namespace Rumble.Platform.Common.Utilities
 		private void Timeout(object state = null)
 		{
 			Abort(state);
-			Log.Warn(Owner.Will, $"Async ({Id}) timed out.", data: LogObject);
+			Log.Warn(Owner.Will, $"Async timed out: {Id}", data: LogObject);
 			OnTimeout?.Invoke();
 			Ended = true;
 		}
@@ -165,12 +169,12 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				Result = Task();
 				OnComplete?.Invoke(Result);
-				Log.Verbose(Owner.Will, $"Async ({Id}) completed in {Stopwatch.ElapsedMilliseconds}ms.", data: LogObject);
+				Log.Verbose(Owner.Will, $"Async completed in {Stopwatch.ElapsedMilliseconds}ms: {Id}", data: LogObject);
 			}
 			catch (Exception e)
 			{
 				OnFailure?.Invoke(e);
-				Log.Error(Owner.Will, $"Async ({Id}) failed.", data: LogObject, exception: e);
+				Log.Error(Owner.Will, $"Async failed: {Id}", data: LogObject, exception: e);
 			}
  
 			if (RemoveOnComplete)

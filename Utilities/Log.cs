@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using RestSharp;
 using Rumble.Platform.Common.Exceptions;
@@ -88,6 +89,15 @@ namespace Rumble.Platform.Common.Utilities
 			
 			MethodBase method = new StackFrame(3).GetMethod();
 			Caller = $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
+
+			try // Particularly with Mongo, some Exceptions don't like being serialized.  There's probably a better way around this, but this works for now.
+			{
+				string json = JSON;
+			}
+			catch (InvalidCastException)
+			{
+				Exception = new RumbleSerializationException("JSON serialization failed.", Exception);
+			}
 		}
 
 		/// <summary>

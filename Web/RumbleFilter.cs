@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
@@ -45,11 +46,19 @@ namespace Rumble.Platform.Common.Web
 				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
 
+			// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
+			if (ex is MongoCommandException mce)
+			{
+				ex = new RumbleMongoException(mce);
+				Log.Critical(Owner.Will, "Something went wrong with MongoDB.", exception: mce);
+			}
+			else
+				Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
+
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: code,
 				data: ex
 			));
-			Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
 			context.ExceptionHandled = true;
 		}
 	}
