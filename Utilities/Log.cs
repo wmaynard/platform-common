@@ -107,10 +107,8 @@ namespace Rumble.Platform.Common.Utilities
 		{
 			if (_severity != LogType.LOCAL)
 				Loggly.Send(this);
-#if DEBUG
 			if (RumbleEnvironment.IsLocal)
 				Console.WriteLine(ConsoleMessage);
-#endif
 			return this;
 		}
 

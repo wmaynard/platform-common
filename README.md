@@ -22,7 +22,7 @@ Since this library is used with every C# platform project, be very mindful when 
 | Route | The relative URL path a client uses to access the API.  Example: `/chat/messages/send` |
 | Service | A static class acting as an interface between a Controller and a data layer such as MongoDB. For Mongo specifically, every collection should have a corresponding Service. |
 
-# Adding the library
+# Adding The Library
 
 1. Create a personal access token (PAT) on gitlab: https://gitlab.cdrentertainment.com/-/profile/personal_access_tokens
 2. In Rider, open the NuGet window (`View` > `Tool Windows` > `NuGet`).
