@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -7,6 +8,13 @@ namespace Rumble.Platform.Common.Utilities
 	public class Diagnostics
 	{
 		private const string ROUTE_ATTRIBUTE_NAME = "RouteAttribute";
+
+		public static long Timestamp => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+		public static long TimeTaken(long fromTime)
+		{
+			return DateTimeOffset.Now.ToUnixTimeMilliseconds() - fromTime;
+		}
 		
 		/// <summary>
 		/// Uses the stack trace to find the most recent endpoint call.  This method looks for the Route attribute

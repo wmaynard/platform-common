@@ -123,6 +123,7 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 
 | Name | Description |
 | :--- | :--- |
+| `FailedRequestException` | Raised when a Web Request fails.  Tracks the endpoint and data used for the request. |
 | `FieldNotProvidedException` | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property. |
 | `InvalidTokenException` | Raised when the token passed in the Authorization header fails validation. |
 | `RumbleException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
@@ -181,10 +182,12 @@ Helpful resources for working with Slack:
 | Name | Description |
 | :--- | :--- |
 | `ErrorResponse` | Whenever a request encounters an Exception, the `RumbleFilter` class sends one of these out.  They contain debug data in local environments. |
-| `IMongoDBSettings` | An interface dictating what fields need to exist for Mongo services.  The way Mongo services are instantiated could use some love, as they've been bandaged in the interest of rapid development for chat-service. |
+| `MongoDBSettings` | An class dictating what fields need to exist for Mongo services.  The way Mongo services are instantiated could use some love, as they've been bandaged in the interest of rapid development for chat-service. |
+| `PlatformDataModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
+| `PlatformExceptionFilter` | A catch-all for handling Exceptions in projects.  This lets us prevent unwanted details from being shared with API consumers and create appropriate logs in one easy location. |
+| `PlatformPerformanceFilter` | When added to a project, response times are automatically measured and sent to logs.  It's a useful tool in identifying endpoints that need polish or performance tweaks. |
+| `PlatformStartup` | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
 | `RumbleController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
-| `RumbleFilter` | A catch-all for handling Exceptions in projects.  This lets us prevent unwanted details from being shared with API consumers and create appropriate logs in one easy location. |
-| `RumbleModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
 | `RumbleMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
 | `StandardResponse` | Deprecated. |
 | `TokenInfo` | A model that contains all identifiable information for a given token.|

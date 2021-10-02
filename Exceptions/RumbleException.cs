@@ -7,7 +7,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public class RumbleException : Exception // TODO: Should probably be an abstract class
+	public abstract class RumbleException : Exception // TODO: Should probably be an abstract class
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string Endpoint { get; private set; }

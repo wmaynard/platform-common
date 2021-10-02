@@ -6,7 +6,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
-	public class SlackMessage : RumbleModel
+	public class SlackMessage : PlatformDataModel
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public List<SlackAttachment> Attachments { get; set; }

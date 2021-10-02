@@ -23,13 +23,14 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			Request = new WebRequest(URL, Method.POST);
 		}
 
-		public void Send(Log log) // TODO: WebRequest.AsyncSend
+		public void Send(Log log)
 		{
 			try
 			{
+				string json = log.JSON; // This has to be outside of the Async call; otherwise, data can be modified before the request goes out.
 				Async.Do($"Send data to Loggly ({log.Message})", task: () =>
 				{
-					Request.Send(log.JSON);
+					Request.Send(json);
 				});
 			}
 			catch (Exception e)

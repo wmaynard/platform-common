@@ -57,7 +57,7 @@ namespace Rumble.Platform.Common.Utilities
 			IRestResponse response = Client.Execute(request);
 			// IRestResponse<Dictionary<string, object>> response = Client.Execute<Dictionary<string, object>>(request);
 			if (!response.IsSuccessful)
-				throw new RumbleException(response.ErrorMessage);
+				throw new FailedRequestException(Endpoint.OriginalString);
 			return JsonConvert.DeserializeObject<JObject>(response.Content);
 		}
 		/// <summary>

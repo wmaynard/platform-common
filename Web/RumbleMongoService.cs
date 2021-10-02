@@ -25,7 +25,7 @@ namespace Rumble.Platform.Common.Web
 			}
 		}
 
-		protected RumbleMongoService(IMongoDBSettings settings)
+		protected RumbleMongoService(MongoDBSettings settings)
 		{
 			_client = new MongoClient(settings.ConnectionString);
 			_database = _client.GetDatabase(settings.DatabaseName);

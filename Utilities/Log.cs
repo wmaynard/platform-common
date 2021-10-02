@@ -13,7 +13,7 @@ using Rumble.Platform.CSharp.Common.Interop;
 namespace Rumble.Platform.Common.Utilities
 {
 	
-	public class Log : RumbleModel
+	public class Log : PlatformDataModel
 	{
 		private static readonly LogglyClient Loggly = new LogglyClient();
 		private static readonly bool VerboseEnabled = RumbleEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
@@ -34,7 +34,7 @@ namespace Rumble.Platform.Common.Utilities
 		public TokenInfo Token { get; set; }
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string StackTrace { get; set; }
-		[JsonProperty]
+		[JsonProperty(PropertyName = "env")]
 		public string Environment => RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string Time { get; set; }
@@ -45,7 +45,7 @@ namespace Rumble.Platform.Common.Utilities
 		public object Data { get; set; }
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public Exception Exception { get; set; }
-		
+
 		[JsonIgnore]
 		private static readonly DateTime ServiceStart = DateTime.UtcNow;
 
@@ -56,9 +56,8 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				TimeSpan time = DateTime.UtcNow.Subtract(ServiceStart);
 				long ms = (long)(time.TotalMilliseconds);
-				string output = ms.ToString().PadLeft(9, ' ');
 
-				return $"| {output}ms";
+				return $"{ms:N0}ms".PadLeft(13, ' ');
 			}
 		}
 		// [JsonIgnore]
@@ -69,7 +68,7 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonIgnore] 
 		private static readonly int MaxSeverityLength = !RumbleEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
 		[JsonIgnore]
-		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')}{ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Caller}: {Message ?? "(No Message)"}";
+		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')} | {ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Caller}: {Message ?? "(No Message)"}";
 		[JsonIgnore]
 		private string Caller { get; set; }
 		
@@ -108,8 +107,10 @@ namespace Rumble.Platform.Common.Utilities
 		{
 			if (_severity != LogType.LOCAL)
 				Loggly.Send(this);
+#if DEBUG
 			if (RumbleEnvironment.IsLocal)
 				Console.WriteLine(ConsoleMessage);
+#endif
 			return this;
 		}
 

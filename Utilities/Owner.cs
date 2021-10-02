@@ -8,6 +8,7 @@ namespace Rumble.Platform.Common.Utilities
 		Eric,
 		Ernesto,
 		Nathan,
+		Platform,
 		Sean,
 		System,
 		Will

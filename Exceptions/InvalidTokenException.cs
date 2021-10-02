@@ -16,7 +16,7 @@ namespace Rumble.Platform.Common.Exceptions
 		public bool EmptyToken { get; private set; }
 		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
 		public string VerificationEndpoint { get; private set; }
-		public InvalidTokenException(string token, string endpoint, Exception inner = null) : base($"Token is invalid.", inner)
+		public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner)
 		{
 			EncryptedToken = token?.Replace("Bearer ", "");
 			EmptyToken = string.IsNullOrEmpty(token);

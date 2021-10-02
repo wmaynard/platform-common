@@ -1,6 +1,6 @@
 namespace Rumble.Platform.Common.Web
 {
-	public interface IMongoDBSettings
+	public abstract class MongoDBSettings
 	{
 		public string CollectionName { get; set; }
 		public string ConnectionString { get; set; }

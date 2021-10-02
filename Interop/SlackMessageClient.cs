@@ -35,7 +35,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				response = WebRequest.Post(POST_MESSAGE, message.JSON, Token);
 				string ok = response["ok"].ToString();
 				if (ok?.ToLower() != "true")
-					throw new RumbleException("Response came back as '" + ok + "'. Error: " + response["error"]);
+					throw new FailedRequestException(POST_MESSAGE, message.JSON);
 			}
 			catch (RumbleException)
 			{
@@ -43,7 +43,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			}
 			catch (Exception e)
 			{
-				throw new RumbleException("Unexpected error when sending message to Slack: " + e.Message);
+				throw new Exception("There was an unexpected error when sending a message to Slack.", e);
 			}
 
 			return response;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,18 +12,24 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.CSharp.Common.Interop;
 
+// TODO: Review all endpoints for appropriate HTTP methods (e.g. DELETE, PUT)
 namespace Rumble.Platform.Common.Web
 {
+	
 	/// <summary>
 	/// This class is designed to catch Exceptions that the API throws.  Our API should not be dumping stack traces
 	/// or other potentially security-compromising data to a client outside of our debug environment.  In order to
 	/// prevent that, we need to have a catch-all implementation for Exceptions in OnActionExecuted.
 	/// </summary>
-	public class RumbleFilter : IActionFilter
+	public class PlatformExceptionFilter : IActionFilter
 	{
-		public RumbleFilter(){}
-		
-		public void OnActionExecuting(ActionExecutingContext context){}
+		public PlatformExceptionFilter(){}
+
+		public void OnActionExecuting(ActionExecutingContext context)
+		{
+			var foo = context.Controller;
+			context.ActionArguments["startTime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+		}
 
 		/// <summary>
 		/// This triggers after an action executes, but before any uncaught Exceptions are dealt with.  Here we can
@@ -32,6 +39,7 @@ namespace Rumble.Platform.Common.Web
 		/// <param name="context"></param>
 		public void OnActionExecuted(ActionExecutedContext context)
 		{
+			long end = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 			if (context.Exception == null)
 				return;
 
@@ -50,7 +58,7 @@ namespace Rumble.Platform.Common.Web
 			if (ex is MongoCommandException mce)
 			{
 				ex = new RumbleMongoException(mce);
-				Log.Critical(Owner.Will, "Something went wrong with MongoDB.", exception: mce);
+				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", exception: mce);
 			}
 			else
 				Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);

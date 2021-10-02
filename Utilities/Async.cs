@@ -126,7 +126,7 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (ThreadInterruptedException ex)
 			{
-				Log.Local(Owner.Will, "Couldn't abort thread");
+				Log.Local(Owner.Will, "Couldn't abort thread", exception: ex);
 			}
 		}
  
