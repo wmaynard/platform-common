@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 namespace Rumble.Platform.Common.Web
@@ -44,5 +46,12 @@ namespace Rumble.Platform.Common.Web
 			this,
 			new JsonSerializerSettings(){ContractResolver = new CamelCasePropertyNamesContractResolver()}
 		);
+	}
+
+	public abstract class PlatformCollectionDocument : PlatformDataModel
+	{
+		[BsonId, BsonRepresentation(BsonType.ObjectId)]
+		[JsonProperty]
+		public string Id { get; protected set; }
 	}
 }

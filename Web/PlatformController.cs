@@ -2,27 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Dynamic;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class RumbleController : ControllerBase
+	public abstract class PlatformController : ControllerBase
 	{
 		protected const string AUTH = "Authorization";
-		protected abstract string TokenAuthEndpoint { get; }
+		public static readonly string TokenAuthEndpoint = RumbleEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 
 		protected readonly IConfiguration _config;
-		protected RumbleController(IConfiguration config)
+		protected PlatformController(IConfiguration config)
 		{
 			_config = config;
 			TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
@@ -103,7 +107,7 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
-		protected TokenInfo ValidateAdminToken(string token)
+		public static TokenInfo ValidateAdminToken(string token)
 		{
 			TokenInfo output = ValidateToken(token);
 			if (!output.IsAdmin)
@@ -116,10 +120,11 @@ namespace Rumble.Platform.Common.Web
 		/// </summary>
 		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
 		/// <returns>Information encoded in the token.</returns>
-		protected TokenInfo ValidateToken(string token)
+		public static TokenInfo ValidateToken(string token)
 		{
 			if (token == null)
 				throw new InvalidTokenException(token, TokenAuthEndpoint);
+			long timestamp = Diagnostics.Timestamp;
 			JObject result = null;
 
 			try
@@ -145,6 +150,7 @@ namespace Rumble.Platform.Common.Web
 					SecondsRemaining = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING, result).ToObject<double>(),
 					IsAdmin = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_IS_ADMIN, result)?.ToObject<bool>() ?? false 
 				};
+				Log.Verbose(Owner.Platform, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.");
 				return output;
 			}
 			catch (Exception e)
@@ -163,6 +169,48 @@ namespace Rumble.Platform.Common.Web
 			// Use the Type from the IEnumerable; otherwise if it's an empty enumerable it will throw an exception
 			output[objects.GetType().GetGenericArguments()[0].Name + "s"] = objects;
 			return output;
+		}
+		
+		
+		public string JTokenToRawJSON(JToken token)
+		{
+			return token.ToString(Formatting.None);
+		}
+
+		protected JObject Body
+		{
+			get
+			{
+				try
+				{
+					Request.BodyReader.TryRead(out ReadResult result);
+					string json = Encoding.UTF8.GetString(result.Buffer.FirstSpan);
+					Request.BodyReader.Complete();
+					return JObject.Parse(json);
+				}
+				catch (InvalidOperationException)
+				{
+					Log.Error(Owner.Platform, "You may only read the request body once.  Store the value instead.");
+					return null;
+				}
+				
+			}
+		}
+
+		protected TokenInfo TokenInfo
+		{
+			get
+			{
+				try
+				{
+					return (TokenInfo)Request.HttpContext.Items[PlatformAuthorizationFilter.KEY_TOKEN];
+				}
+				catch (Exception)
+				{
+					Log.Warn(Owner.Platform, "TokenInfo was requested from the HttpContext but none was found.");
+					return null;
+				}
+			}
 		}
 	}
 }

@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
 
-namespace Rumble.Platform.Common.Web
+namespace Rumble.Platform.Common.Filters
 {
 	public class PlatformPerformanceFilter : ActionFilterAttribute
 	{
@@ -42,6 +46,8 @@ namespace Rumble.Platform.Common.Web
 				}
 			}, localIfNotDeployed: true);
 		}
+		
+		// public override ona
 
 		/// <summary>
 		/// This fires before any endpoint begins its work.  This is where we can mark a timestamp to measure our performance.
@@ -81,8 +87,11 @@ namespace Rumble.Platform.Common.Web
 			long taken = TimeTaken(context);
 			string message = $"{name} time taken to respond: {taken:N0}ms";
 			object diagnostics = LogObject(context, "ResultExecuted", taken);
-
+			
 			// Log the time taken
+#if DEBUG
+			Log.Local(Owner.Platform, message, data: diagnostics);
+#else
 			if (taken > THRESHOLD_MS_CRITICAL)
 				Log.Critical(Owner.Platform, message, data: diagnostics);
 			else if (taken > THRESHOLD_MS_ERROR)
@@ -91,7 +100,7 @@ namespace Rumble.Platform.Common.Web
 				Log.Warn(Owner.Platform, message, data: diagnostics);
 			else 
 				Log.Local(Owner.Will, message, data: diagnostics);
-
+#endif
 			if (taken < 0) // The calculation failed; do not track it as a valid 
 				return;
 
@@ -140,10 +149,7 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Platform, $"FilterContext was missing key: {KEY_START}.  Could not calculate time taken.", data: new
-				{
-					Context = context
-				}, exception: e);
+				Log.Warn(Owner.Platform, $"FilterContext was missing key: {KEY_START}.  Could not calculate time taken.", exception: e);
 				return -1;
 			}
 		}
