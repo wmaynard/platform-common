@@ -59,6 +59,7 @@ namespace Rumble.Platform.Common.Web
 				config.Filters.Add(new PlatformExceptionFilter());
 				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
 				config.Filters.Add(new PlatformAuthorizationFilter());
+				config.Filters.Add(new PlatformBodyReaderFilter());
 			}).AddJsonOptions(options =>
 			{
 				options.JsonSerializerOptions.IgnoreNullValues = true;

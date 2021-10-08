@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Data.SqlTypes;
 using System.Dynamic;
 using System.IO.Pipelines;
 using System.Linq;
@@ -22,7 +23,6 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformController : ControllerBase
 	{
-		protected const string AUTH = "Authorization";
 		public static readonly string TokenAuthEndpoint = RumbleEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 
 		protected readonly IConfiguration _config;
@@ -91,74 +91,6 @@ namespace Rumble.Platform.Common.Web
 				expando[JsonNamingPolicy.CamelCase.ConvertName(key)] = dict[key];
 		}
 
-		protected static JToken ExtractOptionalValue(string name, JObject body)
-		{
-			return ExtractValue(name, body, required: false);
-		}
-		protected static JToken ExtractRequiredValue(string name, JObject body)
-		{
-			return ExtractValue(name, body);
-		}
-		private static JToken ExtractValue(string name, JObject body, bool required = true)
-		{
-			JToken output = body[name];
-			if (required && output == null)
-				throw new FieldNotProvidedException(name);
-			return output;
-		}
-
-		public static TokenInfo ValidateAdminToken(string token)
-		{
-			TokenInfo output = ValidateToken(token);
-			if (!output.IsAdmin)
-				throw new InvalidTokenException(token, TokenAuthEndpoint);
-			return output;
-		}
-		
-		/// <summary>
-		/// Sends a GET request to a token service (currently player-service) to validate a token.
-		/// </summary>
-		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
-		/// <returns>Information encoded in the token.</returns>
-		public static TokenInfo ValidateToken(string token)
-		{
-			if (token == null)
-				throw new InvalidTokenException(token, TokenAuthEndpoint);
-			long timestamp = Diagnostics.Timestamp;
-			JObject result = null;
-
-			try
-			{
-				result = WebRequest.Get(TokenAuthEndpoint, token);
-			}
-			catch (Exception e)
-			{
-				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
-			}
-			bool success = (bool)result["success"];
-			if (!success)
-				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string) result["error"]));
-			try
-			{
-				TokenInfo output = new TokenInfo(token)
-				{
-					AccountId = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, result).ToObject<string>(),
-					Discriminator = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_DISCRIMINATOR, result)?.ToObject<int?>() ?? -1,
-					Expiration = DateTime.UnixEpoch.AddSeconds(ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_EXPIRATION, result).ToObject<long>()),
-					Issuer = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_ISSUER, result).ToObject<string>(),
-					ScreenName = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_SCREENNAME, result).ToObject<string>(),
-					SecondsRemaining = ExtractRequiredValue(TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING, result).ToObject<double>(),
-					IsAdmin = ExtractOptionalValue(TokenInfo.FRIENDLY_KEY_IS_ADMIN, result)?.ToObject<bool>() ?? false 
-				};
-				Log.Verbose(Owner.Platform, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.");
-				return output;
-			}
-			catch (Exception e)
-			{
-				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
-			}
-		}
-		
 		[HttpGet, Route(template: "/health")]
 		public abstract ActionResult HealthCheck();
 
@@ -170,46 +102,24 @@ namespace Rumble.Platform.Common.Web
 			output[objects.GetType().GetGenericArguments()[0].Name + "s"] = objects;
 			return output;
 		}
-		
-		
-		public string JTokenToRawJSON(JToken token)
-		{
-			return token.ToString(Formatting.None);
-		}
 
-		protected JObject Body
+		protected T Optional<T>(string key) => JsonHelper.Optional<T>(Body, key);
+
+		protected T Require<T>(string key) => JsonHelper.Require<T>(Body, key);
+
+		protected JObject Body => FromContext<JObject>(PlatformBodyReaderFilter.KEY_BODY);
+		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN);
+
+		protected T FromContext<T>(string key)
 		{
-			get
+			try
 			{
-				try
-				{
-					Request.BodyReader.TryRead(out ReadResult result);
-					string json = Encoding.UTF8.GetString(result.Buffer.FirstSpan);
-					Request.BodyReader.Complete();
-					return JObject.Parse(json);
-				}
-				catch (InvalidOperationException)
-				{
-					Log.Error(Owner.Platform, "You may only read the request body once.  Store the value instead.");
-					return null;
-				}
-				
+				return (T) Request.HttpContext.Items[key];
 			}
-		}
-
-		protected TokenInfo TokenInfo
-		{
-			get
+			catch (Exception e)
 			{
-				try
-				{
-					return (TokenInfo)Request.HttpContext.Items[PlatformAuthorizationFilter.KEY_TOKEN];
-				}
-				catch (Exception)
-				{
-					Log.Warn(Owner.Platform, "TokenInfo was requested from the HttpContext but none was found.");
-					return null;
-				}
+				Log.Warn(Owner.Platform, $"{key} was requested from the HttpContext but nothing was found.", exception: e);
+				return default;
 			}
 		}
 	}

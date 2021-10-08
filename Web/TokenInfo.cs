@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.Mvc.Filters;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 
@@ -7,13 +8,13 @@ namespace Rumble.Platform.Common.Web
 	[JsonObject]
 	public class TokenInfo
 	{
-		public const string DB_KEY_ACCOUNT_ID = "aid";
-		public const string DB_KEY_AUTHORIZATION = "auth";
-		public const string DB_KEY_DISCRIMINATOR = "d";
-		public const string DB_KEY_EXPIRATION = "exp";
-		public const string DB_KEY_ISSUER = "iss";
-		public const string DB_KEY_SCREENNAME = "sn";
-		public const string DB_KEY_IS_ADMIN = "su";
+		private const string DB_KEY_ACCOUNT_ID = "aid";
+		private const string DB_KEY_AUTHORIZATION = "auth";
+		private const string DB_KEY_DISCRIMINATOR = "d";
+		private const string DB_KEY_EXPIRATION = "exp";
+		private const string DB_KEY_ISSUER = "iss";
+		private const string DB_KEY_SCREENNAME = "sn";
+		private const string DB_KEY_IS_ADMIN = "su";
 		
 		public const string FRIENDLY_KEY_ACCOUNT_ID = "aid";
 		public const string FRIENDLY_KEY_DISCRIMINATOR = "discriminator";

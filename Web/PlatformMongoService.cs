@@ -67,10 +67,11 @@ namespace Rumble.Platform.Common.Web
 		{
 			Model output = _collection.Find(filter: model => model.Id == id).FirstOrDefault();
 			if (output == null)
-				Log.Warn(Owner.Platform, "The specified document id does not exist in MongoDB.", data: new
+				Log.Warn(Owner.Platform, "The specified document ID does not exist in MongoDB.", data: new
 				{
 					Id = id,
-					Service = GetType().FullName,
+					Model = typeof(Model).Name,
+					Service = GetType().Name,
 				});
 			return output;
 		}

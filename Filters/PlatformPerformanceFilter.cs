@@ -13,7 +13,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformPerformanceFilter : ActionFilterAttribute
+	public class PlatformPerformanceFilter : IActionFilter
 	{
 		private const int COUNT_BEFORE_LOG_FLUSH = 50;
 		public const string KEY_START = "StartTime";
@@ -52,18 +52,18 @@ namespace Rumble.Platform.Common.Filters
 		/// <summary>
 		/// This fires before any endpoint begins its work.  This is where we can mark a timestamp to measure our performance.
 		/// </summary>
-		public override void OnActionExecuting(ActionExecutingContext context)
+		public void OnActionExecuting(ActionExecutingContext context)
 		{
 			context.HttpContext.Items[KEY_START] = Diagnostics.Timestamp;
-			base.OnActionExecuting(context);
+			// base.OnActionExecuting(context);
 		}
 
 		/// <summary>
 		/// This fires after an endpoint finishes its work, but before the result is sent back to the client.
 		/// </summary>
-		public override void OnActionExecuted(ActionExecutedContext context)
+		public void OnActionExecuted(ActionExecutedContext context)
 		{
-			base.OnActionExecuted(context);
+			// base.OnActionExecuted(context);
 			
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
@@ -80,9 +80,9 @@ namespace Rumble.Platform.Common.Filters
 		/// <summary>
 		/// This fires after the result has been sent back to the client, indicating the total time taken.
 		/// </summary>
-		public override void OnResultExecuted(ResultExecutedContext context)
+		public void OnResultExecuted(ResultExecutedContext context)
 		{
-			base.OnResultExecuted(context);
+			// base.OnResultExecuted(context);
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
 			string message = $"{name} time taken to respond: {taken:N0}ms";

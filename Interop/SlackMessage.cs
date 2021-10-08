@@ -23,6 +23,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		public void Compress() // TODO: If blocks or attachments have more than 50 elements, split message
 		{
+			Attachments.RemoveAll(attachment => attachment == null);
 			Blocks = SlackBlock.Compress(Blocks);
 			foreach(SlackAttachment a in Attachments)
 				a.Compress();
