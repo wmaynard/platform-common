@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Exceptions;
@@ -16,7 +17,14 @@ namespace Rumble.Platform.Common.Utilities
 
 		public static T Optional<T>(JObject json, string key)
 		{
-			return ValueFromToken(json, key).ToObject<T>();
+			try
+			{
+				return ValueFromToken(json, key).ToObject<T>();
+			}
+			catch (Exception)
+			{
+				return default;
+			}
 		}
 
 		public static T Require<T>(JObject json, string key)
