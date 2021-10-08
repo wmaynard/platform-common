@@ -87,7 +87,7 @@ namespace Rumble.Platform.Common.Filters
 				TokenInfo output = new TokenInfo(token)
 				{
 					AccountId = result[TokenInfo.FRIENDLY_KEY_ACCOUNT_ID].ToObject<string>(),
-					Discriminator = result[TokenInfo.FRIENDLY_KEY_DISCRIMINATOR]?.ToObject<int>() ?? -1,
+					Discriminator = result[TokenInfo.FRIENDLY_KEY_DISCRIMINATOR]?.ToObject<int?>() ?? -1,
 					Expiration = DateTime.UnixEpoch.AddSeconds(result[TokenInfo.FRIENDLY_KEY_EXPIRATION].ToObject<long>()),
 					Issuer = result[TokenInfo.FRIENDLY_KEY_ISSUER].ToObject<string>(),
 					ScreenName = result[TokenInfo.FRIENDLY_KEY_SCREENNAME]?.ToObject<string>(),
