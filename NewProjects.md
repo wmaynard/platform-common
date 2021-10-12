@@ -37,8 +37,6 @@ All .NET Platform projects should conform to the same base structure.  While you
 * `/.gitignore`
 * `/environment.json`
 * `/README.md`
-* `/Settings.cs`: For any `MongoDBSettings` classes you need for your services.
-	* This may change with better abstraction; more on this in section XXX.
 
 ## Before You Get Started
 
@@ -47,9 +45,8 @@ All .NET Platform projects should conform to the same base structure.  While you
 	* `Newtonsoft.Json`
 	* `MongoDB.Driver`
 	* `MongoDB.Driver.Core`
-
 2. In `/Properties/launchSettings.json`, set `launchBrowser` to `false`.  This prevents Rider from launching your web browser on every run.
-3. In `/Startup.cs`, modify the contents to match the below code snippet.  Note that some code has been abstracted away for you by the base class.
+3. In `/Startup.cs`, modify the contents to match the below code snippet.  The base class abstracts away most of the configuration code for you.
 
 
 	public class Startup : PlatformStartup
@@ -57,16 +54,14 @@ All .NET Platform projects should conform to the same base structure.  While you
 	    public void ConfigureServices(IServiceCollection services)
 	    {
 	        base.ConfigureServices(services, warnMS: 1_000, errorMS: 5_000);
-
-	        /* Your configuration code goes here */
 	    }
 	}
 4. In `.gitignore`, add the following:
 
 
 	*.DS_Store
-	*bin/
-	*obj/
+	*/bin/
+	*/obj/
 	nuget.config
 	environment.json
 
@@ -120,4 +115,3 @@ All .NET Platform projects should conform to the same base structure.  While you
 6. In Postman, hit `GET https://localhost:5001/Foo/health`.
 
 Congratulations!  You have an endpoint!  The `/health` endpoint is required on all top-level controllers for the load balancer.
-
