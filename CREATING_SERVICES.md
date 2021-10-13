@@ -31,7 +31,7 @@ First, we need to define what our data needs to look like.  Let's start by addin
 	        Name = name;
 	        IntakeDate = intake ?? DateTime.Now;
 	        Price = price;
-	        Birthday = birthday ?? intake;	// We may not always know their birthday
+	        Birthday = birthday ?? IntakeDate;	// We may not always know their birthday
 	    }
 	}
 
@@ -75,7 +75,7 @@ As per Platform best practices, we should have different keys, one `FRIENDLY_KEY
 	public DateTime Birthday { get; private set; }
 
 	[BsonElement(DB_KEY_INTAKE_DATE)]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_ADOPTION_DATE)]
+	[JsonProperty(PropertyName = FRIENDLY_KEY_INTAKE_DATE)]
 	public DateTime IntakeDate { get; private set; }
 
 	[BsonElement(DB_KEY_PRICE), BsonIgnoreIfDefault]
@@ -90,8 +90,19 @@ While this looks like an intimidating amount of work just for data persistence, 
 	...
 	[BsonIgnore]	// We don't need a DB_KEY since this won't be stored in MongoDB.
 	[JsonProperty(PropertyName = FRIENDLY_KEY_DAYS_IN_CARE)]
-	public int DaysInCare => (AdoptedDate ?? DateTime.Now).Subtract(IntakeDate).TotalDays;
+	public int DaysInCare => (int)(AdoptedDate ?? DateTime.Now).Subtract(IntakeDate).TotalDays;
 	...
+
+Finally, because all of our properties must be set privately, we'll want a method to alter our `AdoptedDate` when a pet goes to their "forever home":
+
+	...
+	public void Adopt(DateTime? date = null)
+	{
+	   AdoptedDate = date ?? DateTime.Now;
+	}
+	...
+
+In practice, we would probably add more functionality to this method.  However, we'll keep it simple at the moment.
 
 Now we're ready to create our service.
 
@@ -153,7 +164,7 @@ Let's start simple with just the bare minimum:
 	
 	    public PetController(PetService petService, IConfiguration config) : base(config)
 	    {
-	        _petService = petService
+	        _petService = petService;
 	    }
 	
 	    [HttpGet, Route("health")]
@@ -191,7 +202,7 @@ Now let's add a few more endpoints to round out our service.  We need to list al
 	    string id = Require<string>("id");
 	    Pet outgoing = _petService.Get(id);
 	
-	    outgoing.AdoptedDate = DateTime.Now;
+	    outgoing.Adopt();
 	    _petService.Update(outgoing);
 	
 	    return Ok(outgoing.ResponseObject);
@@ -210,7 +221,7 @@ The `Require<Type>` function is a feature of the PlatformController.  This looks
 
 	{
 	  "pet": {
-	    "name": "fluffy",
+	    "name": "Fluffy",
 	    "price": 120
 	  }
 	}
@@ -219,4 +230,64 @@ If you want manual control over data parsing, you can use the Controller's prope
 
 ## Test the API
 
-All that's left to do is run the code and poke around the project with Postman!
+We're now ready to test the API!  Run the project in debug mode and create a collection of endpoints for each of the four in our `PetController`.
+
+## Creating Custom Exceptions
+
+You may have noticed that with our current endpoints, pets can actually be adopted multiple times, but it doesn't really make sense for that to ever happen.  This is where custom exceptions come in.
+
+In our `Exceptions` directory, add a new `AlreadyAdoptedException` class:
+
+	public class AlreadyAdoptedException : RumbleException
+	{
+	    public Pet Pet { get; private set; }
+
+	    public AlreadyAdoptedException(Pet pet) : base("Pet was previously adopted and cannot be adopted again.")
+	    {
+	        Pet = pet;
+	    }
+	}
+
+Next, in `Pet.Adopt()`, throw the new exception:
+
+	public void Adopt(DateTime? date = null)
+	{
+	    if (AdoptedDate != null)
+	        throw new AlreadyAdoptedException(this);
+	    AdoptedDate = date ?? DateTime.Now;
+	}
+
+Now, if we try to adopt an already-adopted pet, we'll get an error - and an entry in Loggly informing us this happened.  Creating custom exceptions is the best way to add data to our Loggly entries; simply add the properties you wish to track and pass data through to the constructor.
+
+## Adding Token-Based Authorization
+
+For the last step in this tutorial, we're going to secure our endpoints behind the same tokens that are used for everything else in Platform projects.  Within the `PetController`, add the attribute `RequireAuth`:
+
+	...
+	[ApiController, Route("pets"), RequireAuth]
+	public class PetController : PlatformController
+	{
+	    ...
+
+This will require standard tokens for all endpoints.  `RequireAuth` can be used on classes or individual methods, but for the purposes of this tutorial, we'll just secure the entire controller.  However, there's on endpoint that we want to be publicly available: `/health`.
+
+We can make an exemption for this endpoint with a method-level attribute: `NoAuth`:
+
+	...
+	[HttpGet, Route("health"), NoAuth]
+	public override ActionResult HealthCheck()
+	{
+	    ...
+
+We can also go the other direction and require admin privileges on a different endpoint:
+
+	[HttpGet, RequireAuth(TokenType.ADMIN)]
+	public ObjectResult List() => Ok(CollectionResponseObject(_petService.List()));
+
+Now, if you return to your Postman collection, you will notice that the only endpoint that you can get a successful response from is `/health`.  For each of the other endpoints, you will have to add a valid token to the Authorization in Postman, and the endpoint for listing all pets requires an Admin token.
+
+Once you've implemented token auth, you can then access details about the client by using the Controller's property `Token` in the body of your endpoints.
+
+## Summary & Next Steps
+
+In this tutorial, we've created a brand new service from scratch.  We created a model to send data between MongoDB and the client, created custom exceptions for better logging, and secured our endoints with tokens.
