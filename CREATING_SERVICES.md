@@ -214,12 +214,12 @@ With this configuration, `platform-csharp-common` will log warnings, errors, and
 
 	public class Startup : PlatformStartup
 	{
-	    public void ConfigureServices(IServiceCollection services)
+	    public void ConfigureServices(IServiceCollection services) // Use your Owner value instead of Owner.Platform
 	    {
 	#if DEBUG
-	        base.ConfigureServices(services, warnMS: 5_000, errorMS: 20_000, criticalMS: 300_000);
+	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 5_000, errorMS: 20_000, criticalMS: 300_000);
 	#else
-	        base.ConfigureServices(services, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
+	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
 	#endif
 	    }
 	}
