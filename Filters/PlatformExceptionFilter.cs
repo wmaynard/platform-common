@@ -22,13 +22,13 @@ namespace Rumble.Platform.Common.Filters
 	/// or other potentially security-compromising data to a client outside of our debug environment.  In order to
 	/// prevent that, we need to have a catch-all implementation for Exceptions in OnActionExecuted.
 	/// </summary>
-	public class PlatformExceptionFilter : IActionFilter
+	public class PlatformExceptionFilter : PlatformBaseFilter
 	{
 		public PlatformExceptionFilter(){}
 
-		public void OnActionExecuting(ActionExecutingContext context)
+		public override void OnActionExecuting(ActionExecutingContext context)
 		{
-			context.ActionArguments["startTime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+			// context.ActionArguments["startTime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 		}
 
 		/// <summary>
@@ -37,7 +37,7 @@ namespace Rumble.Platform.Common.Filters
 		/// Dumping too much information out to bad requests is unnecessary risk for bad actors.
 		/// </summary>
 		/// <param name="context"></param>
-		public void OnActionExecuted(ActionExecutedContext context)
+		public override void OnActionExecuted(ActionExecutedContext context)
 		{
 			long end = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 			if (context.Exception == null)
@@ -58,10 +58,10 @@ namespace Rumble.Platform.Common.Filters
 			if (ex is MongoCommandException mce)
 			{
 				ex = new PlatformMongoException(mce);
-				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", exception: mce);
+				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", data: EndpointObject(context), exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
+				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", data: EndpointObject(context), exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: code,

@@ -13,7 +13,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformPerformanceFilter : IActionFilter
+	public class PlatformPerformanceFilter : PlatformBaseFilter
 	{
 		private const int COUNT_BEFORE_LOG_FLUSH = 50;
 		public const string KEY_START = "StartTime";
@@ -52,7 +52,7 @@ namespace Rumble.Platform.Common.Filters
 		/// <summary>
 		/// This fires before any endpoint begins its work.  This is where we can mark a timestamp to measure our performance.
 		/// </summary>
-		public void OnActionExecuting(ActionExecutingContext context)
+		public override void OnActionExecuting(ActionExecutingContext context)
 		{
 			context.HttpContext.Items[KEY_START] = Diagnostics.Timestamp;
 			// base.OnActionExecuting(context);
@@ -61,7 +61,7 @@ namespace Rumble.Platform.Common.Filters
 		/// <summary>
 		/// This fires after an endpoint finishes its work, but before the result is sent back to the client.
 		/// </summary>
-		public void OnActionExecuted(ActionExecutedContext context)
+		public override void OnActionExecuted(ActionExecutedContext context)
 		{
 			// base.OnActionExecuted(context);
 			

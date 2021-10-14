@@ -11,14 +11,14 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformAuthorizationFilter : IActionFilter
+	public class PlatformAuthorizationFilter : PlatformBaseFilter
 	{
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 		public const string KEY_TOKEN = "PlatformToken";
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
 		/// </summary>
-		public void OnActionExecuting(ActionExecutingContext context)
+		public override void OnActionExecuting(ActionExecutingContext context)
 		{
 			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
 				return;
@@ -35,7 +35,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (auth == null)					// If we don't even have a token to check, don't bother trying.
 					return;
-				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.");
+				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: EndpointObject(context));
 				try
 				{
 					ValidateToken(auth, context);	// Assume the user still wants to have access to the TokenInfo.  If they don't need it, don't send an auth header.
@@ -52,7 +52,7 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
 		}
 
-		public void OnActionExecuted(ActionExecutedContext context)
+		public override void OnActionExecuted(ActionExecutedContext context)
 		{
 		}
 
@@ -96,7 +96,7 @@ namespace Rumble.Platform.Common.Filters
 					SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
 					IsAdmin = result[TokenInfo.FRIENDLY_KEY_IS_ADMIN]?.ToObject<bool>() ?? false
 				};
-				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.");
+				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: EndpointObject(context));
 				if (context != null)
 					context.HttpContext.Items[KEY_TOKEN] = output;
 				return output;
