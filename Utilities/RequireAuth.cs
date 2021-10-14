@@ -12,9 +12,4 @@ namespace Rumble.Platform.Common.Utilities
 			Type = type;
 		}
 	}
-
-	[AttributeUsage(validOn: AttributeTargets.Method)]
-	public class NoAuth : Attribute { }
-	
-	public enum TokenType { STANDARD, ADMIN }
 }

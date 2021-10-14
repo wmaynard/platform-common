@@ -126,14 +126,14 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (ThreadInterruptedException ex)
 			{
-				Log.Local(Owner.Will, "Couldn't abort thread", exception: ex);
+				Log.Local(Owner.Default, "Couldn't abort thread", exception: ex);
 			}
 		}
  
 		private void Timeout(object state = null)
 		{
 			Abort(state);
-			Log.Warn(Owner.Will, $"Async timed out: {Id}", data: LogObject);
+			Log.Warn(Owner.Default, $"Async timed out: {Id}", data: LogObject);
 			OnTimeout?.Invoke();
 			Ended = true;
 		}
@@ -169,12 +169,12 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				Result = Task();
 				OnComplete?.Invoke(Result);
-				Log.Verbose(Owner.Will, $"Async completed in {Stopwatch.ElapsedMilliseconds}ms: {Id}", data: LogObject);
+				Log.Verbose(Owner.Default, $"Async completed in {Stopwatch.ElapsedMilliseconds}ms: {Id}", data: LogObject);
 			}
 			catch (Exception e)
 			{
 				OnFailure?.Invoke(e);
-				Log.Error(Owner.Will, $"Async failed: {Id}", data: LogObject, exception: e);
+				Log.Error(Owner.Default, $"Async failed: {Id}", data: LogObject, exception: e);
 			}
  
 			if (RemoveOnComplete)

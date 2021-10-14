@@ -7,13 +7,13 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public abstract class RumbleException : Exception // TODO: Should probably be an abstract class
+	public abstract class PlatformException : Exception // TODO: Should probably be an abstract class
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string Endpoint { get; private set; }
 		
-		public RumbleException() : this("No message provided."){}
-		public RumbleException(string message, Exception inner = null) : base(message, inner)
+		public PlatformException() : this("No message provided."){}
+		public PlatformException(string message, Exception inner = null) : base(message, inner)
 		{
 			Endpoint = Diagnostics.FindEndpoint();
 		}

@@ -15,10 +15,22 @@ namespace Rumble.Platform.Common.Utilities
 	
 	public class Log : PlatformDataModel
 	{
+		private static Owner? _defaultOwner;
+
+		public static Owner DefaultOwner
+		{
+			get => _defaultOwner ?? Utilities.Owner.Platform;
+			set
+			{
+				if (_defaultOwner != null)
+					Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new {Owner = Enum.GetName(DefaultOwner)});
+				_defaultOwner ??= value;
+			}
+		}
 		private static readonly LogglyClient Loggly = new LogglyClient();
-		private static readonly bool VerboseEnabled = RumbleEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
+		private static readonly bool VerboseEnabled = PlatformEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
 		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
-		
+
 		[JsonIgnore]
 		private readonly Owner _owner;
 
@@ -35,7 +47,7 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string StackTrace { get; set; }
 		[JsonProperty(PropertyName = "env")]
-		public string Environment => RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
+		public string Environment => PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string Time { get; set; }
 
@@ -61,12 +73,12 @@ namespace Rumble.Platform.Common.Utilities
 			}
 		}
 		// [JsonIgnore]
-		// public static readonly bool LocalDev = RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
+		// public static readonly bool LocalDev = PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
 		[JsonIgnore]
-		private static readonly int MaxOwnerNameLength = !RumbleEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
+		private static readonly int MaxOwnerNameLength = !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
 		[JsonIgnore] 
-		private static readonly int MaxSeverityLength = !RumbleEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
+		private static readonly int MaxSeverityLength = !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
 		[JsonIgnore]
 		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')} | {ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Caller}: {Message ?? "(No Message)"}";
 		[JsonIgnore]
@@ -79,11 +91,11 @@ namespace Rumble.Platform.Common.Utilities
 			Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
 			Exception = exception;
 			
-			Endpoint = exception is RumbleException
-				? ((RumbleException) Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
+			Endpoint = exception is PlatformException
+				? ((PlatformException) Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
 				: Endpoint = Diagnostics.FindEndpoint();
 			
-			if (!RumbleEnvironment.IsLocal) 
+			if (!PlatformEnvironment.IsLocal) 
 				return;
 			
 			MethodBase method = new StackFrame(3).GetMethod();
@@ -95,7 +107,7 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (InvalidCastException)
 			{
-				Exception = new RumbleSerializationException("JSON serialization failed.", Exception);
+				Exception = new PlatformSerializationException("JSON serialization failed.", Exception);
 			}
 		}
 
@@ -107,7 +119,7 @@ namespace Rumble.Platform.Common.Utilities
 		{
 			if (_severity != LogType.LOCAL)
 				Loggly.Send(this);
-			if (RumbleEnvironment.IsLocal)
+			if (PlatformEnvironment.IsLocal)
 				Console.WriteLine(ConsoleMessage);
 			return this;
 		}
@@ -136,7 +148,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="exception">Any exception encountered, if available.</param>
 		public static void Local(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			if (!RumbleEnvironment.IsLocal)
+			if (!PlatformEnvironment.IsLocal)
 				return;
 			Write(LogType.LOCAL, owner, message, token, data, exception);
 		}
@@ -152,7 +164,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="localIfNotDeployed">When working locally, setting this to true will override INFO to LOCAL.</param>
 		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null, bool localIfNotDeployed = false)
 		{
-			if (localIfNotDeployed && RumbleEnvironment.IsLocal)
+			if (localIfNotDeployed && PlatformEnvironment.IsLocal)
 				Write(LogType.LOCAL, owner, message, token, data, exception);
 			else
 				Write(LogType.INFO, owner, message, token, data, exception);
@@ -207,7 +219,11 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="exception">Any exception encountered, if available.</param>
 		private static void Write(LogType type, Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			Log log = new Log(type, owner, exception)
+			Owner actual = owner == Utilities.Owner.Default
+				? DefaultOwner
+				: owner;
+			
+			Log log = new Log(type, actual, exception)
 			{
 				Data = data,
 				Message = message ?? exception?.Message,

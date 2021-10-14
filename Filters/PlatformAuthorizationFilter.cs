@@ -13,7 +13,7 @@ namespace Rumble.Platform.Common.Filters
 {
 	public class PlatformAuthorizationFilter : IActionFilter
 	{
-		private static readonly string TokenAuthEndpoint = RumbleEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
+		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 		public const string KEY_TOKEN = "PlatformToken";
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
@@ -35,7 +35,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (auth == null)					// If we don't even have a token to check, don't bother trying.
 					return;
-				Log.Info(Owner.Platform, "Endpoint does not require authorization, but a token was provided anyway.");
+				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.");
 				try
 				{
 					ValidateToken(auth, context);	// Assume the user still wants to have access to the TokenInfo.  If they don't need it, don't send an auth header.
@@ -49,7 +49,7 @@ namespace Rumble.Platform.Common.Filters
 			// Finally, check to see if at least one of the applied RequireAuths is an Admin.  If the token doesn't match,
 			// throw an error.
 			if (authAttributes.Any(o => ((RequireAuth)o).Type == TokenType.ADMIN) && !info.IsAdmin)
-				throw new InvalidTokenException(auth, info, PlatformController.TokenAuthEndpoint);
+				throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
 		}
 
 		public void OnActionExecuted(ActionExecutedContext context)
@@ -66,6 +66,8 @@ namespace Rumble.Platform.Common.Filters
 		[SuppressMessage("ReSharper", "PossibleNullReferenceException")]
 		public static TokenInfo ValidateToken(string token, FilterContext context = null)
 		{
+			if (string.IsNullOrEmpty(TokenAuthEndpoint))
+				throw new AuthNotAvailableException(TokenAuthEndpoint);
 			if (token == null)
 				throw new InvalidTokenException(null, TokenAuthEndpoint);
 			long timestamp = Diagnostics.Timestamp;
@@ -94,7 +96,7 @@ namespace Rumble.Platform.Common.Filters
 					SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
 					IsAdmin = result[TokenInfo.FRIENDLY_KEY_IS_ADMIN]?.ToObject<bool>() ?? false
 				};
-				Log.Verbose(Owner.Platform, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.");
+				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.");
 				if (context != null)
 					context.HttpContext.Items[KEY_TOKEN] = output;
 				return output;

@@ -15,7 +15,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class LogglyClient
 	{
-		public static readonly string URL = RumbleEnvironment.Variable("LOGGLY_URL");
+		public static readonly string URL = PlatformEnvironment.Variable("LOGGLY_URL");
 		private WebRequest Request { get; set; }
 
 		public LogglyClient()

@@ -9,8 +9,8 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformMongoService<Model> where Model : PlatformCollectionDocument
 	{
-		private static readonly string MongoConnection = RumbleEnvironment.Variable("MONGODB_URI");
-		private static readonly string Database = RumbleEnvironment.Variable("MONGODB_NAME");
+		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
+		private static readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
 		// protected abstract string CollectionName { get; }
 		protected readonly MongoClient _client;
 		protected readonly IMongoDatabase _database;
@@ -32,7 +32,7 @@ namespace Rumble.Platform.Common.Web
 
 		protected PlatformMongoService(string collection)
 		{
-			Log.Local(Owner.Platform, $"Creating {GetType().Name}");
+			Log.Local(Owner.Default, $"Creating {GetType().Name}");
 			_client = new MongoClient(MongoConnection);
 			_database = _client.GetDatabase(Database);
 			_collection = _database.GetCollection<Model>(collection);
@@ -67,7 +67,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			Model output = _collection.Find(filter: model => model.Id == id).FirstOrDefault();
 			if (output == null)
-				Log.Warn(Owner.Platform, "The specified document ID does not exist in MongoDB.", data: new
+				Log.Warn(Owner.Default, "The specified document ID does not exist in MongoDB.", data: new
 				{
 					Id = id,
 					Model = typeof(Model).Name,
@@ -80,9 +80,9 @@ namespace Rumble.Platform.Common.Web
 		{
 #if DEBUG
 			// _collection.DeleteMany(filter: model => true);
-			Log.Local(Owner.Platform, "All documents deleted.");
+			Log.Local(Owner.Default, "All documents deleted.");
 #else
-			Log.Error(Owner.Platform, "Deleting all documents in a collection is not supported outside of local / debug environments.", data: new
+			Log.Error(Owner.Default, "Deleting all documents in a collection is not supported outside of local / debug environments.", data: new
 			{
 				Details = "If this call truly is intended, you need to override the DeleteAll method in your service.",
 				Service = GetType().FullName

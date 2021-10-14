@@ -36,7 +36,7 @@ namespace Rumble.Platform.Common.Filters
 			THRESHOLD_MS_CRITICAL = criticalMS;
 			Data = new Dictionary<string, Metrics>();
 			
-			Log.Info(Owner.Platform, $"{GetType().Name} initialized.", data: new
+			Log.Info(Owner.Default, $"{GetType().Name} initialized.", data: new
 			{
 				Thresholds = new
 				{
@@ -72,9 +72,9 @@ namespace Rumble.Platform.Common.Filters
 			object diagnostics = LogObject(context, "ActionExecuted", taken);
 			
 			if (taken > THRESHOLD_MS_CRITICAL)
-				Log.Local(Owner.Platform, message, data: diagnostics);
+				Log.Local(Owner.Default, message, data: diagnostics);
 			else 
-				Log.Verbose(Owner.Will, message, data: diagnostics);
+				Log.Verbose(Owner.Default, message, data: diagnostics);
 		}
 
 		/// <summary>
@@ -90,16 +90,16 @@ namespace Rumble.Platform.Common.Filters
 			
 			// Log the time taken
 #if DEBUG
-			Log.Local(Owner.Platform, message, data: diagnostics);
+			Log.Local(Owner.Default, message, data: diagnostics);
 #else
 			if (taken > THRESHOLD_MS_CRITICAL)
-				Log.Critical(Owner.Platform, message, data: diagnostics);
+				Log.Critical(Owner.Default, message, data: diagnostics);
 			else if (taken > THRESHOLD_MS_ERROR)
-				Log.Error(Owner.Platform, message, data: diagnostics);
+				Log.Error(Owner.Default, message, data: diagnostics);
 			else if (taken > THRESHOLD_MS_WARN)
-				Log.Warn(Owner.Platform, message, data: diagnostics);
+				Log.Warn(Owner.Default, message, data: diagnostics);
 			else 
-				Log.Local(Owner.Will, message, data: diagnostics);
+				Log.Local(Owner.Default, message, data: diagnostics);
 #endif
 			if (taken < 0) // The calculation failed; do not track it as a valid 
 				return;
@@ -112,7 +112,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				Log.Error(Owner.Platform, "Couldn't record performance data for an endpoint.", data: diagnostics, exception: e);
+				Log.Error(Owner.Default, "Couldn't record performance data for an endpoint.", data: diagnostics, exception: e);
 			}
 		}
 
@@ -149,7 +149,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Platform, $"FilterContext was missing key: {KEY_START}.  Could not calculate time taken.", exception: e);
+				Log.Warn(Owner.Default, $"FilterContext was missing key: {KEY_START}.  Could not calculate time taken.", exception: e);
 				return -1;
 			}
 		}
@@ -224,7 +224,7 @@ namespace Rumble.Platform.Common.Filters
 			/// </summary>
 			private void Flush()
 			{
-				Log.Info(Owner.Platform, "Platform execution times recorded.", data: new
+				Log.Info(Owner.Default, "Platform execution times recorded.", data: new
 				{
 					Metrics = this
 				});
@@ -251,7 +251,7 @@ namespace Rumble.Platform.Common.Filters
 				}
 				catch
 				{
-					Log.Info(Owner.Platform, "Couldn't read an HTTP status code.", data: new
+					Log.Info(Owner.Default, "Couldn't read an HTTP status code.", data: new
 					{
 						Endpoint = Endpoint,
 						Result = result

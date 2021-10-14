@@ -29,7 +29,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public SlackBlock(BlockType type, string text = null)
 		{
 			if (text != null && text.Length > SLACK_JSON_LENGTH_LIMIT)
-				Log.Verbose(Owner.Will, "SlackBlock text approaching Slack limit and may fail.", data: new
+				Log.Verbose(Owner.Default, "SlackBlock text approaching Slack limit and may fail.", data: new
 				{
 					TextLength = text.Length
 				});

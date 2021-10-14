@@ -8,7 +8,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class SlackMessageClient
 	{
-		public static readonly string POST_MESSAGE = RumbleEnvironment.Variable("SLACK_ENDPOINT_POST_MESSAGE");
+		public static readonly string POST_MESSAGE = PlatformEnvironment.Variable("SLACK_ENDPOINT_POST_MESSAGE");
 		public const int SLACK_BLOCK_LIMIT = 50;
 		
 		public string Channel { get; private set; }
@@ -37,7 +37,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				if (ok?.ToLower() != "true")
 					throw new FailedRequestException(POST_MESSAGE, message.JSON);
 			}
-			catch (RumbleException)
+			catch (PlatformException)
 			{
 				throw;
 			}

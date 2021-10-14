@@ -3,6 +3,7 @@ using System.IO.Pipelines;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json.Linq;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
 {
@@ -21,7 +22,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				var foo = "bar";
+				Log.Warn(Owner.Default, "The request body could not be read.", exception: e);
 			}
 		}
 

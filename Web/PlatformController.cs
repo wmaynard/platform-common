@@ -23,13 +23,13 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformController : ControllerBase
 	{
-		public static readonly string TokenAuthEndpoint = RumbleEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
+		// public static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 
 		protected readonly IConfiguration _config;
 		protected PlatformController(IConfiguration config)
 		{
 			_config = config;
-			TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
+			// TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
 		}
 		protected WebRequest TokenVerification { get; set; }
 
@@ -103,9 +103,9 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
-		protected T Optional<T>(string key) => JsonHelper.Optional<T>(Body, key);
+		protected T Optional<T>(string key, JObject json = null) => JsonHelper.Optional<T>(json ?? Body, key);
 
-		protected T Require<T>(string key) => JsonHelper.Require<T>(Body, key);
+		protected T Require<T>(string key, JObject json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
 		protected JObject Body => FromContext<JObject>(PlatformBodyReaderFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN);
@@ -118,7 +118,7 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Platform, $"{key} was requested from the HttpContext but nothing was found.", exception: e);
+				Log.Warn(Owner.Default, $"{key} was requested from the HttpContext but nothing was found.", exception: e);
 				return default;
 			}
 		}

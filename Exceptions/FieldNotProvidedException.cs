@@ -1,6 +1,6 @@
 namespace Rumble.Platform.Common.Exceptions
 {
-	public class FieldNotProvidedException : RumbleException
+	public class FieldNotProvidedException : PlatformException
 	{
 		public string MissingField { get; set; }
 

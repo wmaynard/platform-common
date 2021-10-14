@@ -6,7 +6,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public class InvalidTokenException : RumbleException
+	public class InvalidTokenException : PlatformException
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
 		public string EncryptedToken { get; private set; }

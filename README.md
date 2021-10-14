@@ -70,16 +70,16 @@ When sending data to clients, any models should be contained in an appropriately
 	    { /* foo1 */ },
 	    { /* foo2 */ }
 	  ],
-	  "bars": {
+	  "bar": {
 	    /* data for a Bar */
 	  }
 	}
 
 Objects should never mix their data, and should be contained in their own key.  Previous Platform projects written in Groovy tended to be flat, returning unrelated data together at the top level of the response JSON.  Organization adds a little more overhead in payload, but makes the code much easier to maintain and work with, especially when working on model-focused design.
 
-### Use the `RumbleFilter`
+### Magic Through Filters
 
-Exception filtering is a very powerful feature of C#, although it can be easily misused.  This class acts as a catch-all for Exceptions so our services don't break.
+This library uses several filters in the creation of APIs.  The filters contain methods that execute both before and after an endpoint does its work.  Token authorization, exceptions, and performance metrics are among the powerful tools included in every API.
 
 ### Detailed Exceptions
 
@@ -101,8 +101,7 @@ It doesn't make sense to hard-code configuration values into projects.  URLs can
 
 Dynamic Config is something Platform will need to re-evaluate and address in the near future, so more information will be available soon on that.
 
-When working locally, always add an `environment.json` file to your project's base directory, then add the file to your `.gitignore`.  Rider
-
+When working locally, always add an `environment.json` file to your project's base directory, then add the file to your `.gitignore`.  You may need to right click the file within Rider and set the `Build Action` to `Content` in order for it to be copied to the `bin` directory.
 
 ### Documentation, Documentation, Documentation
 
@@ -126,9 +125,18 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 | `FailedRequestException` | Raised when a Web Request fails.  Tracks the endpoint and data used for the request. |
 | `FieldNotProvidedException` | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property. |
 | `InvalidTokenException` | Raised when the token passed in the Authorization header fails validation. |
-| `RumbleException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
-| `RumbleMongoException` | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them. |
-| `RumbleSerializationException` | A kind of catch-all Exception to use when JSON serialization fails. |
+| `PlatformException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
+| `PlatformMongoException` | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them. |
+| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails. |
+
+## Filters
+
+| Name | Description |
+| :--- | :--- |
+| `PlatformAuthorizationFilter` | This filter looks for `RequireAuth` and `NoAuth` attributes on methods and classes.  When it finds these attributes, it attempts to verify request's authorization token against the `RUMBLE_TOKEN_VERIFICATION` environment variable.  Token information can then be used by Controllers via the `Token` property. |
+| `PlatformBodyReaderFilter` | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times. |
+| `PlatformExceptionFilter` | This filter is responsible for catching all Exceptions within a project's endpoints.  It standardizes logs and responses to the client. |
+| `PlatformPerformanceFilter` | This filter monitors performance metrics and occasionally generates Loggly reports.  When grafana integration is added, it will also be implemented in this filter. |
 
 ## Interop
 
@@ -146,7 +154,7 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 Functionality with Slack is easy with the interop classes.  This section assumes that you have created a Slack channel and a Slack app before continuing.
 
 ```
-string channel = "ABCDEFGHI"; // you Slack channel's ID
+string channel = "ABCDEFGHI"; // your Slack channel's ID
 string token = "xoxb-deadbeefdeadbeefdeadbeef"; // your Slack app's token, issued from Slack
 
 SlackMessageClient slack = new SlackMessageClient(channel, token);
@@ -172,25 +180,27 @@ Helpful resources for working with Slack:
 | :--- | :--- |
 | `Async` | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs. |
 | `Diagnostics` | If you need something done using reflection or the stack trace, Diagnostics is the tool to use. |
+| `JsonHelper` | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods. |
 | `Log` | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window. |
+| `NoAuth` | Attribute valid on methods only.  Can be used to bypass class-level `RequireAuth` attributes. |
 | `Owner` | An enum of Rumble employees who can own log events.  This will almost exclusively be reserved for Platform engineers in projects here, though. |
-| `RumbleEnvironment` | A class used to grab environment variables via the method `Variable(string)` |
+| `PlatformEnvironment` | A class used to grab environment variables via the method `Variable(string)`. |
+| `RequireAuth` | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`. |
+| `TokenType` | Enum for which type of token to use. |
 | `WebRequest` | A wrapper for RestSharp web requests. |
 
 ## Web
 
 | Name | Description |
 | :--- | :--- |
-| `ErrorResponse` | Whenever a request encounters an Exception, the `RumbleFilter` class sends one of these out.  They contain debug data in local environments. |
-| `MongoDBSettings` | An class dictating what fields need to exist for Mongo services.  The way Mongo services are instantiated could use some love, as they've been bandaged in the interest of rapid development for chat-service. |
+| `ErrorResponse` | Whenever a request encounters an Exception, the `PlatformExceptionFilter` class sends one of these out.  They contain debug data in local environments. |
+| `PlatformCollectionDocument` | An abstract subclass of `PlatformDataModel`; this adds a `BsonId` and is intended for MongoDB collection-level models.  More features may be added later. |
 | `PlatformDataModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
-| `PlatformExceptionFilter` | A catch-all for handling Exceptions in projects.  This lets us prevent unwanted details from being shared with API consumers and create appropriate logs in one easy location. |
-| `PlatformPerformanceFilter` | When added to a project, response times are automatically measured and sent to logs.  It's a useful tool in identifying endpoints that need polish or performance tweaks. |
 | `PlatformStartup` | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
 | `RumbleController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
 | `RumbleMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
 | `StandardResponse` | Deprecated. |
-| `TokenInfo` | A model that contains all identifiable information for a given token.|
+| `TokenInfo` | A model that contains all identifiable information for a given token. |
 
 # Getting Started
 
@@ -212,10 +222,8 @@ If you haven't done so yet, you will need to add gitlab to your NuGet sources.  
 
 # Future Updates, Optimizations, and Nice-to-Haves
 
-* Previous platform projects were entirely built on building every endpoint with the POST method.  Consequently, this project and chat-service have been built the same way.  Moving forward, we should use industry-standard verbs.
 * The Async class needs a few updates to be more helpful.
 	* [Will] I pulled most of the class from a personal project I worked on years ago, but in that time .NET has deprecated `Thread.Abort()` and as a result, Async doesn't currently have a way of forcefully stopping a thread.
-* Create a `RumbleStartup` to greatly simplify all the various configuration changes needed for a service.  Not everything is well-documented.  Of particular mention was trying to coerce CORS policies to cooperate.
 * .NET has better support for JWTs than making a web request to a service.  This should shave off valuable time from our responses.
 * SlackMessages need to be split into multiple messages if limits are exceeded.  Similarly, rate-limiting may be an issue later down the line.
 

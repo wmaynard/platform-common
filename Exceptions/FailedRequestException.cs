@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public class FailedRequestException : RumbleException
+	public class FailedRequestException : PlatformException
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
 		public string Url { get; init; }

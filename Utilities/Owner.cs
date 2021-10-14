@@ -4,6 +4,7 @@ namespace Rumble.Platform.Common.Utilities
 	{
 		Austin,
 		Chris,
+		Default,
 		Eitan,
 		Eric,
 		Ernesto,

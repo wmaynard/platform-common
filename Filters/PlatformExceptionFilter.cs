@@ -28,7 +28,6 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnActionExecuting(ActionExecutingContext context)
 		{
-			var foo = context.Controller;
 			context.ActionArguments["startTime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 		}
 
@@ -50,7 +49,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				JsonSerializationException => "Invalid JSON.",
 				ArgumentNullException => ex.Message,
-				RumbleException => ex.Message,
+				PlatformException => ex.Message,
 				BadHttpRequestException => ex.Message,
 				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
@@ -58,11 +57,11 @@ namespace Rumble.Platform.Common.Filters
 			// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
 			if (ex is MongoCommandException mce)
 			{
-				ex = new RumbleMongoException(mce);
+				ex = new PlatformMongoException(mce);
 				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", exception: mce);
 			}
 			else
-				Log.Error(Owner.Will, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
+				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: code,

@@ -17,7 +17,7 @@ namespace Rumble.Platform.Common.Web
 		public StandardResponse(object data)
 		{
 			Success = true;
-			if (RumbleEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local"))
+			if (PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local"))
 				Data = data;
 		}
 	}

@@ -15,7 +15,7 @@ namespace Rumble.Platform.Common.Utilities
 	/// tool.  After a couple hours of unsuccessful fiddling to get it to cooperate in Rider, I decided to do it the
 	/// old-fashioned way, by parsing a local file and ignoring it in .gitignore.
 	/// </summary>
-	public static class RumbleEnvironment
+	public static class PlatformEnvironment
 	{
 		private const string FILE = "environment.json";
 		private static Dictionary<string, string> LocalSecrets { get; set; }
@@ -33,7 +33,7 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch
 			{
-				Log.Local(Owner.Will, message: "RumbleEnvironment was unable to read the 'environment.json' file.");
+				Log.Local(Owner.Default, message: "PlatformEnvironment was unable to read the 'environment.json' file.");
 			}
 
 			return output;
@@ -48,7 +48,7 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (KeyNotFoundException ex)
 			{
-				Log.Warn(Owner.Will, $"Missing environment variable `{name}`.", exception: ex);
+				Log.Warn(Owner.Default, $"Missing environment variable `{name}`.", exception: ex);
 			}
 
 			return null;

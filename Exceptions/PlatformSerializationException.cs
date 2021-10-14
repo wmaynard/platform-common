@@ -3,12 +3,12 @@ using Newtonsoft.Json;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public class RumbleSerializationException : RumbleException
+	public class PlatformSerializationException : PlatformException
 	{
 		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
 		public string BadObject { get; init; }
 		
-		public RumbleSerializationException(string message, object badObject) : base(message)
+		public PlatformSerializationException(string message, object badObject) : base(message)
 		{
 			BadObject = badObject.GetType().Name;
 		}

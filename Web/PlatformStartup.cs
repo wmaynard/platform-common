@@ -14,7 +14,7 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformStartup
 	{
-		private static readonly string MongoConnection = RumbleEnvironment.Variable("MONGODB_URI");
+		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
 
 		private static string PasswordlessMongoConnection
@@ -25,6 +25,12 @@ namespace Rumble.Platform.Common.Web
 				{
 					int colon = MongoConnection.LastIndexOf(':') + 1;
 					int address = MongoConnection.IndexOf('@');
+					if (colon < 0 || address < 0)
+					{
+						Log.Local(Owner.Default, "PasswordlessMongoConnection can't be created.  Ignore this if you're using localhost.");
+						return MongoConnection;
+					}
+
 					string pw = new string('*', address - colon);
 
 					return $"{string.Join("", MongoConnection.Take(colon))}{pw}{string.Join("", MongoConnection.Skip(address))}";
@@ -43,17 +49,19 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
-			Log.Info(Owner.Platform, "Service started.", localIfNotDeployed: true);
+			Log.Info(Owner.Default, "Service started.", localIfNotDeployed: true);
 			Configuration = configuration;
 			
-			Log.Local(Owner.Platform, $"MongoConnection: `{PasswordlessMongoConnection}");
+			Log.Local(Owner.Default, $"MongoConnection: `{PasswordlessMongoConnection}");
 			if (MongoConnection == null)
-				Log.Warn(Owner.Platform, "MongoConnection is null.  All connections to Mongo will fail.");
+				Log.Warn(Owner.Default, "MongoConnection is null.  All connections to Mongo will fail.");
 		}
 		
-		protected void ConfigureServices(IServiceCollection services, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000)
+		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000)
 		{
-			Log.Verbose(Owner.Platform, "Adding Controllers and Filters");
+			Log.DefaultOwner = defaultOwner;
+			Log.Verbose(Owner.Default, "Logging default owner set.");
+			Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 			services.AddControllers(config =>
 			{
 				config.Filters.Add(new PlatformExceptionFilter());
@@ -68,7 +76,7 @@ namespace Rumble.Platform.Common.Web
 				options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 			});
 			
-			Log.Verbose(Owner.Platform, "Adding CORS to services");
+			Log.Verbose(Owner.Default, "Adding CORS to services");
 			services.AddCors(options =>
 			{
 				options.AddPolicy(name: CORS_SETTINGS_NAME, builder =>
@@ -80,7 +88,7 @@ namespace Rumble.Platform.Common.Web
 					}
 				);
 			});
-			Log.Verbose(Owner.Platform, "Adding gzip response compression to services");
+			Log.Verbose(Owner.Default, "Adding gzip response compression to services");
 			services.AddResponseCompression(options =>
 			{
 				options.Providers.Add<GzipCompressionProvider>();
@@ -95,7 +103,7 @@ namespace Rumble.Platform.Common.Web
 			// Covariance isn't supported for generic classes, so this is an alternative.
 			// There's an edge case where this misbehaves because someone is trying to be clever and using another base 
 			// class of "PlatformMongoService" that shouldn't be a singleton, but that seems extremely unlikely.
-			Log.Verbose(Owner.Platform, "Creating Service Singletons");
+			Log.Verbose(Owner.Default, "Creating Service Singletons");
 			Type mongoServiceType = typeof(PlatformMongoService<PlatformCollectionDocument>);
 			Type[] mongoServices = Assembly.GetEntryAssembly()?.GetExportedTypes()
 				.Where(type => mongoServiceType.Name == type.BaseType?.Name)
@@ -105,12 +113,12 @@ namespace Rumble.Platform.Common.Web
 			foreach (Type service in mongoServices)
 				Services.AddSingleton(service);
 			
-			Log.Local(Owner.Platform, "Done.");
+			Log.Local(Owner.Default, "Service configuration complete.");
 		}
 
 		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
-			Log.Local(Owner.Platform, "Configuring app to use compression, map controllers, and enable CORS");
+			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
 			app.UseRouting();
 			app.UseCors(CORS_SETTINGS_NAME);
 			app.UseAuthorization();
