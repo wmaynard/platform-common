@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -22,24 +23,17 @@ namespace Rumble.Platform.Common.Filters
 	/// or other potentially security-compromising data to a client outside of our debug environment.  In order to
 	/// prevent that, we need to have a catch-all implementation for Exceptions in OnActionExecuted.
 	/// </summary>
-	public class PlatformExceptionFilter : PlatformBaseFilter
+	[SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse")]
+	public class PlatformExceptionFilter : IExceptionFilter
 	{
-		public PlatformExceptionFilter(){}
-
-		public override void OnActionExecuting(ActionExecutingContext context)
-		{
-			// context.ActionArguments["startTime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-		}
-
 		/// <summary>
 		/// This triggers after an action executes, but before any uncaught Exceptions are dealt with.  Here we can
 		/// make sure we prevent stack traces from going out and return a BadRequestResult instead (for example).
 		/// Dumping too much information out to bad requests is unnecessary risk for bad actors.
 		/// </summary>
 		/// <param name="context"></param>
-		public override void OnActionExecuted(ActionExecutedContext context)
+		public void OnException(ExceptionContext context)
 		{
-			long end = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 			if (context.Exception == null)
 				return;
 
@@ -58,16 +52,17 @@ namespace Rumble.Platform.Common.Filters
 			if (ex is MongoCommandException mce)
 			{
 				ex = new PlatformMongoException(mce);
-				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", data: EndpointObject(context), exception: mce);
+				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", data: EndpointObject(context), exception: ex);
+				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", data: Converter.ContextToEndpointObject(context), exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: code,
 				data: ex
 			));
 			context.ExceptionHandled = true;
+			Graphite.Track(Graphite.KEY_FLAT_EXCEPTION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
 		}
 	}
 }

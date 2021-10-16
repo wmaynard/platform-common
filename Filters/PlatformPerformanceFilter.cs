@@ -10,10 +10,11 @@ using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformPerformanceFilter : PlatformBaseFilter
+	public class PlatformPerformanceFilter : IAuthorizationFilter, IActionFilter, IResultFilter
 	{
 		private const int COUNT_BEFORE_LOG_FLUSH = 50;
 		public const string KEY_START = "StartTime";
@@ -47,24 +48,23 @@ namespace Rumble.Platform.Common.Filters
 			}, localIfNotDeployed: true);
 		}
 		
+		public void OnAuthorization(AuthorizationFilterContext context)
+		{
+			context.HttpContext.Items[KEY_START] = Diagnostics.Timestamp;
+		}
+		
 		// public override ona
 
 		/// <summary>
 		/// This fires before any endpoint begins its work.  This is where we can mark a timestamp to measure our performance.
 		/// </summary>
-		public override void OnActionExecuting(ActionExecutingContext context)
-		{
-			context.HttpContext.Items[KEY_START] = Diagnostics.Timestamp;
-			// base.OnActionExecuting(context);
-		}
+		public void OnActionExecuting(ActionExecutingContext context) { }
 
 		/// <summary>
 		/// This fires after an endpoint finishes its work, but before the result is sent back to the client.
 		/// </summary>
-		public override void OnActionExecuted(ActionExecutedContext context)
+		public void OnActionExecuted(ActionExecutedContext context)
 		{
-			// base.OnActionExecuted(context);
-			
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
 			string message = $"{name} time taken to execute: {taken:N0}ms";
@@ -76,6 +76,8 @@ namespace Rumble.Platform.Common.Filters
 			else 
 				Log.Verbose(Owner.Default, message, data: diagnostics);
 		}
+
+		public void OnResultExecuting(ResultExecutingContext context) { }
 
 		/// <summary>
 		/// This fires after the result has been sent back to the client, indicating the total time taken.
@@ -90,7 +92,7 @@ namespace Rumble.Platform.Common.Filters
 			
 			// Log the time taken
 #if DEBUG
-			Log.Local(Owner.Default, message, data: diagnostics);
+			Log.Verbose(Owner.Default, message, data: diagnostics);
 #else
 			if (taken > THRESHOLD_MS_CRITICAL)
 				Log.Critical(Owner.Default, message, data: diagnostics);
@@ -238,6 +240,14 @@ namespace Rumble.Platform.Common.Filters
 			/// <param name="result">The ObjectResult from the endpoint response.  Used for tracking HTTP codes.</param>
 			public void Record(long time, IActionResult result)
 			{
+				if (!Endpoint.EndsWith("/health")) // Ignore load balancer hits
+				{
+					Graphite.Track(Graphite.KEY_MINIMUM_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MINIMUM);
+					Graphite.Track(Graphite.KEY_MAXIMUM_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MAXIMUM);
+					Graphite.Track(Graphite.KEY_AVERAGE_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.AVERAGE);
+					Graphite.Track(Graphite.KEY_FLAT_REQUEST_COUNT, value: 1, Endpoint, Graphite.Metrics.Type.FLAT);
+				}
+				
 				if (time < 0)
 				{
 					FailedMeasurements++;
@@ -283,6 +293,5 @@ namespace Rumble.Platform.Common.Filters
 				FailedMeasurements = 0;
 			}
 		}
-
 	}
 }

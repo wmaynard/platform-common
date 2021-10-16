@@ -8,17 +8,19 @@ using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformAuthorizationFilter : PlatformBaseFilter
+	public class PlatformAuthorizationFilter : IAuthorizationFilter
 	{
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 		public const string KEY_TOKEN = "PlatformToken";
+		
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
 		/// </summary>
-		public override void OnActionExecuting(ActionExecutingContext context)
+		public void OnAuthorization(AuthorizationFilterContext context)
 		{
 			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
 				return;
@@ -35,7 +37,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (auth == null)					// If we don't even have a token to check, don't bother trying.
 					return;
-				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: EndpointObject(context));
+				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: Converter.ContextToEndpointObject(context));
 				try
 				{
 					ValidateToken(auth, context);	// Assume the user still wants to have access to the TokenInfo.  If they don't need it, don't send an auth header.
@@ -48,12 +50,12 @@ namespace Rumble.Platform.Common.Filters
 
 			// Finally, check to see if at least one of the applied RequireAuths is an Admin.  If the token doesn't match,
 			// throw an error.
-			if (authAttributes.Any(o => ((RequireAuth)o).Type == TokenType.ADMIN) && !info.IsAdmin)
+			if (authAttributes.Any(o => ((RequireAuth) o).Type == TokenType.ADMIN) && !info.IsAdmin)
+			{
+				Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
 				throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
-		}
-
-		public override void OnActionExecuted(ActionExecutedContext context)
-		{
+			}
+			Graphite.Track(Graphite.KEY_FLAT_AUTHORIZATION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
 		}
 
 		/// <summary>
@@ -96,7 +98,7 @@ namespace Rumble.Platform.Common.Filters
 					SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
 					IsAdmin = result[TokenInfo.FRIENDLY_KEY_IS_ADMIN]?.ToObject<bool>() ?? false
 				};
-				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: EndpointObject(context));
+				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)
 					context.HttpContext.Items[KEY_TOKEN] = output;
 				return output;

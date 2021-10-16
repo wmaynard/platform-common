@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -41,6 +43,34 @@ namespace Rumble.Platform.Common.Web
 				}
 			}
 		}
+		[JsonProperty]
+		private string ServiceName
+		{
+			get
+			{
+				try
+				{
+					string name = GetType().FullName;
+					int index = name.LastIndexOf("service", StringComparison.CurrentCultureIgnoreCase);
+					if (index < 0)
+						throw new Exception();
+
+					// Extract the partial namespace containing "Service".
+					int end = name.IndexOf('.', index);
+					int start = name[..end].LastIndexOf('.') + 1;
+
+					string partial = name[start..end];
+					partial = partial[..1].ToLower() + partial[1..]; // lowerCamelCase
+
+					return Regex.Replace(partial, @"(?<!_)([A-Z])", "-$1").ToLower();
+				}
+				catch
+				{
+					Log.Warn(Owner.Default, "Could not identify a service name.  Graphite reporting will show as 'unknown-service'.");
+					return "unknown-service";
+				}
+			}
+		}
 
 		[JsonIgnore]
 		protected IConfiguration Configuration { get; }
@@ -55,6 +85,8 @@ namespace Rumble.Platform.Common.Web
 			Log.Local(Owner.Default, $"MongoConnection: `{PasswordlessMongoConnection}");
 			if (MongoConnection == null)
 				Log.Warn(Owner.Default, "MongoConnection is null.  All connections to Mongo will fail.");
+
+			Graphite.Initialize(ServiceName);
 		}
 		
 		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000)
