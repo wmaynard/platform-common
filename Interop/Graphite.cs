@@ -20,6 +20,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public const string KEY_FLAT_EXCEPTION_COUNT = "flat-exceptions";
 		public const string KEY_FLAT_SLACK_MESSAGE_COUNT = "flat-slack-messages";
 		public const string KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT = "flat-unauthorized-admin-hits";
+		public const string KEY_FLAT_UNAUTHORIZED_COUNT = "flat-unauthorized-hits";
 		public const string KEY_FLAT_AUTHORIZATION_COUNT = "flat-authorized-hits";
 
 

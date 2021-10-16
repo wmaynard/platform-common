@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Xml.Schema;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json.Linq;
@@ -45,17 +46,31 @@ namespace Rumble.Platform.Common.Filters
 				catch (InvalidTokenException) { }
 				return;
 			}
-			
-			TokenInfo info = ValidateToken(auth, context);
 
-			// Finally, check to see if at least one of the applied RequireAuths is an Admin.  If the token doesn't match,
-			// throw an error.
-			if (authAttributes.Any(o => ((RequireAuth) o).Type == TokenType.ADMIN) && !info.IsAdmin)
+			string endpoint = Converter.ContextToEndpoint(context);
+			TokenInfo info = null;
+			try
 			{
-				Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
-				throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
+				info = ValidateToken(auth, context);
+
+				// Finally, check to see if at least one of the applied RequireAuths is an Admin.  If the token doesn't match,
+				// throw an error.
+				if (authAttributes.Any(o => ((RequireAuth) o).Type == TokenType.ADMIN) && !info.IsAdmin)
+				{
+					Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
+					throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
+				}
+				Graphite.Track(Graphite.KEY_FLAT_AUTHORIZATION_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
 			}
-			Graphite.Track(Graphite.KEY_FLAT_AUTHORIZATION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
+			catch (InvalidTokenException ex)
+			{
+				Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
+				Log.Info(Owner.Default, ex.Message, token: info, exception: ex);
+				context.Result = new BadRequestObjectResult(new ErrorResponse(
+					message: "unauthorized",
+					data: ex
+				));
+			}
 		}
 
 		/// <summary>
