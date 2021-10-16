@@ -101,7 +101,7 @@ namespace Rumble.Platform.Common.Filters
 			else if (taken > THRESHOLD_MS_WARN)
 				Log.Warn(Owner.Default, message, data: diagnostics);
 			else 
-				Log.Local(Owner.Default, message, data: diagnostics);
+				Log.Verbose(Owner.Default, message, data: diagnostics);
 #endif
 			if (taken < 0) // The calculation failed; do not track it as a valid 
 				return;
