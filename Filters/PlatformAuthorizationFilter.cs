@@ -57,14 +57,14 @@ namespace Rumble.Platform.Common.Filters
 				// throw an error.
 				if (authAttributes.Any(o => ((RequireAuth) o).Type == TokenType.ADMIN) && !info.IsAdmin)
 				{
-					Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
+					Graphite.Track(Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
 					throw new InvalidTokenException(auth, info, TokenAuthEndpoint);
 				}
-				Graphite.Track(Graphite.KEY_FLAT_AUTHORIZATION_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
+				Graphite.Track(Graphite.KEY_AUTHORIZATION_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
 			}
 			catch (InvalidTokenException ex)
 			{
-				Graphite.Track(Graphite.KEY_FLAT_UNAUTHORIZED_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
+				Graphite.Track(Graphite.KEY_UNAUTHORIZED_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
 				Log.Info(Owner.Default, ex.Message, token: info, exception: ex);
 				context.Result = new BadRequestObjectResult(new ErrorResponse(
 					message: "unauthorized",

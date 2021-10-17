@@ -242,11 +242,11 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (!Endpoint.EndsWith("/health")) // Ignore load balancer hits
 				{
-					Graphite.Track(Graphite.KEY_MINIMUM_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MINIMUM);
-					Graphite.Track(Graphite.KEY_MAXIMUM_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MAXIMUM);
-					Graphite.Track(Graphite.KEY_AVERAGE_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.AVERAGE);
-					Graphite.Track(Graphite.KEY_FLAT_REQUEST_COUNT, value: 1, Endpoint, Graphite.Metrics.Type.FLAT);
+					Graphite.Track(Graphite.KEY_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MINIMUM);
+					Graphite.Track(Graphite.KEY_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.MAXIMUM);
+					Graphite.Track(Graphite.KEY_RESPONSE_TIME, value: time, Endpoint, Graphite.Metrics.Type.AVERAGE);
 				}
+				Graphite.Track(Graphite.KEY_REQUEST_COUNT, value: 1, Endpoint, Graphite.Metrics.Type.FLAT);
 				
 				if (time < 0)
 				{

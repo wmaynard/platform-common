@@ -62,7 +62,7 @@ namespace Rumble.Platform.Common.Filters
 				data: ex
 			));
 			context.ExceptionHandled = true;
-			Graphite.Track(Graphite.KEY_FLAT_EXCEPTION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
+			Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
 		}
 	}
 }

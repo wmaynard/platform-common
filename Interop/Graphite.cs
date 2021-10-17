@@ -13,15 +13,14 @@ namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class Graphite
 	{
-		public const string KEY_MINIMUM_RESPONSE_TIME = "min-time";
-		public const string KEY_MAXIMUM_RESPONSE_TIME = "max-time";
-		public const string KEY_AVERAGE_RESPONSE_TIME = "avg-time";
-		public const string KEY_FLAT_REQUEST_COUNT = "flat-requests";
-		public const string KEY_FLAT_EXCEPTION_COUNT = "flat-exceptions";
-		public const string KEY_FLAT_SLACK_MESSAGE_COUNT = "flat-slack-messages";
-		public const string KEY_FLAT_UNAUTHORIZED_ADMIN_COUNT = "flat-unauthorized-admin-hits";
-		public const string KEY_FLAT_UNAUTHORIZED_COUNT = "flat-unauthorized-hits";
-		public const string KEY_FLAT_AUTHORIZATION_COUNT = "flat-authorized-hits";
+		public const string KEY_RESPONSE_TIME = "time";
+		public const string KEY_REQUEST_COUNT = "requests";
+		public const string KEY_EXCEPTION_COUNT = "exceptions";
+		public const string KEY_SLACK_MESSAGE_COUNT = "slack-messages";
+		public const string KEY_UNAUTHORIZED_ADMIN_COUNT = "unauthorized-admin-hits";
+		public const string KEY_UNAUTHORIZED_COUNT = "unauthorized-hits";
+		public const string KEY_AUTHORIZATION_COUNT = "authorized-hits";
+		public const string KEY_LOGGLY_ENTRIES = "loggly-entries";
 
 
 		private static readonly string Deployment = PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "unknown";
@@ -124,7 +123,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		private async Task Send(long ts)
 		{
-			Log.Local(Owner.Default, "Sending data to graphite.");
+			Log.Verbose(Owner.Default, "Sending data to graphite.");
 			try
 			{
 				List<Metrics> data = new List<Metrics>();
@@ -134,9 +133,12 @@ namespace Rumble.Platform.CSharp.Common.Interop
 					return;
 				
 				byte[][] messages = data
+					.Where(metrics => metrics.CountSinceLastFlush > 0)
 					.Select(metrics => $"rumble.platform-csharp.{ParentService}.{Deployment}.{metrics.Name} {metrics.Value} {ts}")
 					.Select(message => Encoding.ASCII.GetBytes(message + '\n'))
 					.ToArray();
+				if (!messages.Any())
+					return;
 				
 				foreach (byte[] bytes in messages)
 				{
@@ -156,30 +158,63 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			}
 		}
 
-		public static void Track(string name, double value, string endpoint = null, Metrics.Type type = Metrics.Type.AVERAGE)
+		public static void Track(string name, double value, string endpoint = null, Metrics.Type type = Metrics.Type.FLAT)
 		{
+			if (string.IsNullOrWhiteSpace(name))
+			{
+				Log.Warn(Owner.Default, "Graphite tracking error: data point must have a name.  Data will not be tracked.", data: new
+				{
+					Name = name,
+					Endpoint = endpoint,
+					Value = value
+				});
+				return;
+			}
+			
+			string prefix = type switch
+			{
+				Metrics.Type.AVERAGE => "avg",
+				Metrics.Type.CUMULATIVE => "cum",
+				Metrics.Type.FLAT => "flat",
+				Metrics.Type.MAXIMUM => "max",
+				Metrics.Type.MINIMUM => "min",
+				_ => throw new NotImplementedException()
+			};
+
+			if (!name.StartsWith(prefix))
+				name = $"{prefix}-{name}";
+			
+			if (Client == null)
+				Log.Warn(Owner.Default, "Graphite has not yet been initialized. Data cannot yet be tracked.", data: new
+				{
+					Name = name,
+					Endpoint = endpoint,
+					Value = value
+				});
+			
 			Client?.Add(name, value, endpoint, type);
 		}
 		
 		public class Metrics
 		{
-			public int Count { get; set; }
-			public double Data { get; set; }
-			private SemaphoreSlim Semaphore { get; set; }
+			public enum Type { AVERAGE, CUMULATIVE, FLAT, MAXIMUM, MINIMUM  }
+			public int CountSinceLastFlush { get; private set; }
+			public double Data { get; private set; }
+			private SemaphoreSlim Semaphore { get; init; }
 			public string Name { get; init; }
 			public Type DataType { get; init; }
 		
 			public long Value => DataType switch
 			{
 				Type.AVERAGE => Data > 0
-					? (int) (Data / Count)
+					? (int) (Data / CountSinceLastFlush)
 					: 0,
 				_ => (long)Data
 			};
 		
 			public Metrics(string name, bool async = true, Type type = Type.AVERAGE)
 			{
-				Count = 0;
+				CountSinceLastFlush = 0;
 				Data = type switch
 				{
 					Type.MINIMUM => double.MaxValue,
@@ -201,7 +236,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 					Type.MAXIMUM => Math.Max(Data, value),
 					_ => Data + value
 				};
-				Count++;
+				CountSinceLastFlush++;
 				Semaphore.Release();
 			}
 		
@@ -210,27 +245,21 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				Metrics output = new Metrics(Name, false, DataType);
 			
 				await Semaphore.WaitAsync();
-				output.Count = Count;
+				output.CountSinceLastFlush = CountSinceLastFlush;
 				output.Data = Data;
+				
 				switch (DataType)
 				{
 					case Type.AVERAGE:
-						Count = 0;
-						Data = 0;
-						break;
 					case Type.FLAT:
 						Data = 0;
 						break;
-					default:
-						break;
 				}
-		
+				CountSinceLastFlush = 0;
+				
 				Semaphore.Release();
-		
 				return output;
 			}
-		
-			public enum Type { AVERAGE, CUMULATIVE, FLAT, MINIMUM, MAXIMUM }
 		}
 	}
 }

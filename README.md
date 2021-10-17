@@ -142,12 +142,50 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 
 | Name | Description |
 | :--- | :--- |
+| `Graphite` | A TCP messaging client that sends data points to Graphite (Grafana's data store). |
 | `LogglyClient` | A simple wrapper for Loggly integration, solely used to POST logs. |
 | `SlackAttachment` | A model representing an `Attachment` for Slack's API.  Attachments are messages with text set to the right of a colored bar. |
 | `SlackBlock` | A model representing a `Block` for Slack's API.  This is the standard for a message body. |
 | `SlackFormatter` | Utility class to help format data for Slack. |
 | `SlackMessage` | A model representing a `Message` for Slack's API.  A message consists of one or more blocks or attachments. |
 | `SlackMessageClient` | A helper class to send messages to Slack.  Accepts a channel ID and API token (issued by Slack) in its constructor so that multiple channels and multiple Slack apps can be supported. |
+
+### Grafana Integration
+
+This library automatically tracks several data points in any project that uses the `PlatformStartup` class and has a `GRAPHITE` environment variable.  The following data points are tracked automatically:
+
+* Average response time (ms), by endpoint.  Ignores `/health` endpoints.
+* Minimum response time (ms), by endpoint.  Ignores `/health` endpoints.
+* Maximum response time (ms), by endpoint.  Ignores `/health` endpoints.
+* Number of requests, by endpoint.
+* Unhandled exceptions encountered, by endpoint.  Ignores invalid authorizations.
+* Valid authorizations.
+* Invalid authorization attempts.
+* Invalid admin authorization attempts.
+* Number of messages sent to Slack, if using Slack integration.
+* Number of entries sent to Loggly.
+
+Tracking new data points requires one line of code where applicable.
+
+	Graphite.Track("foo", fooValue, endpoint: "/foo/calculation", type: Graphite.Metrics.Type.AVERAGE);
+
+The data types available are:
+
+* `AVERAGE`: Divides the total value by the number of times that particular data point was tracked.
+* `CUMULATIVE`: The value persists even after sending.  Resets when the environment restarts.
+* `FLAT`: The value is incremented (or decremented) and the total is sent.
+* `MAXIMUM`: The value persists even after sending.  The value is only updated if the new value is higher.
+* `MINIMUM`: The value persists even after sending.  The value is only updated if the new value is lower.
+
+When querying data in Grafana, the selectors will follow the following format:
+
+	rumble.platform-csharp.{service}.{deployment}.{endpoint}.{statType}-{statName}
+
+* Service: Uses reflection to pull the top-level namespace from your Startup class.  If "service" isn't found in your namespace path, defaults to `unknown-service`.
+* Deployment is the identifier for our games and environment (e.g. 107, 207, 307).  Defaults to `unknown`.
+* Endpoint: defaults to `general`.
+* StatType: Generated prefix based on the stat type.
+* StatName: Provided in the `Graphite.Track` method call.
 
 ### Slack Integration | "Hello, World!" Example
 
@@ -179,6 +217,7 @@ Helpful resources for working with Slack:
 | Name | Description |
 | :--- | :--- |
 | `Async` | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs. |
+| `Converter` | A helper class for various conversions. |
 | `Diagnostics` | If you need something done using reflection or the stack trace, Diagnostics is the tool to use. |
 | `JsonHelper` | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods. |
 | `Log` | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window. |
@@ -231,8 +270,12 @@ If you haven't done so yet, you will need to add gitlab to your NuGet sources.  
 
 #### *I suspect there's a problem in the platform-csharp-common code and want to debug it, or I want to test changes to platform-csharp-common without pushing.*
 
-You can remove the NuGet package from each project and directly reference `platform-csharp-common` as a project dependency.  Be warned, though, that if your project is using a previous version of the project that you will need to revert it to the appropriate state to get accurate results.
+You can remove the NuGet package from each project and directly reference `platform-csharp-common` as a project dependency.  However, if your project is using a previous version of common, you might want to try upgrading to the latest version instead.
 
 #### *I made changes to `platform-csharp-common` and pushed a new version up, but I don't see an option to upgrade in Rider's NuGet package manager.*
 
 If you're sure the gitlab build process has completed, there's a refresh button off to the left side of Rider's NuGet panel.  Sometimes Rider needs a little kick to look for the updated package.
+
+#### *I'm seeing ugly Exceptions in my output window with stack traces that aren't particularly helpful.*
+
+Almost all runtime Exceptions are caught by the `PlatformExceptionFilter` and are reduced to pretty-printed console logs with details in Loggly.  However, Exceptions in the common library sometimes evade the filter since they're sometimes thrown outside of the user's flow.  It's possible that it's not your code and the bug exists in common.  Even if the cause ultimately comes from your project, report the issue so it can be handled by common appropriately in the future.

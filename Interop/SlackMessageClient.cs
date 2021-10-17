@@ -46,7 +46,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				throw new Exception("There was an unexpected error when sending a message to Slack.", e);
 			}
 			
-			Graphite.Track(Graphite.KEY_FLAT_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
+			Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
 
 			return response;
 		}
