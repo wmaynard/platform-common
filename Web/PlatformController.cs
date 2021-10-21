@@ -107,8 +107,10 @@ namespace Rumble.Platform.Common.Web
 
 		protected T Require<T>(string key, JObject json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
-		protected JObject Body => FromContext<JObject>(PlatformBodyReaderFilter.KEY_BODY);
+		protected JObject Body => FromContext<JObject>(PlatformResourceFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN);
+		protected string IpAddress => Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+		protected string EncryptedToken => FromContext<string>(PlatformResourceFilter.KEY_AUTHORIZATION);
 
 		protected T FromContext<T>(string key)
 		{

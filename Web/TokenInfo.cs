@@ -6,26 +6,28 @@ using Newtonsoft.Json;
 namespace Rumble.Platform.Common.Web
 {
 	[JsonObject]
-	public class TokenInfo
+	public class TokenInfo : PlatformDataModel
 	{
-		private const string DB_KEY_ACCOUNT_ID = "aid";
-		private const string DB_KEY_AUTHORIZATION = "auth";
-		private const string DB_KEY_DISCRIMINATOR = "d";
-		private const string DB_KEY_EXPIRATION = "exp";
-		private const string DB_KEY_ISSUER = "iss";
-		private const string DB_KEY_SCREENNAME = "sn";
-		private const string DB_KEY_IS_ADMIN = "su";
+		public const string DB_KEY_ACCOUNT_ID = "aid";
+		public const string DB_KEY_AUTHORIZATION = "auth";
+		public const string DB_KEY_DISCRIMINATOR = "d";
+		public const string DB_KEY_EXPIRATION = "exp";
+		public const string DB_KEY_ISSUER = "iss";
+		public const string DB_KEY_SCREENNAME = "sn";
+		public const string DB_KEY_IS_ADMIN = "su";
+		public const string DB_KEY_IP_ADDRESS = "ip";
 		
 		public const string FRIENDLY_KEY_ACCOUNT_ID = "aid";
 		public const string FRIENDLY_KEY_DISCRIMINATOR = "discriminator";
 		public const string FRIENDLY_KEY_EXPIRATION = "expiration";
+		public const string FRIENDLY_KEY_IP_ADDRESS = "ip";
 		public const string FRIENDLY_KEY_ISSUER = "issuer";
-		public const string FRIENDLY_KEY_SCREENNAME = "screenName";
+		public const string FRIENDLY_KEY_SCREENNAME = "screenname";
 		public const string FRIENDLY_KEY_SECONDS_REMAINING = "secondsRemaining";
 		public const string FRIENDLY_KEY_IS_ADMIN = "isAdmin";
 		public const string FRIENDLY_KEY_USERNAME = "username";
 		
-		[BsonElement(DB_KEY_AUTHORIZATION)]
+		[BsonIgnore]
 		[JsonIgnore]
 		public string Authorization { get; private set; }
 		[BsonElement(DB_KEY_ACCOUNT_ID)]
@@ -36,7 +38,10 @@ namespace Rumble.Platform.Common.Web
 		public int Discriminator { get; set; }
 		[BsonElement(DB_KEY_EXPIRATION)]
 		[JsonProperty(PropertyName = FRIENDLY_KEY_EXPIRATION, DefaultValueHandling = DefaultValueHandling.Ignore)]
-		public DateTime Expiration { get; set; }
+		public long Expiration { get; set; }
+		[BsonElement(DB_KEY_IP_ADDRESS), BsonIgnoreIfNull]
+		[JsonProperty(PropertyName = FRIENDLY_KEY_IP_ADDRESS, NullValueHandling = NullValueHandling.Ignore)]
+		public string IpAddress { get; set; }
 		[BsonElement(DB_KEY_ISSUER)]
 		[JsonProperty(PropertyName = FRIENDLY_KEY_ISSUER, NullValueHandling = NullValueHandling.Ignore)]
 		public string Issuer { get; set; }
@@ -53,6 +58,8 @@ namespace Rumble.Platform.Common.Web
 		[JsonProperty(PropertyName = FRIENDLY_KEY_USERNAME, NullValueHandling = NullValueHandling.Ignore)]
 		public string Username => $"{ScreenName ?? "(Unknown Screenname)"}#{(Discriminator.ToString() ?? "").PadLeft(4, '?')}{(IsAdmin ? " (Administrator)" : "")}";
 
+		[BsonIgnore, JsonIgnore] public bool IsExpired => Expiration <= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		
 		public TokenInfo(string auth = null)
 		{
 			Authorization = auth;

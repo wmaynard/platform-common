@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.CSharp.Common.Interop;
@@ -77,6 +80,9 @@ namespace Rumble.Platform.Common.Web
 		[JsonIgnore]
 		protected IServiceCollection Services { get; set; }
 		
+		private bool _filtersAdded;
+		private List<Type> _bypassedFilters;
+		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
 			Log.Info(Owner.Default, "Service started.", localIfNotDeployed: true);
@@ -96,10 +102,18 @@ namespace Rumble.Platform.Common.Web
 			Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 			services.AddControllers(config =>
 			{
-				config.Filters.Add(new PlatformExceptionFilter());
-				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
-				config.Filters.Add(new PlatformAuthorizationFilter());
-				config.Filters.Add(new PlatformBodyReaderFilter());
+				// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
+				// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
+				// Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
+				if (!_bypassedFilters.Contains(typeof(PlatformAuthorizationFilter)))
+					config.Filters.Add(new PlatformAuthorizationFilter());
+				if (!_bypassedFilters.Contains(typeof(PlatformResourceFilter)))
+					config.Filters.Add(new PlatformResourceFilter());
+				if (!_bypassedFilters.Contains(typeof(PlatformExceptionFilter)))
+					config.Filters.Add(new PlatformExceptionFilter());
+				if (!_bypassedFilters.Contains(typeof(PlatformPerformanceFilter)))
+					config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
+				_filtersAdded = true;
 			}).AddJsonOptions(options =>
 			{
 				options.JsonSerializerOptions.IgnoreNullValues = true;
@@ -146,6 +160,18 @@ namespace Rumble.Platform.Common.Web
 				Services.AddSingleton(service);
 			
 			Log.Local(Owner.Default, "Service configuration complete.");
+		}
+		
+		protected void BypassFilter<T>() where T : PlatformBaseFilter
+		{
+			if (_filtersAdded)
+				throw new PlatformStartupException($"Filters were already added.  Cannot bypass {typeof(T).Name}.");
+			_bypassedFilters ??= new List<Type>();
+			_bypassedFilters.Add(typeof(T));
+			Log.Info(Owner.Default, $"{typeof(T).Name} was bypassed.", data: new
+			{
+				Detail = "While discouraged, this may be intentional or even necessary for certain projects."
+			});
 		}
 
 		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env)

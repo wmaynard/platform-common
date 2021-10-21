@@ -128,15 +128,17 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 | `PlatformException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
 | `PlatformMongoException` | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them. |
 | `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails. |
+| `PlatformStartupException` | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown. |
 
 ## Filters
 
 | Name | Description |
 | :--- | :--- |
 | `PlatformAuthorizationFilter` | This filter looks for `RequireAuth` and `NoAuth` attributes on methods and classes.  When it finds these attributes, it attempts to verify request's authorization token against the `RUMBLE_TOKEN_VERIFICATION` environment variable.  Token information can then be used by Controllers via the `Token` property. |
-| `PlatformBodyReaderFilter` | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times. |
+| `PlatformBaseFilter` | An abstract class that all Platform filters inherit from. |
 | `PlatformExceptionFilter` | This filter is responsible for catching all Exceptions within a project's endpoints.  It standardizes logs and responses to the client. |
 | `PlatformPerformanceFilter` | This filter monitors performance metrics and occasionally generates Loggly reports.  When grafana integration is added, it will also be implemented in this filter. |
+| `PlatformResourceFilter` | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times. |
 
 ## Interop
 
@@ -279,3 +281,7 @@ If you're sure the gitlab build process has completed, there's a refresh button 
 #### *I'm seeing ugly Exceptions in my output window with stack traces that aren't particularly helpful.*
 
 Almost all runtime Exceptions are caught by the `PlatformExceptionFilter` and are reduced to pretty-printed console logs with details in Loggly.  However, Exceptions in the common library sometimes evade the filter since they're sometimes thrown outside of the user's flow.  It's possible that it's not your code and the bug exists in common.  Even if the cause ultimately comes from your project, report the issue so it can be handled by common appropriately in the future.
+
+#### _I need to bypass a filter that Startup is adding._
+
+The filters are an important part of Platform's boilerplate reduction and unified behaviors, but if you're certain you must ignore one of the common filters, you can do so by calling `BypassFilter<PlatformBaseFilter>()` in your project's `Startup.ConfigureServices()`.  Be warned, though, that you may not have some expected functionality if you do this.

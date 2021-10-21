@@ -13,7 +13,7 @@ For the purposes of this tutorial, comments found in code blocks are for your un
 3. Your NuGet is configured to use gitlab as a supplemental source.
 4. You have set your `environment.json` to contain the following values:
 	* `"MONGODB_NAME": "pet-service"`
-	* `"MONGODB_URI": "https://localhost:27017"`
+	* `"MONGODB_URI": "mongodb://localhost:27017"`
 
 ## Add A New Project
 
@@ -66,9 +66,10 @@ All .NET Platform projects should conform to the same base structure.  While you
 
 
 	{
+	    "GRAPHITE": "graphite.rumblegames.com:2003",
 	    "LOGGLY_URL": "https://logs-01.loggly.com/bulk/{id}/tag/{name}",
 	    "MONGODB_NAME": "foo-service",
-	    "MONGODB_URI": "https://localhost:27017",
+	    "MONGODB_URI": "mongodb://localhost:27017"
 	    "RUMBLE_COMPONENT": "foo-service",
 	    "RUMBLE_DEPLOYMENT": "yourname_local",
 	    "RUMBLE_KEY": "{secret}",

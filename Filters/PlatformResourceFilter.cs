@@ -1,5 +1,6 @@
 using System;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -8,12 +9,26 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformBodyReaderFilter : IResourceFilter
+	public class PlatformResourceFilter : PlatformBaseFilter, IResourceFilter
 	{
+		public const string KEY_AUTHORIZATION = "EncryptedToken";
 		public const string KEY_BODY = "RequestBody";
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
+			try
+			{
+				string auth = context.HttpContext.Request.Headers
+					.First(kvp => kvp.Key == "Authorization")
+					.Value
+					.First()
+					.Replace("Bearer ", "");
+					context.HttpContext.Items[KEY_AUTHORIZATION] = auth;
+			}
+			catch (Exception e)
+			{
+				Log.Verbose(Owner.Default, "The request authorization could not be read.");
+			}
 			try
 			{
 				if (context.HttpContext.Request.Method == "GET")

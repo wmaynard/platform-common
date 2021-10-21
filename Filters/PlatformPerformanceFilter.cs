@@ -14,7 +14,7 @@ using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformPerformanceFilter : IAuthorizationFilter, IActionFilter, IResultFilter
+	public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilter, IActionFilter, IResultFilter
 	{
 		private const int COUNT_BEFORE_LOG_FLUSH = 50;
 		public const string KEY_START = "StartTime";
@@ -37,7 +37,7 @@ namespace Rumble.Platform.Common.Filters
 			THRESHOLD_MS_CRITICAL = criticalMS;
 			Data = new Dictionary<string, Metrics>();
 			
-			Log.Info(Owner.Default, $"{GetType().Name} initialized.", data: new
+			Log.Info(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
 			{
 				Thresholds = new
 				{
@@ -45,7 +45,7 @@ namespace Rumble.Platform.Common.Filters
 					Error = THRESHOLD_MS_ERROR,
 					Critical = THRESHOLD_MS_CRITICAL
 				}
-			}, localIfNotDeployed: true);
+			});
 		}
 		
 		public void OnAuthorization(AuthorizationFilterContext context)

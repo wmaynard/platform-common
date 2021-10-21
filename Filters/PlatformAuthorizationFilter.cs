@@ -13,10 +13,15 @@ using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Filters
 {
-	public class PlatformAuthorizationFilter : IAuthorizationFilter
+	public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter
 	{
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 		public const string KEY_TOKEN = "PlatformToken";
+
+		// public PlatformAuthorizationFilter() : base()
+		// {
+		// 	Log.Info(Owner.Default, $"{GetType().Name} initialized.");
+		// }
 		
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
@@ -38,12 +43,15 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (auth == null)					// If we don't even have a token to check, don't bother trying.
 					return;
-				Log.Info(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: Converter.ContextToEndpointObject(context));
+				Log.Local(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: Converter.ContextToEndpointObject(context));
 				try
 				{
+					if (TokenAuthEndpoint == null)
+						throw new AuthNotAvailableException(Converter.ContextToEndpoint(context));
 					ValidateToken(auth, context);	// Assume the user still wants to have access to the TokenInfo.  If they don't need it, don't send an auth header.
 				}
 				catch (InvalidTokenException) { }
+				catch (AuthNotAvailableException) { }
 				return;
 			}
 
@@ -107,7 +115,7 @@ namespace Rumble.Platform.Common.Filters
 				{
 					AccountId = result[TokenInfo.FRIENDLY_KEY_ACCOUNT_ID].ToObject<string>(),
 					Discriminator = result[TokenInfo.FRIENDLY_KEY_DISCRIMINATOR]?.ToObject<int?>() ?? -1,
-					Expiration = DateTime.UnixEpoch.AddSeconds(result[TokenInfo.FRIENDLY_KEY_EXPIRATION].ToObject<long>()),
+					Expiration = result[TokenInfo.FRIENDLY_KEY_EXPIRATION].ToObject<long>(),
 					Issuer = result[TokenInfo.FRIENDLY_KEY_ISSUER].ToObject<string>(),
 					ScreenName = result[TokenInfo.FRIENDLY_KEY_SCREENNAME]?.ToObject<string>(),
 					SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
