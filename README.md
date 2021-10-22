@@ -83,7 +83,7 @@ This library uses several filters in the creation of APIs.  The filters contain 
 
 ### Detailed Exceptions
 
-If you need to throw an Exception, consider making a custom Exception class that inherits from `RumbleException`.  All RumbleExceptions should have relevant data properties.  Any uncaught RumbleException that hits the filter mentioned above will be serialized into JSON and sent to Loggly, so the more data you include in the class, the easier it will be to diagnose issues.
+If you need to throw an Exception, consider making a custom Exception class that inherits from `PlatformException`.  All PlatformExceptions should have relevant data properties.  Any uncaught PlatformException that hits the filter mentioned above will be serialized into JSON and sent to Loggly, so the more data you include in the class, the easier it will be to diagnose issues.
 
 ### Accountability in Logs
 
@@ -237,9 +237,9 @@ Helpful resources for working with Slack:
 | `ErrorResponse` | Whenever a request encounters an Exception, the `PlatformExceptionFilter` class sends one of these out.  They contain debug data in local environments. |
 | `PlatformCollectionDocument` | An abstract subclass of `PlatformDataModel`; this adds a `BsonId` and is intended for MongoDB collection-level models.  More features may be added later. |
 | `PlatformDataModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
+| `PlatformController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
+| `PlatformMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
 | `PlatformStartup` | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
-| `RumbleController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
-| `RumbleMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
 | `StandardResponse` | Deprecated. |
 | `TokenInfo` | A model that contains all identifiable information for a given token. |
 

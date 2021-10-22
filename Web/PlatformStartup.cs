@@ -85,12 +85,12 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
-			Log.Info(Owner.Default, "Service started.", localIfNotDeployed: true);
+			Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 			Configuration = configuration;
 			
-			Log.Local(Owner.Default, $"MongoConnection: `{PasswordlessMongoConnection}");
+			Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
 			if (MongoConnection == null)
-				Log.Warn(Owner.Default, "MongoConnection is null.  All connections to Mongo will fail.");
+				Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
 			Graphite.Initialize(ServiceName);
 		}

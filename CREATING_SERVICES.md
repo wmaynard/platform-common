@@ -10,10 +10,8 @@ For the purposes of this tutorial, comments found in code blocks are for your un
 
 1. Postman is installed.
 2. MongoDB is installed.
-3. Your NuGet is configured to use gitlab as a supplemental source.
-4. You have set your `environment.json` to contain the following values:
-	* `"MONGODB_NAME": "pet-service"`
-	* `"MONGODB_URI": "mongodb://localhost:27017"`
+3. You have set up a Rider solution as per the **Getting Started** section of the [README](README.md) file.
+4. Your NuGet is configured to use gitlab as a supplemental source as per the **Adding the Library** section of the [README](README.md) file.
 
 ## Add A New Project
 
@@ -57,8 +55,8 @@ All .NET Platform projects should conform to the same base structure.  While you
 
 
 	*.DS_Store
-	*/bin/
-	*/obj/
+	bin
+	obj
 	nuget.config
 	environment.json
 
@@ -67,10 +65,10 @@ All .NET Platform projects should conform to the same base structure.  While you
 
 	{
 	    "GRAPHITE": "graphite.rumblegames.com:2003",
-	    "LOGGLY_URL": "https://logs-01.loggly.com/bulk/{id}/tag/{name}",
-	    "MONGODB_NAME": "foo-service",
+	    "LOGGLY_URL": "https://logs-01.loggly.com/bulk/{id}/tag/pet-service",
+	    "MONGODB_NAME": "pet-service",
 	    "MONGODB_URI": "mongodb://localhost:27017"
-	    "RUMBLE_COMPONENT": "foo-service",
+	    "RUMBLE_COMPONENT": "pet-service",
 	    "RUMBLE_DEPLOYMENT": "yourname_local",
 	    "RUMBLE_KEY": "{secret}",
 	    "RUMBLE_TOKEN_VERIFICATION": "https://dev.nonprod.tower.cdrentertainment.com/player/verify",
@@ -314,7 +312,7 @@ You may have noticed that with our current endpoints, pets can actually be adopt
 
 In our `Exceptions` directory, add a new `AlreadyAdoptedException` class:
 
-	public class AlreadyAdoptedException : RumbleException
+	public class AlreadyAdoptedException : PlatformException
 	{
 	    public Pet Pet { get; private set; }
 

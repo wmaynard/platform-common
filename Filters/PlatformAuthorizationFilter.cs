@@ -16,6 +16,7 @@ namespace Rumble.Platform.Common.Filters
 	public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter
 	{
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
+		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION_OLD"); // TODO: Once everything has transitioned to token-service, remove this
 		public const string KEY_TOKEN = "PlatformToken";
 
 		// public PlatformAuthorizationFilter() : base()
