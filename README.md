@@ -261,6 +261,17 @@ Your directory structure should look like:
 
 If you haven't done so yet, you will need to add gitlab to your NuGet sources.  See the above section `Adding the Library` for more details on how to do this.
 
+# Deploying a New Version
+
+Whenever you make changes to `platform-csharp-common`, you'll need to bump the NuGet version for any updates to be available to other services.
+
+1. Right click on the `platform-csharp-common` project and select `Properties`.
+2. In the NuGet section, increase the version number.
+3. Commit and push your changes.  GitLab will automatically build a new version.
+4. After GitLab's job has finished, update your `platform-csharp-common` NuGet package from your other service.  Be careful: if you are several versions behind, there may be side effects.
+
+You can check the status of GitLab's jobs either through `{project}` > CI/CD > Pipelines or by monitoring the `#platform-ops` channel in Slack.
+
 # Future Updates, Optimizations, and Nice-to-Haves
 
 * The Async class needs a few updates to be more helpful.
