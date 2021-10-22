@@ -15,8 +15,8 @@ namespace Rumble.Platform.Common.Filters
 {
 	public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter
 	{
-		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
-		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION_OLD"); // TODO: Once everything has transitioned to token-service, remove this
+		private static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VALIDATION");
+		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION"); // TODO: Once everything has transitioned to token-service, remove this
 		public const string KEY_TOKEN = "PlatformToken";
 
 		// public PlatformAuthorizationFilter() : base()
@@ -97,11 +97,19 @@ namespace Rumble.Platform.Common.Filters
 			if (token == null)
 				throw new InvalidTokenException(null, TokenAuthEndpoint);
 			long timestamp = Diagnostics.Timestamp;
-			JObject result = null;
+			JToken result = null;
 
 			try
 			{
-				result = WebRequest.Get(TokenAuthEndpoint, token);
+				try
+				{
+					result = WebRequest.Get(TokenAuthEndpoint, token);
+				}
+				catch (FailedRequestException)
+				{
+					Log.Local(Owner.Default, "Could not authorize via token-service.  Authorizing instead with player-service.");
+					result = WebRequest.Get(TokenAuthEndpoint_Legacy, token); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
+				}
 			}
 			catch (Exception e)
 			{
@@ -112,6 +120,8 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string) result["error"]));
 			try
 			{
+				if (result["tokenInfo"] != null)
+					result = result["tokenInfo"];
 				TokenInfo output = new TokenInfo(token)
 				{
 					AccountId = result[TokenInfo.FRIENDLY_KEY_ACCOUNT_ID].ToObject<string>(),
@@ -119,9 +129,11 @@ namespace Rumble.Platform.Common.Filters
 					Expiration = result[TokenInfo.FRIENDLY_KEY_EXPIRATION].ToObject<long>(),
 					Issuer = result[TokenInfo.FRIENDLY_KEY_ISSUER].ToObject<string>(),
 					ScreenName = result[TokenInfo.FRIENDLY_KEY_SCREENNAME]?.ToObject<string>(),
-					SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
+					// SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
 					IsAdmin = result[TokenInfo.FRIENDLY_KEY_IS_ADMIN]?.ToObject<bool>() ?? false
 				};
+				output.ScreenName ??= result["screenName"]?.ToObject<string>(); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
+				
 				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)
 					context.HttpContext.Items[KEY_TOKEN] = output;
