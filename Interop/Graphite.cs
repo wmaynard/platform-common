@@ -37,11 +37,25 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		public static void Initialize(string service, int frequencyInMs = 60_000)
 		{
 			if (Client != null)
-				Log.Error(Owner.Default, "Duplicate call to Graphite.Initialize will be ignored.");
-			
-			string value = PlatformEnvironment.Variable("GRAPHITE");
-			string server = value[..value.IndexOf(':')];
-			int port = int.Parse(value[(value.IndexOf(':') + 1)..]);
+			{
+				Log.Error(Owner.Will, "Duplicate call to Graphite.Initialize will be ignored.");
+				return;
+			}
+
+			string server = "";
+			int port = 0;
+
+			try
+			{
+				string value = PlatformEnvironment.Variable("GRAPHITE");
+				server = value[..value.IndexOf(':')];
+				port = int.Parse(value[(value.IndexOf(':') + 1)..]);
+			}
+			catch (Exception e)
+			{
+				Log.Error(Owner.Will, "Failed to parse GRAPHITE env var.", exception: e);
+				return;
+			}
 			
 			Client ??= new Graphite(service, server, port, frequencyInMs);
 		}
