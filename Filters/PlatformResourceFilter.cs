@@ -25,7 +25,7 @@ namespace Rumble.Platform.Common.Filters
 					.Replace("Bearer ", "");
 					context.HttpContext.Items[KEY_AUTHORIZATION] = auth;
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
 				Log.Verbose(Owner.Default, "The request authorization could not be read.");
 			}

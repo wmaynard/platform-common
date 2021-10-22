@@ -165,9 +165,13 @@ namespace Rumble.Platform.Common.Utilities
 		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null, bool localIfNotDeployed = false)
 		{
 			if (localIfNotDeployed && PlatformEnvironment.IsLocal)
+			{
 				Write(LogType.LOCAL, owner, message, token, data, exception);
+			}
 			else
+			{
 				Write(LogType.INFO, owner, message, token, data, exception);
+			}
 		}
 		/// <summary>
 		/// Logs a WARN-level event.  If these are found frequently, something is probably wrong with the code, but could
