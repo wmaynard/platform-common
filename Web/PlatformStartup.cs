@@ -93,6 +93,7 @@ namespace Rumble.Platform.Common.Web
 				Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
 			Graphite.Initialize(ServiceName);
+			_bypassedFilters ??= new List<Type>();
 		}
 		
 		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000)
@@ -166,7 +167,6 @@ namespace Rumble.Platform.Common.Web
 		{
 			if (_filtersAdded)
 				throw new PlatformStartupException($"Filters were already added.  Cannot bypass {typeof(T).Name}.");
-			_bypassedFilters ??= new List<Type>();
 			_bypassedFilters.Add(typeof(T));
 			Log.Info(Owner.Default, $"{typeof(T).Name} was bypassed.", data: new
 			{
