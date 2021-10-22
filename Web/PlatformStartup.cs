@@ -103,11 +103,6 @@ namespace Rumble.Platform.Common.Web
 			Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 			services.AddControllers(config =>
 			{
-				if (_bypassedFilters == null)
-				{
-					_bypassedFilters = new List<Type>();
-				}
-
 				// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
 				// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
 				// Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
