@@ -5,6 +5,7 @@ using System.Xml.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
@@ -105,9 +106,14 @@ namespace Rumble.Platform.Common.Filters
 				{
 					result = WebRequest.Get(TokenAuthEndpoint, token);
 				}
-				catch (FailedRequestException)
+				catch (FailedRequestException ex)
 				{
-					Log.Local(Owner.Default, "Could not authorize via token-service.  Authorizing instead with player-service.");
+					Log.Info(Owner.Will, "Could not authorize via token-service.  Authorizing instead with player-service.", data: new
+					{
+						TokenAuthEndpoint = TokenAuthEndpoint,
+						EncryptedToken = token,
+						Result = result
+					}, exception: ex);
 					result = WebRequest.Get(TokenAuthEndpoint_Legacy, token); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
 				}
 			}
