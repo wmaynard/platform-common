@@ -285,12 +285,23 @@ namespace Rumble.Platform.CSharp.Common.Interop
         private async Task<string> FetchConfig(String scope, String etag, CancellationToken cancellationToken)
         {
             string clientConfigUrl = string.Format("{0}config/{1}", _configServiceUrl, scope);
+            HttpWebResponse responseObject = null;
+            
+            try
+            {
+                WebRequest request = WebRequest.Create(new Uri(clientConfigUrl)) as HttpWebRequest;
+                request.Method = "GET";
+                request.Headers.Set("RumbleKey", _secret);
+                request.Headers.Set("If-None-Match", etag);
+                responseObject = (HttpWebResponse) await Task<WebResponse>.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, request);
 
-            WebRequest request = WebRequest.Create(new Uri(clientConfigUrl)) as HttpWebRequest;
-            request.Method = "GET";
-            request.Headers.Set("RumbleKey", _secret);
-            request.Headers.Set("If-None-Match", etag);
-            HttpWebResponse responseObject = (HttpWebResponse) await Task<WebResponse>.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, request);
+            }
+            catch (Exception e)
+            {
+                Log.Error(Owner.Sean, "Failed to fetch dynamic config", exception: e, data: 
+                    new { url = clientConfigUrl });
+                return null;
+            }
 
             if (cancellationToken.IsCancellationRequested)
             {
