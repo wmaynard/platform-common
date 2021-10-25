@@ -53,5 +53,31 @@ namespace Rumble.Platform.Common.Utilities
 
 			return null;
 		}
+
+		/// <summary>
+		/// Returns all text in a file.
+		/// </summary>
+		/// <param name="path">The path of the file to read.</param>
+		/// <param name="relativePath">Defaults to true.  If set, prepends Directory.GetCurrentDirectory() to the path.</param>
+		/// <returns>The file contents as a string.</returns>
+		public static string FileText(string path, bool relativePath = true)
+		{
+			try
+			{
+				if (relativePath)
+					path = Directory.GetCurrentDirectory() + $"/{path}";
+				return File.ReadAllText(path);
+			}
+			catch (FileNotFoundException ex)
+			{
+				Log.Warn(Owner.Default, $"Unable to locate file `{path}`.", exception: ex);
+			}
+			catch (Exception ex)
+			{
+				Log.Warn(Owner.Default, $"Unable to read file `{path}`.", exception: ex);
+			}
+
+			return null;
+		}
 	}
 }
