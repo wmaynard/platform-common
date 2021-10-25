@@ -55,9 +55,16 @@ namespace Rumble.Platform.Common.Utilities
 				foreach (KeyValuePair<string, string> kvp in queryParameters)
 					request.AddQueryParameter(kvp.Key, kvp.Value);
 			IRestResponse response = Client.Execute(request);
-			// IRestResponse<Dictionary<string, object>> response = Client.Execute<Dictionary<string, object>>(request);
+			// IRestResponse<Dictionary<string, object>> responseData = Client.Execute<Dictionary<string, object>>(request);
 			if (!response.IsSuccessful)
-				throw new FailedRequestException(Endpoint.OriginalString, response: response);
+				throw new FailedRequestException(Endpoint.OriginalString, responseData: new
+				{
+					HttpCode = response.StatusCode,
+					Content = response.Content,
+					Error = response.ErrorMessage,
+					Exception = response.ErrorException,
+					Description = response.StatusDescription
+				});
 			return JsonConvert.DeserializeObject<JObject>(response.Content);
 		}
 		/// <summary>
