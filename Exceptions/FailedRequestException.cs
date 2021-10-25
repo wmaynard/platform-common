@@ -1,4 +1,6 @@
+using System;
 using Newtonsoft.Json;
+using RestSharp;
 
 namespace Rumble.Platform.Common.Exceptions
 {
@@ -8,10 +10,13 @@ namespace Rumble.Platform.Common.Exceptions
 		public string Url { get; init; }
 		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public new string Data { get; init; }
-		public FailedRequestException(string url, string json = null) : base("An HTTP request failed.")
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		public IRestResponse Response { get; init; }
+		public FailedRequestException(string url, string json = null, IRestResponse response = null) : base("An HTTP request failed.")
 		{
 			Url = url;
 			Data = json;
+			Response = response;
 		}
 	}
 }
