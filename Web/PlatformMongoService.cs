@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Linq.Expressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
@@ -62,6 +64,8 @@ namespace Rumble.Platform.Common.Web
 
 		public virtual void Delete(Model model) => Delete(model.Id);
 		public void Update(Model model) => _collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+		public Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
+		public Model FindOne(Expression<Func<Model, bool>> filter) => _collection.Find(filter).FirstOrDefault();
 
 		public virtual Model Get(string id)
 		{
