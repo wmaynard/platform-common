@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System;
+using System.Collections.Concurrent;
 
 namespace Rumble.Platform.Common.Utilities
 {
 	public class ServicesManager
 	{
-		private static Dictionary<Type, IService> _instances = new Dictionary<Type, IService>();
+		private static ConcurrentDictionary<System.Type, IService> _instances = new ConcurrentDictionary<System.Type, IService>();
 
 
 		public static T Set<T>(T service) where T : IService
@@ -88,7 +89,7 @@ namespace Rumble.Platform.Common.Utilities
 			if (obj != null)
 			{
 				obj.OnDestroy();
-				_instances.Remove(type);
+				_instances.TryRemove(new KeyValuePair<Type, IService>(type, obj));
 			}
 		}
 	}
