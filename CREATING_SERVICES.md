@@ -17,17 +17,26 @@ For the purposes of this tutorial, comments found in code blocks are for your un
 
 1. In Rider's `Solution` tab, right-click on the `Platform` solution.
 2. Add > New Project...
-3. For Project Name, use `pet-shop-service`.
+3. Choose ASP.NET Core Web Application from the left-hand side.
+4. For Project Name, use `pet-shop-service`.
 	* Each word should be lower case.
 	* Each word should be separated by a dash (`-`).
 	* If the project is for a Service, the last word should always be `service`.
 		* Examples: `chat-service`, `player-service`, `token-service`, `dynamic-config-service`
-4. For Type, select `Empty`.  The following files are created:
+5. For Type, select `Empty` and click Create.  The following files are created:
 	* `/Properties/launchSettings.json`
 	* `appsettings.json`
 	* `appsettings.Development.json`
 	* `Program.cs`
 	* `Startup.cs`
+	
+## Set the Default Namespace
+
+Rider converts the `pet-shop-service` project name into the namespace `pet_shop_service`, but this goes against Platform naming standards.  To fix this:
+
+1. Right click on the project and select `Properties`.
+2. For `Root namespace`, enter `Rumble.Platform.PetShopService`.
+3. Open a code file, such as `Startup.cs`.  Refactor the namespace `pet_shop_service` to match the above.
 
 ## Create the Remaining Project Structure
 
@@ -93,7 +102,6 @@ First, we need to define what our data needs to look like.  Let's start by addin
 
 	public class Pet : PlatformCollectionDocument
 	{
-	    public string Id { get; private set; }
 	    public string Name { get; private set; }
 	    public DateTime? AdoptedDate { get; private set; }
 	    public DateTime Birthday { get; private set; }
@@ -135,25 +143,25 @@ As per Platform best practices, we should have different keys, one `FRIENDLY_KEY
 	public const string FRIENDLY_KEY_PRICE = "price";
 
 	[BsonElement(DB_KEY_NAME)]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_NAME)]
+	[JsonProperty(FRIENDLY_KEY_NAME)]
 	public string Name { get; private set; }
 
 	// Note the BsonIgnoreIfNull and the NullValueHandling differences.
 	// Generally, it's a good idea to omit null or default values, but can be desirable depending on the situation.
 	[BsonElement(DB_KEY_ADOPTION_DATE), BsonIgnoreIfNull]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_ADOPTION_DATE, NullValueHandling = NullValueHandling.Ignore)]
+	[JsonProperty(FRIENDLY_KEY_ADOPTION_DATE, NullValueHandling = NullValueHandling.Ignore)]
 	public DateTime? AdoptedDate { get; private set; }
 
 	[BsonElement(DB_KEY_BIRTHDAY)]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_BIRTHDAY)]
+	[JsonProperty(FRIENDLY_KEY_BIRTHDAY)]
 	public DateTime Birthday { get; private set; }
 
 	[BsonElement(DB_KEY_INTAKE_DATE)]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_INTAKE_DATE)]
+	[JsonProperty(FRIENDLY_KEY_INTAKE_DATE)]
 	public DateTime IntakeDate { get; private set; }
 
 	[BsonElement(DB_KEY_PRICE), BsonIgnoreIfDefault]
-	[JsonProperty(PropertyName = FRIENDLY_KEY_PRICE, DefaultValueHandling = DefaultValueHandling.Ignore)]
+	[JsonProperty(FRIENDLY_KEY_PRICE, DefaultValueHandling = DefaultValueHandling.Ignore)]
 	public float Price { get; private set; }
 	...
 
@@ -205,7 +213,7 @@ We can accomplish this by modifying `ConfigureServices:`
 	{
 	    public void ConfigureServices(IServiceCollection services)
 	    {
-	        base.ConfigureServices(services, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
+	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
 	    }
 	}
 
@@ -231,7 +239,7 @@ Finally, we need to add a controller.  Controllers are responsible for handling 
 
 Let's start simple with just the bare minimum:
 
-	[ApiController, Route("pets")]
+	[ApiController, Route("pet")]
 	public class PetController : PlatformController
 	{
 	    private readonly PetService _petService;

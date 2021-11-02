@@ -276,7 +276,6 @@ You can check the status of GitLab's jobs either through `{project}` > CI/CD > P
 
 * The Async class needs a few updates to be more helpful.
 	* [Will] I pulled most of the class from a personal project I worked on years ago, but in that time .NET has deprecated `Thread.Abort()` and as a result, Async doesn't currently have a way of forcefully stopping a thread.
-* .NET has better support for JWTs than making a web request to a service.  This should shave off valuable time from our responses.
 * SlackMessages need to be split into multiple messages if limits are exceeded.  Similarly, rate-limiting may be an issue later down the line.
 
 # Troubleshooting
