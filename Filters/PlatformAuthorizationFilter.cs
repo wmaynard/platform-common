@@ -20,11 +20,6 @@ namespace Rumble.Platform.Common.Filters
 		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION"); // TODO: Once everything has transitioned to token-service, remove this
 		public const string KEY_TOKEN = "PlatformToken";
 
-		// public PlatformAuthorizationFilter() : base()
-		// {
-		// 	Log.Info(Owner.Default, $"{GetType().Name} initialized.");
-		// }
-		
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
 		/// </summary>

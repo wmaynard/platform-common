@@ -103,8 +103,9 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
+		protected T Optional<T>(string key, JToken json) => JsonHelper.Optional<T>(json, key);
+		protected T Require<T>(string key, JToken json) => JsonHelper.Require<T>(json, key);
 		protected T Optional<T>(string key, JObject json = null) => JsonHelper.Optional<T>(json ?? Body, key);
-
 		protected T Require<T>(string key, JObject json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
 		protected JObject Body => FromContext<JObject>(PlatformResourceFilter.KEY_BODY);

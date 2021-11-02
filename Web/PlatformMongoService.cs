@@ -63,9 +63,9 @@ namespace Rumble.Platform.Common.Web
 		public virtual void Delete(string id) => _collection.DeleteOne(filter: model => model.Id == id);
 
 		public virtual void Delete(Model model) => Delete(model.Id);
-		public void Update(Model model) => _collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
-		public Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
-		public Model FindOne(Expression<Func<Model, bool>> filter) => _collection.Find(filter).FirstOrDefault();
+		public virtual void Update(Model model) => _collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+		public virtual Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
+		public virtual Model FindOne(Expression<Func<Model, bool>> filter) => _collection.Find(filter).FirstOrDefault();
 
 		public virtual Model Get(string id)
 		{

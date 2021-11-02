@@ -151,9 +151,11 @@ namespace Rumble.Platform.Common.Web
 			// There's an edge case where this misbehaves because someone is trying to be clever and using another base 
 			// class of "PlatformMongoService" that shouldn't be a singleton, but that seems extremely unlikely.
 			Log.Verbose(Owner.Default, "Creating Service Singletons");
-			Type mongoServiceType = typeof(PlatformMongoService<PlatformCollectionDocument>);
+			string mongoServiceType = typeof(PlatformMongoService<PlatformCollectionDocument>).Name;
 			Type[] mongoServices = Assembly.GetEntryAssembly()?.GetExportedTypes()
-				.Where(type => mongoServiceType.Name == type.BaseType?.Name)
+				.Where(type => !type.IsAbstract)
+				.Where(type => GetAllTypeNames(type).Contains(mongoServiceType))
+				// .Where(type => mongoServiceType.Name == type.BaseType?.Name)
 				.ToArray();
 			if (mongoServices == null) 
 				return;
@@ -161,6 +163,21 @@ namespace Rumble.Platform.Common.Web
 				Services.AddSingleton(service);
 			
 			Log.Local(Owner.Default, "Service configuration complete.");
+		}
+
+		private static List<string> GetAllTypeNames(Type type)
+		{
+			List<string> output = new List<string>();
+			do
+			{
+				output.Add(type.Name);
+				type = type.BaseType;
+			} while (type != null);
+
+			if (output.Contains("foobar"))
+				return null;
+
+			return output;
 		}
 		
 		protected void BypassFilter<T>() where T : PlatformBaseFilter
