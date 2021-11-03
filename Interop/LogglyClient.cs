@@ -20,11 +20,20 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		public LogglyClient()
 		{
-			Request = new WebRequest(URL, Method.POST);
+			try
+			{
+				Request = new WebRequest(URL, Method.POST);
+			}
+			catch
+			{
+				Log.Local(Owner.Default, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
+			}
 		}
 
 		public void Send(Log log)
 		{
+			if (Request == null)
+				return;
 			try
 			{
 				string json = log.JSON; // This has to be outside of the Async call; otherwise, data can be modified before the request goes out.

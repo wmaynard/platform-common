@@ -28,6 +28,8 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					BsonType.Null => null,
 					BsonType.String => context.Reader.ReadString(),
 					BsonType.DateTime => context.Reader.ReadDateTime().ToString(),
+					BsonType.Double => context.Reader.ReadDouble().ToString(),
+					BsonType.Timestamp => context.Reader.ReadTimestamp().ToString(),
 					_ => throw new NotImplementedException()
 				};
 			}
