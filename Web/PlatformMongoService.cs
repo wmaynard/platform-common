@@ -83,7 +83,7 @@ namespace Rumble.Platform.Common.Web
 		public virtual void DeleteAll()
 		{
 #if DEBUG
-			// _collection.DeleteMany(filter: model => true);
+			_collection.DeleteMany(filter: model => true);
 			Log.Local(Owner.Default, "All documents deleted.");
 #else
 			Log.Error(Owner.Default, "Deleting all documents in a collection is not supported outside of local / debug environments.", data: new

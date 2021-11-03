@@ -1,12 +1,11 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.Json;
 using System.Xml.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Newtonsoft.Json.Linq;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -93,13 +92,13 @@ namespace Rumble.Platform.Common.Filters
 			if (token == null)
 				throw new InvalidTokenException(null, TokenAuthEndpoint);
 			long timestamp = Diagnostics.Timestamp;
-			JToken result = null;
+			JsonElement result = new JsonElement();
 
 			try
 			{
 				try
 				{
-					result = WebRequest.Get(TokenAuthEndpoint, token);
+					result = WebRequest.Get(TokenAuthEndpoint, token).RootElement;
 				}
 				catch (FailedRequestException ex)
 				{
@@ -109,31 +108,32 @@ namespace Rumble.Platform.Common.Filters
 						EncryptedToken = token,
 						Result = result
 					}, exception: ex);
-					result = WebRequest.Get(TokenAuthEndpoint_Legacy, token); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
+					result = WebRequest.Get(TokenAuthEndpoint_Legacy, token).RootElement; // fallback to player-service.  TODO: Remove this once everything is moved to token-service
 				}
 			}
 			catch (Exception e)
 			{
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
-			bool success = (bool)result["success"]; // This is something exclusive to player-service; when token-service is rewritten, this will change.
+
+			bool success = JsonHelper.Require<bool>(result, "success"); // This is something exclusive to player-service; when token-service is rewritten, this will change.
 			if (!success)
-				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string) result["error"]));
+				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception(JsonHelper.Optional<string>(result, "error")));
 			try
 			{
-				if (result["tokenInfo"] != null)
-					result = result["tokenInfo"];
+				if (result.TryGetProperty("tokenInfo", out JsonElement tokenInfo))
+					result = tokenInfo;
+				
 				TokenInfo output = new TokenInfo(token)
 				{
-					AccountId = result[TokenInfo.FRIENDLY_KEY_ACCOUNT_ID].ToObject<string>(),
-					Discriminator = result[TokenInfo.FRIENDLY_KEY_DISCRIMINATOR]?.ToObject<int?>() ?? -1,
-					Expiration = result[TokenInfo.FRIENDLY_KEY_EXPIRATION].ToObject<long>(),
-					Issuer = result[TokenInfo.FRIENDLY_KEY_ISSUER].ToObject<string>(),
-					ScreenName = result[TokenInfo.FRIENDLY_KEY_SCREENNAME]?.ToObject<string>(),
-					// SecondsRemaining = result[TokenInfo.FRIENDLY_KEY_SECONDS_REMAINING].ToObject<double>(),
-					IsAdmin = result[TokenInfo.FRIENDLY_KEY_IS_ADMIN]?.ToObject<bool>() ?? false
+					AccountId = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
+					Discriminator = JsonHelper.Optional<int?>(result, TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
+					Expiration = JsonHelper.Require<long>(result, TokenInfo.FRIENDLY_KEY_EXPIRATION),
+					Issuer = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ISSUER),
+					ScreenName = JsonHelper.Optional<string>(result, TokenInfo.FRIENDLY_KEY_SCREENNAME),
+					IsAdmin = JsonHelper.Optional<bool>(result, TokenInfo.FRIENDLY_KEY_IS_ADMIN)
 				};
-				output.ScreenName ??= result["screenName"]?.ToObject<string>(); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
+				output.ScreenName ??= JsonHelper.Optional<string>(result, "screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
 				
 				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)

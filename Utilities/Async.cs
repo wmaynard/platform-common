@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Timer = System.Timers.Timer; // TODO: Probably use System.Threading.Timer instead
 
 namespace Rumble.Platform.Common.Utilities
@@ -25,16 +25,16 @@ namespace Rumble.Platform.Common.Utilities
 		private Timer Timer { get; set; }
 		[JsonIgnore]
 		private Stopwatch Stopwatch { get; init; }
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+		[JsonInclude]
 		private bool RemoveOnComplete { get; init; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		[JsonInclude]
 		public dynamic Result { get; private set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Include, DefaultValueHandling = DefaultValueHandling.Include)]
+		[JsonInclude]
 		public string Id { get; init; }
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+		[JsonInclude]
 		private int TimeoutMS { get; init; }
 		private static readonly List<Async> All = new List<Async>();
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+		[JsonInclude]
 		public int TimeElapsed => (int)Stopwatch.ElapsedMilliseconds;
 		[JsonIgnore]
 		private bool Ended { get; set; }

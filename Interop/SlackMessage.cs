@@ -1,18 +1,19 @@
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class SlackMessage : PlatformDataModel
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public List<SlackAttachment> Attachments { get; set; }
-		[JsonProperty]
+		
+		[JsonInclude]
 		public List<SlackBlock> Blocks { get; set; }
-		[JsonProperty]
+		
+		[JsonInclude]
 		public string Channel { get; set; }
 
 		public SlackMessage(List<SlackBlock> blocks, params SlackAttachment[] attachments)

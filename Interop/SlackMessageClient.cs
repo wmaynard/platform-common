@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 
@@ -22,18 +21,18 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				: $"Bearer {token}";
 		}
 
-		public JObject Send(SlackMessage message)
+		public JsonElement Send(SlackMessage message)
 		{
 			// TODO: Async.Do
 			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
-			JObject response = null;
+			JsonDocument response = null;
 			message.Channel = Channel;
 
 			try
 			{
 				response = WebRequest.Post(POST_MESSAGE, message.JSON, Token);
-				string ok = response["ok"].ToString();
+				string ok = JsonHelper.Require<string>(response, "ok");
 				if (ok?.ToLower() != "true")
 					throw new FailedRequestException(POST_MESSAGE, message.JSON);
 			}
@@ -48,7 +47,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			
 			Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
 
-			return response;
+			return response.RootElement;
 		}
 	}
 }

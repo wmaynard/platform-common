@@ -1,13 +1,13 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class SlackAttachment
 	{
-		[JsonProperty]
+		[JsonInclude]
 		public string Color { get; set; }
-		[JsonProperty]
+		[JsonInclude]
 		public List<SlackBlock> Blocks { get; set; }
 
 		public SlackAttachment(string hexColor, List<SlackBlock> blocks)

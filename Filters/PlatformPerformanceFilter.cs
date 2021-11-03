@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -163,20 +163,21 @@ namespace Rumble.Platform.Common.Filters
 		/// </summary>
 		private class Metrics
 		{
-			[JsonProperty]
+			[JsonInclude]
 			public long ShortestTime { get; private set; }
-			[JsonProperty]
+			[JsonInclude]
 			public long LongestTime { get; private set; }
-			[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+			
+			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 			public long FailedMeasurements { get; private set; }
-			[JsonProperty(PropertyName = "RecentExecutionTimes")]
+			[JsonPropertyName("RecentExecutionTimes"), JsonInclude]
 			public List<long> Times { get; private set; }
-			[JsonProperty]
+			[JsonInclude]
 			public string Endpoint { get; private set; }
 
-			[JsonProperty]
+			[JsonInclude]
 			public double AverageTimeTaken => Times.Average();
-			[JsonProperty]
+			[JsonInclude]
 			public double MedianTimeTaken
 			{
 				get
@@ -190,15 +191,15 @@ namespace Rumble.Platform.Common.Filters
 							.ElementAt(Times.Count / 2);
 				}
 			}
-			[JsonProperty]
+			[JsonInclude]
 			public long RecentShortestTime => Times.Min();
-			[JsonProperty]
+			[JsonInclude]
 			public long RecentLongestTime => Times.Max();
 
-			[JsonProperty]
+			[JsonInclude]
 			private Dictionary<int, int> ResultCodes { get; set; }
 
-			[JsonProperty]
+			[JsonInclude]
 			private string ResponseHealth
 			{
 				get

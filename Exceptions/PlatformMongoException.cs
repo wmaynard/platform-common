@@ -1,5 +1,5 @@
+using System.Text.Json.Serialization;
 using MongoDB.Driver;
-using Newtonsoft.Json;
 
 namespace Rumble.Platform.Common.Exceptions
 {
@@ -9,7 +9,7 @@ namespace Rumble.Platform.Common.Exceptions
 	/// </summary>
 	public class PlatformMongoException : PlatformException
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		[JsonInclude]
 		public string CodeName { get; init; }
 		
 		public PlatformMongoException(MongoCommandException e) : base(e.Message)

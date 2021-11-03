@@ -2,9 +2,10 @@ using System;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Newtonsoft.Json.Linq;
+using RestSharp.Serialization.Json;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
@@ -37,7 +38,7 @@ namespace Rumble.Platform.Common.Filters
 				string json = Encoding.UTF8.GetString(result.Buffer.FirstSpan);
 				context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
 				context.HttpContext.Request.BodyReader.Complete();
-				context.HttpContext.Items[KEY_BODY] = JObject.Parse(json);
+				context.HttpContext.Items[KEY_BODY] = JsonDocument.Parse(json);
 			}
 			catch (Exception e)
 			{

@@ -1,5 +1,5 @@
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
@@ -9,9 +9,9 @@ namespace Rumble.Platform.Common.Web
 	/// </summary>
 	public class StandardResponse
 	{
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+		[JsonInclude]
 		public bool Success { get; set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Data { get; set; }
 
 		public StandardResponse(object data)

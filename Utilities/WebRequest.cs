@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json;
 using RestSharp;
 using Rumble.Platform.Common.Exceptions;
 
@@ -29,7 +27,7 @@ namespace Rumble.Platform.Common.Utilities
 			Authorization = auth;
 		}
 
-		public JObject Send(Dictionary<string, string> queryParameters)
+		public JsonDocument Send(Dictionary<string, string> queryParameters)
 		{
 			return Send(jsonBody: null, queryParameters: queryParameters);
 		}
@@ -39,7 +37,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="jsonBody">A string representation of a JSON payload.</param>
 		/// <param name="queryParameters"></param>
 		/// <returns></returns>
-		public JObject Send(string jsonBody = null, Dictionary<string, string> queryParameters = null)
+		public JsonDocument Send(string jsonBody = null, Dictionary<string, string> queryParameters = null)
 		{
 			RestRequest request = new RestRequest(Method);
 			if (Authorization != null)
@@ -65,7 +63,7 @@ namespace Rumble.Platform.Common.Utilities
 					Exception = response.ErrorException,
 					Description = response.StatusDescription
 				});
-			return JsonConvert.DeserializeObject<JObject>(response.Content);
+			return JsonDocument.Parse(response.Content);
 		}
 		/// <summary>
 		/// Sends a request.
@@ -74,16 +72,17 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="queryParameters"></param>
 		/// <param name="serializeLowerCamelCase">Set to false to allow object properties to remain UpperCamelCase when serialized as JSON.</param>
 		/// <returns></returns>
-		public JObject Send(object serializeMe, Dictionary<string, string> queryParameters = null, bool serializeLowerCamelCase = true)
+		public JsonDocument Send(object serializeMe, Dictionary<string, string> queryParameters = null, bool serializeLowerCamelCase = true)
 		{
 			// If serializeMe is null, This will send a body of "null", which doesn't make sense.
 			// It's possible someone would send a null object to this function explicitly, so we should control for that.
 			if (serializeMe == null)
 				return Send(jsonBody: null, queryParameters: queryParameters);
+
 			
 			string json = serializeLowerCamelCase
-				? JsonConvert.SerializeObject(serializeMe, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() })
-				: JsonConvert.SerializeObject(serializeMe);
+				? JsonSerializer.Serialize(serializeMe, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase})
+				: JsonSerializer.Serialize(serializeMe);
 			return Send(json, queryParameters);
 		}
 
@@ -94,7 +93,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="auth"></param>
 		/// <param name="queryParameters"></param>
 		/// <returns>The Authorization header.  If using a token, be sure to include "Bearer " in front of it.</returns>
-		public static JObject Get(string endpoint, string auth = null, Dictionary<string, string> queryParameters = null)
+		public static JsonDocument Get(string endpoint, string auth = null, Dictionary<string, string> queryParameters = null)
 		{
 			return new WebRequest(endpoint, Method.GET, auth).Send(queryParameters);
 		}
@@ -106,7 +105,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="auth">The Authorization header.  If using a token, be sure to include "Bearer " in front of it.</param>
 		/// <param name="queryParameters"></param>
 		/// <returns></returns>
-		public static JObject Post(string endpoint, string json, string auth = null, Dictionary<string, string> queryParameters = null)
+		public static JsonDocument Post(string endpoint, string json, string auth = null, Dictionary<string, string> queryParameters = null)
 		{
 			return new WebRequest(endpoint, RestSharp.Method.POST, auth).Send(json, queryParameters);
 		}
@@ -119,7 +118,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="queryParameters"></param>
 		/// <param name="lowerCamelCase">Set to false to allow object properties to remain UpperCamelCase when serialized as JSON.</param>
 		/// <returns></returns>
-		public static JObject Post(string endpoint, object serializeMe, string auth = null, Dictionary<string, string> queryParameters = null, bool lowerCamelCase = true)
+		public static JsonDocument Post(string endpoint, object serializeMe, string auth = null, Dictionary<string, string> queryParameters = null, bool lowerCamelCase = true)
 		{
 			return new WebRequest(endpoint, RestSharp.Method.POST, auth).Send(serializeMe, queryParameters, lowerCamelCase);
 		}

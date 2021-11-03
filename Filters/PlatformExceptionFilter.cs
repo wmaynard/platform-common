@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -41,7 +41,8 @@ namespace Rumble.Platform.Common.Filters
 
 			string code = ex switch
 			{
-				JsonSerializationException => "Invalid JSON.",
+				// JsonSerializationException => "Invalid JSON.",
+				JsonException => "Invalid JSON.",
 				ArgumentNullException => ex.Message,
 				PlatformException => ex.Message,
 				BadHttpRequestException => ex.Message,

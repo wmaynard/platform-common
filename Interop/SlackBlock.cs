@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Rumble.Platform.Common.Exceptions;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.CSharp.Common.Interop
@@ -15,10 +14,10 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		[JsonIgnore]
 		private readonly BlockType _blockType;
-		[JsonProperty]
+		[JsonInclude]
 		public string Type { get; set; }
 		
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Text { get; set; }
 
 		[JsonIgnore]

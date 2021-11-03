@@ -1,11 +1,11 @@
 using System;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Rumble.Platform.Common.Exceptions
 {
 	public class PlatformSerializationException : PlatformException
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		[JsonInclude]
 		public string BadObject { get; init; }
 		
 		public PlatformSerializationException(string message, object badObject) : base(message)

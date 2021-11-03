@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -9,7 +11,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
@@ -46,7 +47,7 @@ namespace Rumble.Platform.Common.Web
 				}
 			}
 		}
-		[JsonProperty]
+		[JsonInclude]
 		private string ServiceName
 		{
 			get
@@ -117,10 +118,12 @@ namespace Rumble.Platform.Common.Web
 				_filtersAdded = true;
 			}).AddJsonOptions(options =>
 			{
-				options.JsonSerializerOptions.IgnoreNullValues = true;
-			}).AddNewtonsoftJson(options =>
-			{
-				options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+				options.JsonSerializerOptions.IgnoreNullValues = false;
+				options.JsonSerializerOptions.IncludeFields = true;
+				options.JsonSerializerOptions.IgnoreReadOnlyFields = false;
+				options.JsonSerializerOptions.IgnoreReadOnlyProperties = false;
+				options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+				// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
 			});
 			
 			Log.Verbose(Owner.Default, "Adding CORS to services");

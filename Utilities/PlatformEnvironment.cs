@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.CSharp.Common.Interop;
 
@@ -27,13 +26,13 @@ namespace Rumble.Platform.Common.Utilities
 			Dictionary<string, string> output = new Dictionary<string, string>();
 			try
 			{
-				JObject json = (JObject) JsonConvert.DeserializeObject(File.ReadAllText(FILE));
-				foreach (JProperty prop in json.Properties())
-					output[prop.Name] = prop.Value.ToObject<string>();
+				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(FILE));
+				foreach (JsonProperty property in environment.RootElement.EnumerateObject())
+					output[property.Name] = property.Value.GetString();
 			}
 			catch
 			{
-				Log.Local(Owner.Default, message: "PlatformEnvironment was unable to read the 'environment.json' file.");
+				Log.Local(Owner.Default, message: $"PlatformEnvironment was unable to read the '{FILE}' file.");
 			}
 
 			return output;

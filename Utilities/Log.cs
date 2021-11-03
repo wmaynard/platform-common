@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using MongoDB.Driver;
-using Newtonsoft.Json;
-using RestSharp;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.CSharp.Common.Interop;
@@ -34,28 +31,28 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonIgnore]
 		private readonly Owner _owner;
 
-		[JsonProperty]
+		[JsonInclude]
 		public string Owner => _owner.ToString();
-		[JsonProperty]
+		[JsonInclude]
 		public string Severity => _severity.ToString();
 		[JsonIgnore] 
 		private readonly LogType _severity;
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Message { get; set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public TokenInfo Token { get; set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string StackTrace { get; set; }
-		[JsonProperty(PropertyName = "env")]
+		[JsonPropertyName("env")]
 		public string Environment => PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Time { get; set; }
 
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Data { get; set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public Exception Exception { get; set; }
 
 		[JsonIgnore]

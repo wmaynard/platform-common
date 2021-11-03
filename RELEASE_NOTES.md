@@ -1,3 +1,51 @@
+# 1.0.42
+
+Newtonsoft is famously slower than built-in JSON handling and has now been removed, and `System.Text.Json` takes its place.
+
+## Important Breaking Changes
+
+With the removal of Newtonsoft anywhere you use `JObject`, `JToken`, or any of the serialization in models will need attention.  If you primarily use `Require<T>()` and `Optional<T>()` to get values out of your JSON, the impact should be minimal inside Controllers.
+
+### Example Attribute Translations
+
+| Newtonsoft | .NET Core |
+| :--- | :--- |
+| `[JsonProperty(FRIENDLY_KEY_FOO)]` | `[JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOO)]` |
+| `[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]` | `[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]` |
+| `[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]` | `[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]` |
+
+The built-in JSON handling comes with some limitations, but the top issues to look out for are:
+* `System.Text.Json` requires any property with a non-public setter to explicitly specify `JsonInclude`.  Review all of your models to make sure you won't accidentally omit any of your properties.
+* `System.Text.Json` lacks the ability to ignore reference loops.
+
+# 1.0.41
+
+Improved singleton service creation; before this update, it was possible to break platform-common with a scenario as below:
+
+```
+public abstract class Foo : PlatformMongoService<Model>
+{
+    ...
+}
+
+public class Bar : Foo<Model>
+{
+    ...
+}
+```
+
+The abstract class would trip up the service instantiation and would break Startup.
+
+Loggly also no longer breaks Startup if you're missing your Loggly environment variable.
+
+# 1.0.40
+
+Added `Find()` and `FindOne()` methods to PlatformMongoServices.
+
+# 1.0.36 - 1.0.39
+
+Various log changes to identify an issue that turned out to be a whitelist problem with token generation.
+
 # 1.0.35
 
 * Added `PlatformEnvironment.FileText` to read in file contents at runtime.  Initial goal was to allow token-service to read in public / private keys at runtime.

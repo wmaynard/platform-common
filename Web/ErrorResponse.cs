@@ -1,5 +1,5 @@
 using System;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Exceptions;
 
 namespace Rumble.Platform.Common.Web
@@ -10,7 +10,7 @@ namespace Rumble.Platform.Common.Web
 	/// </summary>
 	public class ErrorResponse : StandardResponse
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Message { get; set; }
 
 		public ErrorResponse(string message, Exception data) : base(data)

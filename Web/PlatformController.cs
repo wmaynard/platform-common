@@ -12,10 +12,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RestSharp;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 
@@ -103,12 +99,12 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
-		protected T Optional<T>(string key, JToken json) => JsonHelper.Optional<T>(json, key);
-		protected T Require<T>(string key, JToken json) => JsonHelper.Require<T>(json, key);
-		protected T Optional<T>(string key, JObject json = null) => JsonHelper.Optional<T>(json ?? Body, key);
-		protected T Require<T>(string key, JObject json = null) => JsonHelper.Require<T>(json ?? Body, key);
+		protected T Optional<T>(string key, JsonElement json) => JsonHelper.Optional<T>(json, key);
+		protected T Require<T>(string key, JsonElement json) => JsonHelper.Require<T>(json, key);
+		protected T Optional<T>(string key, JsonDocument json = null) => JsonHelper.Optional<T>(json ?? Body, key);
+		protected T Require<T>(string key, JsonDocument json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
-		protected JObject Body => FromContext<JObject>(PlatformResourceFilter.KEY_BODY);
+		protected JsonDocument Body => FromContext<JsonDocument>(PlatformResourceFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN);
 		protected string IpAddress => Request.HttpContext.Connection.RemoteIpAddress?.ToString();
 		protected string EncryptedToken => FromContext<string>(PlatformResourceFilter.KEY_AUTHORIZATION);

@@ -1,15 +1,12 @@
 using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
 	public abstract class PlatformException : Exception // TODO: Should probably be an abstract class
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; private set; }
 		
 		public PlatformException() : this("No message provided."){}

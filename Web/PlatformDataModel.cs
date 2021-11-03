@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
+// using JsonSerializer = RestSharp.Serialization.Json.JsonSerializer;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -42,10 +43,7 @@ namespace Rumble.Platform.Common.Web
 		
 		[BsonIgnore]
 		[JsonIgnore]
-		public string JSON => JsonConvert.SerializeObject(
-			this,
-			new JsonSerializerSettings(){ContractResolver = new CamelCasePropertyNamesContractResolver()}
-		);
+		public string JSON => JsonSerializer.Serialize(this, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase});
 	}
 
 

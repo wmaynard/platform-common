@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.Serialization;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -8,13 +8,16 @@ namespace Rumble.Platform.Common.Exceptions
 {
 	public class InvalidTokenException : PlatformException
 	{
-		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		[JsonInclude]
 		public string EncryptedToken { get; private set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+		
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public TokenInfo Token { get; private set; }
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+		
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public bool EmptyToken { get; private set; }
-		[JsonProperty(NullValueHandling = NullValueHandling.Include)]
+		
+		[JsonInclude]
 		public string VerificationEndpoint { get; private set; }
 		public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner)
 		{
