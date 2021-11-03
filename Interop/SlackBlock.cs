@@ -17,7 +17,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 		[JsonInclude]
 		public string Type { get; set; }
 		
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Text { get; set; }
 
 		[JsonIgnore]

@@ -10,7 +10,7 @@ namespace Rumble.Platform.Common.Web
 	/// </summary>
 	public class ErrorResponse : StandardResponse
 	{
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Message { get; set; }
 
 		public ErrorResponse(string message, Exception data) : base(data)

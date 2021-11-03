@@ -37,22 +37,22 @@ namespace Rumble.Platform.Common.Utilities
 		public string Severity => _severity.ToString();
 		[JsonIgnore] 
 		private readonly LogType _severity;
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Message { get; set; }
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public TokenInfo Token { get; set; }
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string StackTrace { get; set; }
-		[JsonPropertyName("env")]
+		[JsonInclude, JsonPropertyName("env")]
 		public string Environment => PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Time { get; set; }
 
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; set; }
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Data { get; set; }
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public Exception Exception { get; set; }
 
 		[JsonIgnore]

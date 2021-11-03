@@ -31,37 +31,39 @@ namespace Rumble.Platform.Common.Web
 		[JsonIgnore]
 		public string Authorization { get; private set; }
 		[BsonElement(DB_KEY_ACCOUNT_ID)]
-		[JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string AccountId { get; set; }
 		[BsonElement(DB_KEY_DISCRIMINATOR)]
-		[JsonPropertyName(FRIENDLY_KEY_DISCRIMINATOR), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_DISCRIMINATOR), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public int Discriminator { get; set; }
 		[BsonElement(DB_KEY_EMAIL_ADDRESS), BsonIgnoreIfNull]
-		[JsonPropertyName(FRIENDLY_KEY_EMAIL_ADDRESS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_EMAIL_ADDRESS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Email { get; set; }
 		[BsonElement(DB_KEY_EXPIRATION)]
-		[JsonPropertyName(FRIENDLY_KEY_EXPIRATION), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_EXPIRATION), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public long Expiration { get; set; }
 		[BsonElement(DB_KEY_IP_ADDRESS), BsonIgnoreIfNull]
-		[JsonPropertyName(FRIENDLY_KEY_IP_ADDRESS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IP_ADDRESS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string IpAddress { get; set; }
 		[BsonElement(DB_KEY_ISSUER)]
-		[JsonPropertyName(FRIENDLY_KEY_ISSUER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ISSUER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Issuer { get; set; }
 		[BsonElement(DB_KEY_IS_ADMIN)]
-		[JsonPropertyName(FRIENDLY_KEY_IS_ADMIN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IS_ADMIN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public bool IsAdmin { get; set; }
 		[BsonElement(DB_KEY_SCREENNAME)]
-		[JsonPropertyName(FRIENDLY_KEY_SCREENNAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SCREENNAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string ScreenName { get; set; }
 		[BsonIgnore]
-		[JsonPropertyName(FRIENDLY_KEY_SECONDS_REMAINING), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SECONDS_REMAINING), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public double SecondsRemaining { get; set; }
 		[BsonIgnore]
-		[JsonPropertyName(FRIENDLY_KEY_USERNAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_USERNAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Username => $"{ScreenName ?? "(Unknown Screenname)"}#{(Discriminator.ToString() ?? "").PadLeft(4, '?')}{(IsAdmin ? " (Administrator)" : "")}";
 
-		[BsonIgnore, JsonIgnore] public bool IsExpired => Expiration <= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		[BsonIgnore]
+		[JsonIgnore]
+		public bool IsExpired => Expiration <= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		
 		public TokenInfo(string auth = null)
 		{

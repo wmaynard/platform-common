@@ -11,10 +11,10 @@ namespace Rumble.Platform.Common.Exceptions
 		[JsonInclude]
 		public string EncryptedToken { get; private set; }
 		
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public TokenInfo Token { get; private set; }
 		
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public bool EmptyToken { get; private set; }
 		
 		[JsonInclude]

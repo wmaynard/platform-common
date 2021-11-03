@@ -11,7 +11,7 @@ namespace Rumble.Platform.Common.Web
 	{
 		[JsonInclude]
 		public bool Success { get; set; }
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Data { get; set; }
 
 		public StandardResponse(object data)

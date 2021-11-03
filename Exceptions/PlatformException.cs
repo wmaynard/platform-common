@@ -6,7 +6,7 @@ namespace Rumble.Platform.Common.Exceptions
 {
 	public abstract class PlatformException : Exception // TODO: Should probably be an abstract class
 	{
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; private set; }
 		
 		public PlatformException() : this("No message provided."){}

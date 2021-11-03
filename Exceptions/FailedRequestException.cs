@@ -10,7 +10,7 @@ namespace Rumble.Platform.Common.Exceptions
 		[JsonInclude]
 		public string Url { get; init; }
 		
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public new string Data { get; init; }
 		
 		[JsonInclude]

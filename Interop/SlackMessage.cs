@@ -7,7 +7,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class SlackMessage : PlatformDataModel
 	{
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public List<SlackAttachment> Attachments { get; set; }
 		
 		[JsonInclude]

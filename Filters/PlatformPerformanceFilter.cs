@@ -170,7 +170,7 @@ namespace Rumble.Platform.Common.Filters
 			
 			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 			public long FailedMeasurements { get; private set; }
-			[JsonPropertyName("RecentExecutionTimes"), JsonInclude]
+			[JsonInclude, JsonPropertyName("RecentExecutionTimes")]
 			public List<long> Times { get; private set; }
 			[JsonInclude]
 			public string Endpoint { get; private set; }
