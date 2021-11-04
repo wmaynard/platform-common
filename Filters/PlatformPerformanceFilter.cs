@@ -90,6 +90,12 @@ namespace Rumble.Platform.Common.Filters
 			string message = $"{name} time taken to respond: {taken:N0}ms";
 			object diagnostics = LogObject(context, "ResultExecuted", taken);
 			
+			if (GetAttributes<PerformanceFilterBypass>(context).Any())
+			{
+				Log.Local(Owner.Default, $"Performance not recorded; {message}");
+				return;
+			}
+
 			// Log the time taken
 #if DEBUG
 			Log.Verbose(Owner.Default, message, data: diagnostics);
