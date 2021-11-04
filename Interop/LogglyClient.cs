@@ -28,11 +28,12 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			try
 			{
 				string json = log.JSON; // This has to be outside of the Async call; otherwise, data can be modified before the request goes out.
-				Async.Do($"Send data to Loggly ({log.Message})", task: () =>
-				{
-					Request.Send(json);
-					Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
-				});
+				if (json != null)
+					Async.Do($"Send data to Loggly ({log.Message})", task: () =>
+					{
+						Request.Send(json);
+						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
+					});
 			}
 			catch (Exception e)
 			{

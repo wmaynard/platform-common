@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
@@ -22,6 +23,8 @@ namespace Rumble.Platform.Common.Web
 	{
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
+		public static bool JsonConfigured { get; private set; }
+		public static JsonSerializerOptions JsonOptions { get; private set; }
 
 		private static string PasswordlessMongoConnection
 		{
@@ -86,6 +89,14 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
+			JsonOptions = new JsonSerializerOptions();
+			JsonOptions.IgnoreNullValues = false;
+			JsonOptions.IncludeFields = true;
+			JsonOptions.IgnoreReadOnlyFields = false;
+			JsonOptions.IgnoreReadOnlyProperties = false;
+			JsonOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+			JsonOptions.Converters.Add(new JsonTypeConverter());
+			
 			Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 			Configuration = configuration;
 			
@@ -118,11 +129,19 @@ namespace Rumble.Platform.Common.Web
 				_filtersAdded = true;
 			}).AddJsonOptions(options =>
 			{
-				options.JsonSerializerOptions.IgnoreNullValues = false;
-				options.JsonSerializerOptions.IncludeFields = true;
-				options.JsonSerializerOptions.IgnoreReadOnlyFields = false;
-				options.JsonSerializerOptions.IgnoreReadOnlyProperties = false;
-				options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+				options.JsonSerializerOptions.IgnoreNullValues = JsonOptions.IgnoreNullValues;
+				options.JsonSerializerOptions.IncludeFields = JsonOptions.IncludeFields;
+				options.JsonSerializerOptions.IgnoreReadOnlyFields = JsonOptions.IgnoreReadOnlyFields;
+				options.JsonSerializerOptions.IgnoreReadOnlyProperties = JsonOptions.IgnoreReadOnlyProperties;
+				options.JsonSerializerOptions.PropertyNamingPolicy = JsonOptions.PropertyNamingPolicy;
+				options.JsonSerializerOptions.Converters.Add(new JsonTypeConverter());
+				foreach (JsonConverter converter in JsonOptions.Converters)
+					options.JsonSerializerOptions.Converters.Add(converter);
+				
+				// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
+				// It throws errors when trying to serialize certain types and breaks the execution to do it.
+				JsonConfigured = true;
+				Log.Local(Owner.Default, "JSON serializer options configured.");
 				// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
 			});
 			

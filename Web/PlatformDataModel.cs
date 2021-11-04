@@ -8,6 +8,9 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Utilities.Serializers;
+
 // using JsonSerializer = RestSharp.Serialization.Json.JsonSerializer;
 
 namespace Rumble.Platform.Common.Web
@@ -40,11 +43,25 @@ namespace Rumble.Platform.Common.Web
 		[BsonIgnore]
 		[JsonIgnore]
 		public static long UnixTime => DateTimeOffset.Now.ToUnixTimeSeconds();
-		
+
 		[BsonIgnore]
 		[JsonIgnore]
-		public string JSON => JsonSerializer.Serialize(this, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase});
+		public string JSON
+		{
+			get
+			{
+				if (PlatformStartup.JsonConfigured)
+					return JsonSerializer.Serialize(this, GetType());
+				try
+				{
+					return JsonSerializer.Serialize(this, GetType(), PlatformStartup.JsonOptions);
+				}
+				catch (Exception e)
+				{
+					Log.Verbose(Owner.Default, e.Message);
+					return null;
+				}
+			}
+		}
 	}
-
-
 }
