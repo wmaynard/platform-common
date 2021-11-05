@@ -23,9 +23,6 @@ namespace Rumble.Platform.Common.Web
 	{
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
-		public static bool JsonConfigured { get; private set; }
-		// public static JsonSerializerOptions JsonOptions { get; private set; }
-		// public static JsonDocumentOptions JsonDocumentOptions { get; private set; }
 
 		private static string PasswordlessMongoConnection
 		{
@@ -90,21 +87,6 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
-			// JsonOptions = new JsonSerializerOptions();
-			// JsonOptions.IgnoreNullValues = false;
-			// JsonOptions.IncludeFields = true;
-			// JsonOptions.IgnoreReadOnlyFields = false;
-			// JsonOptions.IgnoreReadOnlyProperties = false;
-			// JsonOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-			// JsonOptions.Converters.Add(new JsonTypeConverter());
-			// JsonOptions.Converters.Add(new JsonExceptionConverter());
-			// JsonOptions.ReadCommentHandling = JsonCommentHandling.Skip;
-
-			// JsonDocumentOptions = new JsonDocumentOptions()
-			// {
-			// 	CommentHandling = JsonCommentHandling.Skip
-			// };
-			
 			Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 			Configuration = configuration;
 			
@@ -149,7 +131,6 @@ namespace Rumble.Platform.Common.Web
 				
 				// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
 				// It throws errors when trying to serialize certain types and breaks the execution to do it.
-				JsonConfigured = true;
 				Log.Local(Owner.Default, "JSON serializer options configured.");
 				// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
 			});
