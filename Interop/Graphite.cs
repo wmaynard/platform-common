@@ -42,22 +42,18 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				return;
 			}
 
-			string server = "";
-			int port = 0;
-
 			try
 			{
 				string value = PlatformEnvironment.Variable("GRAPHITE");
-				server = value[..value.IndexOf(':')];
-				port = int.Parse(value[(value.IndexOf(':') + 1)..]);
+				string server = value[..value.IndexOf(':')];
+				int port = int.Parse(value[(value.IndexOf(':') + 1)..]);
+				Client ??= new Graphite(service, server, port, frequencyInMs);
 			}
 			catch (Exception e)
 			{
 				Log.Error(Owner.Will, "Failed to parse GRAPHITE env var.", exception: e);
 				return;
 			}
-			
-			Client ??= new Graphite(service, server, port, frequencyInMs);
 		}
 		private Graphite(string parentService, string server, int port, int frequency)
 		{

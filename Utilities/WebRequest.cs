@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using RestSharp;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Utilities
 {
@@ -70,19 +71,16 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="serializeMe">An object to be serialized to JSON.  By default, serializes JSON to lowerCamelCase.</param>
 		/// <param name="queryParameters"></param>
-		/// <param name="serializeLowerCamelCase">Set to false to allow object properties to remain UpperCamelCase when serialized as JSON.</param>
 		/// <returns></returns>
-		public JsonDocument Send(object serializeMe, Dictionary<string, string> queryParameters = null, bool serializeLowerCamelCase = true)
+		public JsonDocument Send(object serializeMe, Dictionary<string, string> queryParameters = null)
 		{
 			// If serializeMe is null, This will send a body of "null", which doesn't make sense.
 			// It's possible someone would send a null object to this function explicitly, so we should control for that.
 			if (serializeMe == null)
 				return Send(jsonBody: null, queryParameters: queryParameters);
 
-			
-			string json = serializeLowerCamelCase
-				? JsonSerializer.Serialize(serializeMe, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase})
-				: JsonSerializer.Serialize(serializeMe);
+
+			string json = JsonSerializer.Serialize(serializeMe, JsonHelper.SerializerOptions);
 			return Send(json, queryParameters);
 		}
 
@@ -118,9 +116,9 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="queryParameters"></param>
 		/// <param name="lowerCamelCase">Set to false to allow object properties to remain UpperCamelCase when serialized as JSON.</param>
 		/// <returns></returns>
-		public static JsonDocument Post(string endpoint, object serializeMe, string auth = null, Dictionary<string, string> queryParameters = null, bool lowerCamelCase = true)
+		public static JsonDocument Post(string endpoint, object serializeMe, string auth = null, Dictionary<string, string> queryParameters = null)
 		{
-			return new WebRequest(endpoint, RestSharp.Method.POST, auth).Send(serializeMe, queryParameters, lowerCamelCase);
+			return new WebRequest(endpoint, RestSharp.Method.POST, auth).Send(serializeMe, queryParameters);
 		}
 
 		public override string ToString() => $"{Enum.GetName(Method)} {Endpoint}";

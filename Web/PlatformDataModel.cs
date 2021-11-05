@@ -50,11 +50,9 @@ namespace Rumble.Platform.Common.Web
 		{
 			get
 			{
-				if (PlatformStartup.JsonConfigured)
-					return JsonSerializer.Serialize(this, GetType());
 				try
 				{
-					return JsonSerializer.Serialize(this, GetType(), PlatformStartup.JsonOptions);
+					return JsonSerializer.Serialize(this, GetType(), JsonHelper.SerializerOptions);
 				}
 				catch (Exception e)
 				{

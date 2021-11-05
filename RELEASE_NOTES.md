@@ -6,7 +6,41 @@ Newtonsoft is famously slower than built-in JSON handling and has now been remov
 
 With the removal of Newtonsoft anywhere you use `JObject`, `JToken`, or any of the serialization in models will need attention.  If you primarily use `Require<T>()` and `Optional<T>()` to get values out of your JSON, the impact should be minimal inside Controllers.
 
+### Manually Serializing Data
+
+If you need to manually serialize or parse data, consider using one of the following calls, assuming you don't need different options than what platform-common uses:
+
+```
+JsonSerializer.Serialize(data, JsonHelper.SerializationOptions);
+
+JsonDocument.Parse(string, JsonHelper.DocumentOptions);
+```
+
+Note that platform-common does use converters for `Type` and `Exception` objects. 
+
 ### Example Attribute Translations
+
+Include a value even when null or default:
+
+	Old: [JsonProperty(FRIENDLY_KEY_TOKEN, NullValueHandling = NullValueHandling.Include)]
+
+	New: [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TOKEN)]
+
+Ignore a property when it's null:
+
+	Old: [JsonProperty(PropertyName = FRIENDLY_KEY_TOKENS, NullValueHandling = NullValueHandling.Ignore)]
+
+	New: [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TOKENS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+
+Ignore a property when it's a default value:
+
+	Old: [JsonProperty(FRIENDLY_KEY_CREATED, DefaultValueHandling = DefaultValueHandling.Ignore)]
+
+	New: [JsonInclude, JsonPropertyName(FRIENDLY_KEY_CREATED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+
+Every property you want serialized should use the `JsonInclude` attribute to avoid any confusion; the built-in serializer _does_ automatically pull in fields and properties with public set methods, but ignores properties with set methods using any other accessibility.  So, just for sanity's sake, mark it with the attribute every time.
+
+`System.Text.Json` has various limitations when compared to Newtonsoft, such as lacking the ability to ignore reference loops.
 
 | Newtonsoft | .NET Core |
 | :--- | :--- |
