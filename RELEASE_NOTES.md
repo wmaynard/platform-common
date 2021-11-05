@@ -1,6 +1,6 @@
 # 1.0.42
 
-Newtonsoft is famously slower than built-in JSON handling and has now been removed, and `System.Text.Json` takes its place.
+Newtonsoft is famously slower than built-in JSON handling and has now been removed, and `System.Text.Json` takes its place.  If you've been using an earlier version of platform-common, you will need to update several files to make the transition.
 
 ## Important Breaking Changes
 
@@ -20,6 +20,8 @@ Note that platform-common does use converters for `Type` and `Exception` objects
 
 ### Example Attribute Translations
 
+All of your models from previous version will require attention, and the "friendly" properties will likely become a little more verbose than they have been.  Below are some sample translations from token-service.
+
 Include a value even when null or default:
 
 	Old: [JsonProperty(FRIENDLY_KEY_TOKEN, NullValueHandling = NullValueHandling.Include)]
@@ -28,7 +30,7 @@ Include a value even when null or default:
 
 Ignore a property when it's null:
 
-	Old: [JsonProperty(PropertyName = FRIENDLY_KEY_TOKENS, NullValueHandling = NullValueHandling.Ignore)]
+	Old: [JsonProperty(FRIENDLY_KEY_TOKENS, NullValueHandling = NullValueHandling.Ignore)]
 
 	New: [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TOKENS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 
@@ -40,17 +42,12 @@ Ignore a property when it's a default value:
 
 Every property you want serialized should use the `JsonInclude` attribute to avoid any confusion; the built-in serializer _does_ automatically pull in fields and properties with public set methods, but ignores properties with set methods using any other accessibility.  So, just for sanity's sake, mark it with the attribute every time.
 
-`System.Text.Json` has various limitations when compared to Newtonsoft, such as lacking the ability to ignore reference loops.
-
-| Newtonsoft | .NET Core |
-| :--- | :--- |
-| `[JsonProperty(FRIENDLY_KEY_FOO)]` | `[JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOO)]` |
-| `[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]` | `[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]` |
-| `[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]` | `[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]` |
-
+### Limitations of `System.Text.Json`
 The built-in JSON handling comes with some limitations, but the top issues to look out for are:
 * `System.Text.Json` requires any property with a non-public setter to explicitly specify `JsonInclude`.  Review all of your models to make sure you won't accidentally omit any of your properties.
 * `System.Text.Json` lacks the ability to ignore reference loops.
+
+Further reading: [System.Text.Json vs Newtonsoft.Json](https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-migrate-from-newtonsoft-how-to?pivots=dotnet-5-0)
 
 # 1.0.41
 
