@@ -1,3 +1,7 @@
+# 1.0.43
+
+Fixed a minor issue that sometimes caused `environment.json` to fail to load.
+
 # 1.0.42
 
 Newtonsoft is famously slower than built-in JSON handling and has now been removed, and `System.Text.Json` takes its place.  If you've been using an earlier version of platform-common, you will need to update several files to make the transition.

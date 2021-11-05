@@ -64,7 +64,7 @@ namespace Rumble.Platform.Common.Utilities
 					Exception = response.ErrorException,
 					Description = response.StatusDescription
 				});
-			return JsonDocument.Parse(response.Content);
+			return JsonDocument.Parse(response.Content, JsonHelper.DocumentOptions);
 		}
 		/// <summary>
 		/// Sends a request.

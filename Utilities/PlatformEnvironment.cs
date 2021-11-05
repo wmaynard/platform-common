@@ -26,7 +26,7 @@ namespace Rumble.Platform.Common.Utilities
 			Dictionary<string, string> output = new Dictionary<string, string>();
 			try
 			{
-				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(FILE));
+				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(FILE), JsonHelper.DocumentOptions);
 				foreach (JsonProperty property in environment.RootElement.EnumerateObject())
 					output[property.Name] = property.Value.GetString();
 			}
