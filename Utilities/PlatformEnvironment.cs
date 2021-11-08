@@ -38,7 +38,7 @@ namespace Rumble.Platform.Common.Utilities
 			return output;
 		}
 		
-		public static string Variable(string name)
+		public static string Variable(string name, bool warnOnMissing = true)
 		{
 			LocalSecrets ??= ReadLocalSecretsFile();
 			try
@@ -47,7 +47,10 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (KeyNotFoundException ex)
 			{
-				Log.Warn(Owner.Default, $"Missing environment variable `{name}`.", exception: ex);
+				if (warnOnMissing)
+				{
+					Log.Warn(Owner.Default, $"Missing environment variable `{name}`.", exception: ex);
+				}
 			}
 
 			return null;

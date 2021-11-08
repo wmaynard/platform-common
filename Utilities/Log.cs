@@ -28,7 +28,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		private static bool IsVerboseLoggingEnabled()
 		{
-			string value = PlatformEnvironment.Variable("VERBOSE_LOGGING");
+			string value = PlatformEnvironment.Variable("VERBOSE_LOGGING", false);
 
 			if (value == null)
 			{
