@@ -25,7 +25,20 @@ namespace Rumble.Platform.Common.Utilities
 			}
 		}
 		private static readonly LogglyClient Loggly = new LogglyClient();
-		private static readonly bool VerboseEnabled = PlatformEnvironment.Variable("VERBOSE_LOGGING").ToLower() == "true";
+
+		private static bool IsVerboseLoggingEnabled()
+		{
+			string value = PlatformEnvironment.Variable("VERBOSE_LOGGING");
+
+			if (value == null)
+			{
+				return false;
+
+			}
+				
+			return string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
+		}
+		
 		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
 
 		[JsonIgnore]
@@ -76,8 +89,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		[JsonIgnore] 
 		private static readonly int MaxSeverityLength = !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
-		[JsonIgnore]
-		private string ConsoleMessage => $"{Owner.PadRight(MaxOwnerNameLength, ' ')} | {ElapsedTime} | {Severity.PadLeft(MaxSeverityLength, ' ')} | {Caller}: {Message ?? "(No Message)"}";
+
 		[JsonIgnore]
 		private string Caller { get; set; }
 		
@@ -107,6 +119,20 @@ namespace Rumble.Platform.Common.Utilities
 				Exception = new PlatformSerializationException("JSON serialization failed.", Exception);
 			}
 		}
+		
+		private string BuildConsoleMessage()
+		{
+			string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
+			string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
+			string msg = "No Message";
+
+			if (Message != null)
+			{
+				msg = Message;
+			}
+
+			return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg}";
+		}
 
 		/// <summary>
 		/// Sends an event to Loggly.  If working locally, pretty-prints a message out to the console.
@@ -117,7 +143,7 @@ namespace Rumble.Platform.Common.Utilities
 			if (_severity != LogType.LOCAL)
 				Loggly.Send(this);
 			if (PlatformEnvironment.IsLocal)
-				Console.WriteLine(ConsoleMessage);
+				Console.WriteLine(BuildConsoleMessage());
 			return this;
 		}
 
@@ -131,8 +157,10 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="exception">Any exception encountered, if available.</param>
 		public static void Verbose(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
 		{
-			if (VerboseEnabled)
+			if (IsVerboseLoggingEnabled())
+			{
 				Write(LogType.VERBOSE, owner, message, token, data, exception);
+			}
 		}
 		/// <summary>
 		/// Logs a LOCAL-level event.  These are only printed to the console, they are not sent to Loggly.  Standard fields
