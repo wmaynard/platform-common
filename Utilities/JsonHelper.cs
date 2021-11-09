@@ -24,7 +24,8 @@ namespace Rumble.Platform.Common.Utilities
 			Converters =
 			{
 				new JsonTypeConverter(),
-				new JsonExceptionConverter()
+				new JsonExceptionConverter(),
+				new JsonGenericConverter()
 			}
 		};
 
@@ -33,7 +34,7 @@ namespace Rumble.Platform.Common.Utilities
 			get
 			{
 				if (_documentOptions.Equals(default(JsonDocumentOptions)))
-					_documentOptions =new JsonDocumentOptions()
+					_documentOptions = new JsonDocumentOptions()
 					{
 						CommentHandling = JsonCommentHandling.Skip
 					};
@@ -44,11 +45,11 @@ namespace Rumble.Platform.Common.Utilities
 		public static T Optional<T>(JsonElement json, string key)
 		{
 			return json.TryGetProperty(key, out JsonElement value) 
-				? JsonSerializer.Deserialize<T>(value.GetRawText()) 
+				? JsonSerializer.Deserialize<T>(value.GetRawText(), SerializerOptions) 
 				: default;
 		}
 
 		public static T Require<T>(JsonDocument json, string key) => Require<T>(json.RootElement, key);
-		public static T Require<T>(JsonElement json, string key) => JsonSerializer.Deserialize<T>(json.GetProperty(key).GetRawText());
+		public static T Require<T>(JsonElement json, string key) => JsonSerializer.Deserialize<T>(json.GetProperty(key).GetRawText(), SerializerOptions);
 	}
 }

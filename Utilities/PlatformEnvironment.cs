@@ -28,7 +28,14 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(FILE), JsonHelper.DocumentOptions);
 				foreach (JsonProperty property in environment.RootElement.EnumerateObject())
-					output[property.Name] = property.Value.GetString();
+					try
+					{
+						output[property.Name] = property.Value.GetString();
+					}
+					catch (Exception e)
+					{
+						Log.Local(Owner.Default, $"{property.Name} must be a string in environment.json.");
+					}
 			}
 			catch
 			{
