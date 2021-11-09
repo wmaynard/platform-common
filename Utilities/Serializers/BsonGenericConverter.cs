@@ -4,104 +4,35 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using Rumble.Platform.Common.Exceptions;
 
 namespace Rumble.Platform.Common.Utilities.Serializers
 {
-	public class BsonGenericConverter : SerializerBase<GenericJSON>
+	public class BsonGenericConverter : SerializerBase<GenericData>
 	{
-		public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, GenericJSON value)
-		{
-			IBsonWriter writer = context.Writer;
-			
-			writer.WriteStartDocument();
-			foreach (KeyValuePair<string, object> kvp in value)
-			{
-				string key = kvp.Key;
-				switch (kvp.Value)
-				{
-					case bool asBool:
-						writer.WriteBoolean(key, asBool);
-						break;
-					case string asString:
-						writer.WriteString(key, asString);
-						break;
-					case decimal asDecimal:
-						writer.WriteDecimal128(key, asDecimal);
-						break;
-					case IEnumerable<object> asEnumerable:
-						writer.WriteName(key);
-						W(ref context, args, asEnumerable);
-						break;
-					case GenericJSON asGeneric:
-						Serialize(context, args, asGeneric);
-						break;
-					case null:
-						writer.WriteNull(key);
-						break;
-					default:
-						throw new NotImplementedException();
-				}
-			}
-			
-			writer.WriteEndDocument();
-		}
-
-		private void W(ref BsonSerializationContext context, BsonSerializationArgs args, IEnumerable<object> value)
-		{
-			IBsonWriter writer = context.Writer;
-			
-			writer.WriteStartArray();
-			foreach (object obj in value)
-				switch (obj)
-				{
-					case bool asBool:
-						writer.WriteBoolean(asBool);
-						break;
-					case string asString:
-						writer.WriteString(asString);
-						break;
-					case decimal asDecimal:
-						writer.WriteDecimal128(asDecimal);
-						break;
-					case IEnumerable<object> asArray:
-						W(ref context, args, asArray);
-						break;
-					case GenericJSON asGeneric:
-						Serialize(context, args, asGeneric);
-						break;
-					case null:
-						writer.WriteNull();
-						break;
-					default:
-						throw new NotImplementedException();
-				}
-			writer.WriteEndArray();
-		}
-
-		public override GenericJSON Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+		#region READ
+		public override GenericData Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
 		{
 			IBsonReader reader = context.Reader;
 
-			GenericJSON output = ParseGeneric(ref reader, args);
-			
-			
-
-			return output;
+			return ReadGeneric(ref reader, ref args);;
 		}
-
-		private GenericJSON ParseGeneric(ref IBsonReader reader, BsonDeserializationArgs args)
+		
+		/// <summary>
+		/// Reads a GenericData object from MongoDB.
+		/// </summary>
+		private GenericData ReadGeneric(ref IBsonReader reader, ref BsonDeserializationArgs args)
 		{
-			GenericJSON data = new GenericJSON();
+			GenericData data = new GenericData();
 			reader.ReadStartDocument();
 			RefreshReader(ref reader);
 			string key = null;
 			while (reader.State != BsonReaderState.EndOfDocument && !reader.IsAtEndOfFile())
-			{
 				switch (reader.State)
 				{
 					case BsonReaderState.Value:
 					case BsonReaderState.Type:
-						AddEntry(ref reader, args, ref data, key);
+						ReadProperty(ref reader, ref args, ref data, key);
 						key = null;
 						break;
 					case BsonReaderState.Name:
@@ -111,16 +42,13 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						reader.ReadEndArray();
 						return data;
 					case BsonReaderState.EndOfDocument:
-						throw new Exception("This should be impossible.");
 					case BsonReaderState.Initial:
 					case BsonReaderState.Done:
 					case BsonReaderState.Closed:
 					case BsonReaderState.ScopeDocument:
 					default:
-						throw new NotImplementedException();
+						throw new ConverterException($"Unexpected BsonState: {reader.State}.", typeof(GenericData), onDeserialize: true);
 				}
-			}
-
 			reader.ReadEndDocument();
 			
 			// If we refresh the reader here, it will screw up the read after we're done with our Generic object.
@@ -133,7 +61,10 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 			return data;
 		}
 
-		private void AddEntry(ref IBsonReader reader, BsonDeserializationArgs args, ref GenericJSON data, string key)
+		/// <summary>
+		/// Reads a property value and sets it in the GenericData object with the provided key.
+		/// </summary>
+		private void ReadProperty(ref IBsonReader reader, ref BsonDeserializationArgs args, ref GenericData data, string key)
 		{
 			switch (RefreshReader(ref reader))
 			{
@@ -146,10 +77,10 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					data[key] = reader.ReadString();
 					break;
 				case BsonType.Document:
-					data[key] = ParseGeneric(ref reader, args);
+					data[key] = ReadGeneric(ref reader, ref args);
 					break;
 				case BsonType.Array:
-					data[key] = AddArray(ref reader, args);
+					data[key] = ReadArray(ref reader, args);
 					break;
 				case BsonType.ObjectId:
 					data[key] = reader.ReadObjectId();
@@ -186,11 +117,15 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 				case BsonType.MinKey:
 				case BsonType.MaxKey:
 				default:
-					throw new NotImplementedException();
+					throw new ConverterException($"Unexpected BsonType: {reader.CurrentBsonType}.", typeof(GenericData), onDeserialize: true);
 			}
 			RefreshReader(ref reader);
 		}
-		private List<object> AddArray(ref IBsonReader reader, BsonDeserializationArgs args)
+		
+		/// <summary>
+		/// Reads an array for a GenericData object.  Arrays require special handling since they do not have field names.
+		/// </summary>
+		private List<object> ReadArray(ref IBsonReader reader, BsonDeserializationArgs args)
 		{
 			List<object> output = new List<object>();
 			reader.ReadStartArray();
@@ -209,10 +144,10 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						output.Add(reader.ReadString());
 						break;
 					case BsonType.Document:
-						output.Add(ParseGeneric(ref reader, args));
+						output.Add(ReadGeneric(ref reader, ref args));
 						break;
 					case BsonType.Array:
-						output.Add(AddArray(ref reader, args));
+						output.Add(ReadArray(ref reader, args));
 						break;
 					case BsonType.ObjectId:
 						output.Add(reader.ReadObjectId()); // TODO: Should this be impossible?
@@ -249,7 +184,7 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case BsonType.MinKey:
 					case BsonType.MaxKey:
 					default:
-						throw new NotImplementedException();
+						throw new ConverterException($"Unexpected BsonType: {reader.CurrentBsonType}.", typeof(GenericData), onDeserialize: true);
 				}
 				RefreshReader(ref reader);
 			}
@@ -273,9 +208,91 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 			{
 				return reader.GetCurrentBsonType();
 			}
-			catch (InvalidOperationException ) { }
+			catch (InvalidOperationException) { }
 
 			return reader.CurrentBsonType;
 		}
+		#endregion READ
+		
+		#region WRITE
+		public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, GenericData value)
+		{
+			WriteBson(ref context, ref args, value);
+		}
+		
+		/// <summary>
+		/// Writes a GenericData object to BSON for MongoDB.
+		/// </summary>
+		public void WriteBson(ref BsonSerializationContext context, ref BsonSerializationArgs args, GenericData value)
+		{
+			IBsonWriter writer = context.Writer;
+			
+			writer.WriteStartDocument();
+			foreach (KeyValuePair<string, object> kvp in value)
+			{
+				string key = kvp.Key;
+				switch (kvp.Value)
+				{
+					case bool asBool:
+						writer.WriteBoolean(key, asBool);
+						break;
+					case string asString:
+						writer.WriteString(key, asString);
+						break;
+					case decimal asDecimal:
+						writer.WriteDecimal128(key, asDecimal);
+						break;
+					case IEnumerable<object> asEnumerable:
+						writer.WriteName(key);
+						WriteBsonArray(ref context, ref args, asEnumerable);
+						break;
+					case GenericData asGeneric:
+						WriteBson(ref context, ref args, asGeneric);
+						break;
+					case null:
+						writer.WriteNull(key);
+						break;
+					default:
+						throw new ConverterException($"Unexpected datatype.", kvp.Value.GetType());
+				}
+			}
+			writer.WriteEndDocument();
+		}
+
+		/// <summary>
+		/// Writes an array from a GenericData object.  Arrays require special handling since they do not have field names.
+		/// </summary>
+		private void WriteBsonArray(ref BsonSerializationContext context, ref BsonSerializationArgs args, IEnumerable<object> value)
+		{
+			IBsonWriter writer = context.Writer;
+			
+			writer.WriteStartArray();
+			foreach (object obj in value)
+				switch (obj)
+				{
+					case bool asBool:
+						writer.WriteBoolean(asBool);
+						break;
+					case string asString:
+						writer.WriteString(asString);
+						break;
+					case decimal asDecimal:
+						writer.WriteDecimal128(asDecimal);
+						break;
+					case IEnumerable<object> asArray:
+						WriteBsonArray(ref context, ref args, asArray);
+						break;
+					case GenericData asGeneric:
+						WriteBson(ref context, ref args, asGeneric);
+						break;
+					case null:
+						writer.WriteNull();
+						break;
+					default:
+						throw new ConverterException($"Unexpected datatype.", obj.GetType());
+				}
+			writer.WriteEndArray();
+		}
+		#endregion WRITE
 	}
 }

@@ -1,77 +1,41 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using Rumble.Platform.Common.Exceptions;
 using JsonTokenType = System.Text.Json.JsonTokenType;
 
 namespace Rumble.Platform.Common.Utilities.Serializers
 {
-
-	
-	public class JsonGenericConverter : JsonConverter<GenericJSON>
+	public class JsonGenericConverter : JsonConverter<GenericData>
 	{
-		public override GenericJSON Read(ref Utf8JsonReader reader, Type data, JsonSerializerOptions options)
+		#region READ
+		public override GenericData Read(ref Utf8JsonReader reader, Type data, JsonSerializerOptions options)
 		{
 			try
 			{
-				return Extract(ref reader);
+				return ReadGeneric(ref reader);
 			}
 			catch (Exception e)
 			{
-				Log.Error(Owner.Default, "Could not deserialize JSON into a GenericJSON");
-				throw;
+				throw new ConverterException(e.Message, typeof(GenericData), e, onDeserialize: true);
 			}
 		}
 
-		private static List<object> ExtractToList(ref Utf8JsonReader reader)
+		/// <summary>
+		/// Reads a GenericData object from an endpoint's payload or other raw JSON.
+		/// </summary>
+		[SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
+		private static GenericData ReadGeneric(ref Utf8JsonReader reader)
 		{
-			List<object> output = new List<object>();
-			while (reader.Read())
-				switch (reader.TokenType)
-				{
-					case JsonTokenType.PropertyName:
-					case JsonTokenType.EndObject:
-						throw new Exception("This should be impossible.");
-					case JsonTokenType.True:
-					case JsonTokenType.False:
-						output.Add(reader.GetBoolean());
-						break;
-					case JsonTokenType.Null:
-					case JsonTokenType.None:
-					case JsonTokenType.Comment:
-						output.Add(null);
-						break;
-					case JsonTokenType.String:
-						output.Add(reader.GetString());
-						break;
-					case JsonTokenType.StartObject:
-						output.Add(Extract(ref reader));
-						break;
-					case JsonTokenType.StartArray:
-						output.Add(ExtractToList(ref reader));
-						break;
-					case JsonTokenType.EndArray:
-						return output;
-					case JsonTokenType.Number:
-						if (!reader.TryGetDecimal(out decimal asDecimal))
-							throw new Exception("Couldn't parse number.");
-						output.Add(asDecimal);
-						break;
-					default:
-						throw new ArgumentOutOfRangeException();
-				}
-
-			return output;
-		}
-
-		private static GenericJSON Extract(ref Utf8JsonReader reader)
-		{
-			GenericJSON output = new GenericJSON();
+			GenericData output = new GenericData();
 			string key = null;
 			while (reader.Read())
 				switch (reader.TokenType)
@@ -92,28 +56,80 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						output[key] = reader.GetString();
 						break;
 					case JsonTokenType.StartObject:
-						output[key] = Extract(ref reader);
+						output[key] = ReadGeneric(ref reader);
 						break;
 					case JsonTokenType.EndObject:
 						return output;
 					case JsonTokenType.StartArray:
-						output[key] = ExtractToList(ref reader);
+						output[key] = ReadArray(ref reader);
 						break;
-					case JsonTokenType.EndArray:
-						throw new Exception("This should be impossible.");
 					case JsonTokenType.Number:
 						if (!reader.TryGetDecimal(out decimal asDecimal))
-							throw new Exception("Couldn't parse number.");
+							throw new ConverterException("Couldn't parse number.", typeof(GenericData), onDeserialize: true);
 						output[key] = asDecimal;
 						break;
+					case JsonTokenType.EndArray:
 					default:
-						throw new ArgumentOutOfRangeException();
-			}
+						throw new ConverterException("Operation should be impossible.", typeof(GenericData), onDeserialize: true);
+				}
 
 			return null;
 		}
+		
+		/// <summary>
+		/// Reads an array for a GenericData object.  Arrays require special handling since they do not have field names.
+		/// </summary>
+		private static List<object> ReadArray(ref Utf8JsonReader reader)
+		{
+			List<object> output = new List<object>();
+			while (reader.Read())
+				switch (reader.TokenType)
+				{
+					case JsonTokenType.True:
+					case JsonTokenType.False:
+						output.Add(reader.GetBoolean());
+						break;
+					case JsonTokenType.Null:
+					case JsonTokenType.None:
+					case JsonTokenType.Comment:
+						output.Add(null);
+						break;
+					case JsonTokenType.String:
+						output.Add(reader.GetString());
+						break;
+					case JsonTokenType.StartObject:
+						output.Add(ReadGeneric(ref reader));
+						break;
+					case JsonTokenType.StartArray:
+						output.Add(ReadArray(ref reader));
+						break;
+					case JsonTokenType.EndArray:
+						return output;
+					case JsonTokenType.Number:
+						if (!reader.TryGetDecimal(out decimal asDecimal))
+							throw new ConverterException("Couldn't parse number.", typeof(GenericData), onDeserialize: true);
+						output.Add(asDecimal);
+						break;
+					case JsonTokenType.PropertyName:
+					case JsonTokenType.EndObject:
+					default:
+						throw new ConverterException("Operation should be impossible.", typeof(GenericData), onDeserialize: true);
+				}
 
-		public override void Write(Utf8JsonWriter writer, GenericJSON value, JsonSerializerOptions options)
+			return output;
+		}
+		#endregion READ
+
+		#region WRITE
+		public override void Write(Utf8JsonWriter writer, GenericData value, JsonSerializerOptions options)
+		{
+			WriteJson(ref writer, options, ref value);
+		}
+
+		/// <summary>
+		/// Writes a GenericData object to JSON for a response body.
+		/// </summary>
+		private void WriteJson(ref Utf8JsonWriter writer, JsonSerializerOptions options, ref GenericData value)
 		{
 			writer.WriteStartObject();
 
@@ -133,22 +149,25 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						break;
 					case IEnumerable<object> asEnumerable:
 						writer.WritePropertyName(key);
-						W(ref writer, asEnumerable, options);
+						WriteJsonArray(ref writer, ref asEnumerable, options);
 						break;
-					case GenericJSON asGeneric:
+					case GenericData asGeneric:
 						Write(writer, asGeneric, options);
 						break;
 					case null:
 						writer.WriteNull(key);
 						break;
 					default:
-						throw new NotImplementedException();
+						throw new ConverterException("Unexpected data type.", kvp.Value.GetType());
 				}
 			}
 			writer.WriteEndObject();
 		}
 
-		private void W(ref Utf8JsonWriter writer, IEnumerable<object> value, JsonSerializerOptions options)
+		/// <summary>
+		/// Writes an array from a GenericData object.  Arrays require special handling since they do not have field names.
+		/// </summary>
+		private void WriteJsonArray(ref Utf8JsonWriter writer, ref IEnumerable<object> value, JsonSerializerOptions options)
 		{
 			writer.WriteStartArray();
 			foreach (object obj in value)
@@ -161,27 +180,25 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						writer.WriteStringValue(asString);
 						break;
 					case decimal asDecimal:
-						if (asDecimal.ToString().Contains('.'))
+						if (asDecimal.ToString(CultureInfo.InvariantCulture).Contains('.'))
 							writer.WriteNumberValue((double)asDecimal);
 						else
 							writer.WriteNumberValue((long)asDecimal);
 						break;
 					case IEnumerable<object> asArray:
-						W(ref writer, asArray, options);
+						WriteJsonArray(ref writer, ref asArray, options);
 						break;
-					case GenericJSON asGeneric:
-						// writer.WriteStartObject();
-						// writer.WriteString("whoever", "this is dumb");
-						// writer.WriteEndObject();
+					case GenericData asGeneric:
 						Write(writer, asGeneric, options);
 						break;
 					case null:
 						writer.WriteNullValue();
 						break;
 					default:
-						throw new NotImplementedException();
+						throw new ConverterException("Unexpected data type.", obj.GetType());
 				}
 			writer.WriteEndArray();
 		}
+		#endregion WRITE
 	}
 }

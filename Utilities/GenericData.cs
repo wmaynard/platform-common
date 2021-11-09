@@ -7,31 +7,12 @@ using MongoDB.Bson.Serialization;
 
 namespace Rumble.Platform.Common.Utilities
 {
-	public class GenericJSON : Dictionary<string, object>
+	public class GenericData : Dictionary<string, object>
 	{
-		public GenericJSON()
+		public GenericData()
 		{
+			
 		}
-		
-		public static implicit operator GenericJSON(JsonProperty property)
-		{
-			return null;
-		}
-
-		public static implicit operator GenericJSON(JsonElement element)
-		{
-			return null;
-		}
-
-		public static implicit operator GenericJSON(JsonDocument document)
-		{
-			return null;
-		}
-
-
-		
-		
-		
 		
 		private static object Cast(JsonElement element)
 		{
