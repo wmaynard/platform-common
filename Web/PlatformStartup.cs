@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
@@ -134,6 +135,9 @@ namespace Rumble.Platform.Common.Web
 				Log.Local(Owner.Default, "JSON serializer options configured.");
 				// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
 			});
+			
+			BsonSerializer.RegisterSerializer(new BsonGenericConverter());
+			Log.Local(Owner.Default, "BSON converters configured.");
 			
 			Log.Verbose(Owner.Default, "Adding CORS to services");
 			services.AddCors(options =>

@@ -13,7 +13,7 @@ namespace Rumble.Platform.Common.Utilities
 		{
 			
 		}
-		
+
 		private static object Cast(JsonElement element)
 		{
 			try
@@ -70,5 +70,11 @@ namespace Rumble.Platform.Common.Utilities
 				return null;
 			}
 		}
+		// Automatically cast JSON strings into a GenericData.  These implicit operators allow us to use the code below without issues:
+		// string raw = "{\"foo\": 123, \"bar\": [\"abc\", 42, 88, true]}";
+		// GenericData json = raw;
+		// string backToString = json;
+		public static implicit operator GenericData(string json) => JsonSerializer.Deserialize<GenericData>(json, JsonHelper.SerializerOptions);
+		public static implicit operator string(GenericData data) => JsonSerializer.Serialize(data, JsonHelper.SerializerOptions);
 	}
 }

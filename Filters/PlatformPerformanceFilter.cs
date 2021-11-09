@@ -92,7 +92,7 @@ namespace Rumble.Platform.Common.Filters
 			
 			if (GetAttributes<PerformanceFilterBypass>(context).Any())
 			{
-				Log.Local(Owner.Default, $"Performance not recorded; {message}");
+				Log.Verbose(Owner.Default, $"Performance not recorded; {message}");
 				return;
 			}
 

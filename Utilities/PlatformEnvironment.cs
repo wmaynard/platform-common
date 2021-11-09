@@ -34,7 +34,7 @@ namespace Rumble.Platform.Common.Utilities
 					}
 					catch (Exception e)
 					{
-						Log.Local(Owner.Default, $"{property.Name} must be a string in environment.json.");
+						Log.Warn(Owner.Default, $"{property.Name} must be a string in environment.json.");
 					}
 			}
 			catch
