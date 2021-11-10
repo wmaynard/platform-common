@@ -100,11 +100,11 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		protected JsonElement Optional(string key, JsonElement json) => JsonHelper.Optional(json, key);
-		protected JsonElement Optional(string key, JsonDocument json) => JsonHelper.Optional(json, key);
+		protected JsonElement Optional(string key, JsonDocument json = null) => JsonHelper.Optional(json ?? Body, key);
 		protected T Optional<T>(string key, JsonElement json) => JsonHelper.Optional<T>(json, key);
 		protected T Optional<T>(string key, JsonDocument json = null) => JsonHelper.Optional<T>(json ?? Body, key);
 		protected JsonElement Require(string key, JsonElement json) => JsonHelper.Require(json, key);
-		protected JsonElement Require(string key, JsonDocument json) => JsonHelper.Require(json, key);
+		protected JsonElement Require(string key, JsonDocument json = null) => JsonHelper.Require(json ?? Body, key);
 		protected T Require<T>(string key, JsonElement json) => JsonHelper.Require<T>(json, key);
 		protected T Require<T>(string key, JsonDocument json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
