@@ -41,6 +41,14 @@ namespace Rumble.Platform.Common.Utilities
 				return _documentOptions;
 			}
 		}
+
+		public static JsonElement Optional(JsonDocument json, string key) => Optional(json.RootElement, key);
+		public static JsonElement Optional(JsonElement json, string key)
+		{
+			return json.TryGetProperty(key, out JsonElement value)
+				? value
+				: default;
+		}
 		public static T Optional<T>(JsonDocument json, string key) => Optional<T>(json.RootElement, key);
 		public static T Optional<T>(JsonElement json, string key)
 		{
@@ -49,6 +57,8 @@ namespace Rumble.Platform.Common.Utilities
 				: default;
 		}
 
+		public static JsonElement Require(JsonDocument json, string key) => Require(json.RootElement, key);
+		public static JsonElement Require(JsonElement json, string key) => json.GetProperty(key);
 		public static T Require<T>(JsonDocument json, string key) => Require<T>(json.RootElement, key);
 		public static T Require<T>(JsonElement json, string key) => JsonSerializer.Deserialize<T>(json.GetProperty(key).GetRawText(), SerializerOptions);
 	}
