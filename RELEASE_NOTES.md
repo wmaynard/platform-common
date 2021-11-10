@@ -1,3 +1,28 @@
+# 1.0.46
+
+Added `GenericData` to Utilities.  `System.Text.Json` lacks the ability to cast JSON strings to proper objects, which makes serialization to Mongo inaccurate.  The previous solution was to store the JSON as an escaped string sequence.  Otherwise, it was a hard requirement to use a model to cast data.
+
+`GenericData` now allows you to be completely agnostic about the data you're passing to MongoDB.  It accomplishes this by parsing JSON / BSON into a `Dictionary<string, object>`.  Consequently, data can be manipulated by using square brackets or iterated over in a loop, as you would with any other Dictionary.
+
+```
+public class Model : PlatformDataModel
+{
+    public bool ABool => true;
+    public int AnInt => 88;
+    public GenericData Data => "{\"anotherBool\":false,\"anotherInt\":13}";
+}
+
+// Mongo:
+model: Object
+  aBool: true
+  anInt: 88,
+  data: Object
+    anotherBool: false
+    anotherInt: 13
+```
+
+It's discouraged to use it unless there's a good reason to; not knowing what data is passing through services makes them more difficult to maintain, but it's there if you need it.
+
 # 1.0.43
 
 Fixed a minor issue that sometimes caused `environment.json` to fail to load.

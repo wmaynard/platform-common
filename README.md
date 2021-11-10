@@ -122,6 +122,8 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 
 | Name | Description |
 | :--- | :--- |
+| `AuthNotAvailableException` | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables. |
+| `ConerterException` | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization. |
 | `FailedRequestException` | Raised when a Web Request fails.  Tracks the endpoint and data used for the request. |
 | `FieldNotProvidedException` | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property. |
 | `InvalidTokenException` | Raised when the token passed in the Authorization header fails validation. |
@@ -220,15 +222,70 @@ Helpful resources for working with Slack:
 | :--- | :--- |
 | `Async` | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs. |
 | `Converter` | A helper class for various conversions. |
+| `Crypto` | Used to encrypt or decrypt string values. |
 | `Diagnostics` | If you need something done using reflection or the stack trace, Diagnostics is the tool to use. |
+| `GenericData` | Represents any JSON we don't have a model for.  By default, C# can't create actual objects from JSON without a model as a data contract.  This class, along with its custom serializers, transform JSON into a `Dictionary<string, object>` that can be used. | 
 | `JsonHelper` | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods. |
 | `Log` | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window. |
 | `NoAuth` | Attribute valid on methods only.  Can be used to bypass class-level `RequireAuth` attributes. |
 | `Owner` | An enum of Rumble employees who can own log events.  This will almost exclusively be reserved for Platform engineers in projects here, though. |
+| `PerformanceFilterBypass` | An attribute used to exempt specific endpoints from being monitored by the performance filter. | 
 | `PlatformEnvironment` | A class used to grab environment variables via the method `Variable(string)`. |
 | `RequireAuth` | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`. |
 | `TokenType` | Enum for which type of token to use. |
 | `WebRequest` | A wrapper for RestSharp web requests. |
+
+### Using `GenericData`
+
+As of this writing, neither `System.Text.Json` nor `Newtonsoft` can create actual objects from JSON withou a model to use as a contract.  This causes problems when storing data in MongoDB.  Sometimes the frontend developers will need a flexible structure to send data to Mongo, and it would be difficult to maintain a model on both the frontend and the backend.
+
+When the MongoDB driver encounters the `JsonElement` class from `System.Text.Json`, it has to serialize the type information along with the data.  This results in particularly ugly code in the database as well as a lot of bloat.  The serialization ends up looking like this:
+
+```
+public class Model : PlatformDataModel
+{
+    public bool ABool => true;
+    public int AnInt => 88;
+    public JsonElement Data => ...
+}
+
+model: Object
+  aBool: true
+  anInt: 88,
+  data: Object
+    _t: "System.Text.Json.JsonElement"
+    _v: (garbage)
+```
+
+With `GenericData`, we instead see values recorded accurately:
+
+```
+public class Model : PlatformDataModel
+{
+    public bool ABool => true;
+    public int AnInt => 88;
+    public GenericData Data => ...
+}
+
+model: Object
+  aBool: true
+  anInt: 88,
+  data: Object
+    anotherBool: false
+    anotherInt: 13
+```
+
+Use `GenericData` whenever you need a service to be agnostic about the data that it's sending.  Use it sparingly, though, as project maintenance is much easier with more structured data. 
+
+### Serializers
+
+| Name | Description |
+| :--- | :--- |
+| `BsonGenericConverter` | Converts `GenericData` into BSON, or BSON into a `GenericData` object. |
+| `BsonSaveAsString` | Converts numerical values into BSON.  |
+| `JsonExceptionConverter` | Overrides `Exception` objects into JSON.  Dropping Newtonsoft necessitated this to avoid circular references, which `System.Text.Json` can't handle on its own. |
+| `JsonGenericConverter` | Converts `GenericData` into JSON, or JSON into a `GenericData` object. |
+| `JsonTypeConverter` | Converts a `Type` into JSON, or JSON into a `Type` object. |
 
 ## Web
 
