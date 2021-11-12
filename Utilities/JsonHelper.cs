@@ -1,8 +1,5 @@
 using System;
 using System.Text.Json;
-using System.Xml;
-using MongoDB.Driver;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities.Serializers;
 
 
@@ -25,7 +22,10 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				new JsonTypeConverter(),
 				new JsonExceptionConverter(),
-				new JsonGenericConverter()
+				new JsonGenericConverter(),
+				new JsonShortConverter(),	// These numeric converters are required because otherwise, System.Text.Json
+				new JsonIntConverter(),		// fails deserialization on values where quote marks are in the JSON, like '"313"'.
+				new JsonLongConverter()		// e.g. JsonSerializer.Deserialize<int>("\"313\"", SerializerOptions).
 			}
 		};
 
