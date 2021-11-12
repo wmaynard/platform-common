@@ -109,7 +109,7 @@ namespace Rumble.Platform.Common.Web
 		protected T Require<T>(string key, JsonDocument json = null) => JsonHelper.Require<T>(json ?? Body, key);
 
 		protected JsonDocument Body => FromContext<JsonDocument>(PlatformResourceFilter.KEY_BODY);
-		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN);
+		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN); // TODO: Is it possible to make this accessible to models?
 		protected string IpAddress => Request.HttpContext.Connection.RemoteIpAddress?.ToString();
 		protected string EncryptedToken => FromContext<string>(PlatformResourceFilter.KEY_AUTHORIZATION);
 

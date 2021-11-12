@@ -32,8 +32,8 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			try
 			{
 				response = WebRequest.Post(POST_MESSAGE, message.JSON, Token);
-				string ok = JsonHelper.Require<string>(response, "ok");
-				if (ok?.ToLower() != "true")
+				bool ok = JsonHelper.Require<bool>(response, "ok");
+				if (!ok)
 					throw new FailedRequestException(POST_MESSAGE, message.JSON);
 			}
 			catch (PlatformException)
