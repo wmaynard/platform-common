@@ -70,11 +70,49 @@ namespace Rumble.Platform.Common.Utilities
 				return null;
 			}
 		}
+
+		public new object this[string key]
+		{
+			get => TryGetValue(key, out object output) ? output : null;
+			set => base[key] = value;
+		}
+		
+		
+
+		public override bool Equals(object obj)
+		{
+			try
+			{
+				if (obj is not GenericData other)
+					return false;
+				return Keys.Count == other.Keys.Count && Keys.All(key => this[key].Equals(other[key]));
+			}
+			catch { }
+
+			return false;
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int output = Keys.Aggregate(
+					seed: 0, 
+					func: (current, key) => (current * 313) ^ key.GetHashCode() ^ this[key].GetHashCode()
+				);
+				return output;
+			}
+		}
+
+
 		// Automatically cast JSON strings into a GenericData.  These implicit operators allow us to use the code below without issues:
 		// string raw = "{\"foo\": 123, \"bar\": [\"abc\", 42, 88, true]}";
 		// GenericData json = raw;
 		// string backToString = json;
 		public static implicit operator GenericData(string json) => JsonSerializer.Deserialize<GenericData>(json, JsonHelper.SerializerOptions);
 		public static implicit operator string(GenericData data) => JsonSerializer.Serialize(data, JsonHelper.SerializerOptions);
+
+		public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
+		public static bool operator !=(GenericData a, GenericData b) => !(a == b);
 	}
 }

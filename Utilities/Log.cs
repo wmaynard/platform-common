@@ -85,10 +85,10 @@ namespace Rumble.Platform.Common.Utilities
 		// [JsonIgnore]
 		// public static readonly bool LocalDev = PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
 		[JsonIgnore]
-		private static readonly int MaxOwnerNameLength = !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
+		private static int MaxOwnerNameLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
 		[JsonIgnore] 
-		private static readonly int MaxSeverityLength = !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
+		private static int MaxSeverityLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
 
 		[JsonIgnore]
 		private string Caller { get; set; }
@@ -124,12 +124,7 @@ namespace Rumble.Platform.Common.Utilities
 		{
 			string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
 			string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
-			string msg = "No Message";
-
-			if (Message != null)
-			{
-				msg = Message;
-			}
+			string msg = Message ?? "No Message";
 
 			return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg}";
 		}
