@@ -174,7 +174,7 @@ namespace Rumble.Platform.Common.Utilities
 					TypeCode.Int32 => Convert.ToInt32(value),
 					TypeCode.Int64 => Convert.ToInt64(value),
 					TypeCode.Object => value is GenericData asGeneric
-						? JsonSerializer.Deserialize<T>(asGeneric.JSON)
+						? JsonSerializer.Deserialize<T>(asGeneric.JSON, JsonHelper.SerializerOptions)
 						: (T) value,
 					TypeCode.SByte => Convert.ToSByte(value),
 					TypeCode.Single => Convert.ToSingle(value),

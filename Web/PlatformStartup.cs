@@ -190,9 +190,6 @@ namespace Rumble.Platform.Common.Web
 				type = type.BaseType;
 			} while (type != null);
 
-			if (output.Contains("foobar"))
-				return null;
-
 			return output;
 		}
 		

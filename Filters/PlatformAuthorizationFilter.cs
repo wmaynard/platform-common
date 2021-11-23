@@ -130,31 +130,18 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string)result["error"]));
 			try
 			{
-				GenericData tokenInfo = (GenericData) result["tokenInfo"];
-				// if (result.TryGetProperty("tokenInfo", out JsonElement tokenInfo))
-				// 	result = tokenInfo;
-				
-				// TokenInfo output = new TokenInfo(token)
-				// {
-				// 	AccountId = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
-				// 	Discriminator = JsonHelper.Optional<int?>(result, TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
-				// 	Expiration = JsonHelper.Require<long>(result, TokenInfo.FRIENDLY_KEY_EXPIRATION),
-				// 	Issuer = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ISSUER),
-				// 	ScreenName = JsonHelper.Optional<string>(result, TokenInfo.FRIENDLY_KEY_SCREENNAME),
-				// 	IsAdmin = JsonHelper.Optional<bool>(result, TokenInfo.FRIENDLY_KEY_IS_ADMIN)
-				// };
-				string foo = result.Optional<string>("screenname");
+				GenericData tokenInfo = result.Optional<GenericData>("tokenInfo"); // this comes through via token-service
+				if (tokenInfo != null)
+					result = tokenInfo;
 				TokenInfo output = new TokenInfo(token)
 				{
 					AccountId = result.Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
 					Discriminator = result.Optional<int?>(TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
 					Expiration = result.Require<long>(TokenInfo.FRIENDLY_KEY_EXPIRATION),
 					Issuer = result.Require<string>(TokenInfo.FRIENDLY_KEY_ISSUER),
-					ScreenName = result.Optional<string>(TokenInfo.FRIENDLY_KEY_SCREENNAME) ?? result.Optional<string>("screenName"),
+					ScreenName = result.Optional<string>(TokenInfo.FRIENDLY_KEY_SCREENNAME) ?? result.Optional<string>("screenName"), // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
 					IsAdmin = result.Optional<bool>(TokenInfo.FRIENDLY_KEY_IS_ADMIN)
 				};
-				// output.ScreenName ??= JsonHelper.Optional<string>(result, "screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
-				output.ScreenName ??= result.Optional<string>("screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
 				
 				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)
@@ -166,21 +153,5 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
 		}
-	}
-
-	struct Foo
-	{
-		[JsonInclude]
-		public bool success;
-		[JsonInclude]
-		public string aid;
-		[JsonInclude]
-		public long expiration;
-		[JsonInclude]
-		public double secondsRemaining;
-		[JsonInclude]
-		public string issuer;
-		[JsonInclude]
-		public string screenName;
 	}
 }
