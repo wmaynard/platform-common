@@ -1,3 +1,31 @@
+# 1.0.51
+
+- GenericData
+	- Fix for nested GenericData serialization; property names weren't being written.
+	- Override `Equals()` and `GetHashCode()` for equivalency tests
+	- Added operator overloads so `genericData1 == genericData2` works as expected.
+	- Added `Optional<T>()` and `Require<T>()` methods
+		- Added a private method to allow these to convert data properly to the right type
+- Added PlatformRequest 
+	- This is a replacement for the RestSharp `WebRequest` to use the built-in libraries.
+- SlackMessageClient
+	- Slack messages now send asynchronously
+- PlatformAuthorizationFilter
+	- Cleaned up code from switch to PlatformRequest
+
+# 1.0.50
+
+- Added serializer converts for JsonElement `Number` values.
+
+# 1.0.49
+
+- Minor fix for SlackMessageClient
+
+# 1.0.47 & 1.0.48
+
+- JsonHelper: Added `Optional()` and `Require()` methods
+- PlatformController: Added wrappers for above
+
 # 1.0.46
 
 Added `GenericData` to Utilities.  `System.Text.Json` lacks the ability to cast JSON strings to proper objects, which makes serialization to Mongo inaccurate.  The previous solution was to store the JSON as an escaped string sequence.  Otherwise, it was a hard requirement to use a model to cast data.
