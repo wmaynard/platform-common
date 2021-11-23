@@ -24,14 +24,15 @@ namespace Rumble.Platform.CSharp.Common.Interop
         private CancellationTokenSource _updateCancelToken = null;
         private bool _isUpdating = false;
         
-        public delegate Task ConfigUpdateListener();
+        public delegate Task<bool> ConfigUpdateListener();
         
         private const int UPDATE_FREQUENCY_IN_MS = 15000;
         public List<string> _configScopes = new List<string>();
         ConcurrentDictionary<string, JsonDocument> _configScopeValues = new ConcurrentDictionary<string, JsonDocument>();
-        private ConcurrentBag<ConfigUpdateListener> _updateListeners = new ConcurrentBag<ConfigUpdateListener>();
+        private ConcurrentDictionary<int, ConfigUpdateListener> _updateListeners = new ConcurrentDictionary<int, ConfigUpdateListener>();
         private DateTime _lastUpdateTime;
         private Task _updateTask;
+        private int _lastListenerId = 0;
 
         public DynamicConfigClient(String configServiceUrl, String secret, string gameId)
         {
@@ -45,7 +46,8 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
         public void AddConfigUpdateListener(ConfigUpdateListener OnDynamicConfigUpdated)
         {
-            _updateListeners.Add(OnDynamicConfigUpdated);
+            _lastListenerId++;
+            _updateListeners[_lastListenerId] = OnDynamicConfigUpdated;
         }
 
         private string GetGameScope()
@@ -265,9 +267,22 @@ namespace Rumble.Platform.CSharp.Common.Interop
                             _configScopeValues[scope] = result;
                         }
 
-                        foreach (ConfigUpdateListener listener in _updateListeners)
+                        List<int> listenersToRemove = new List<int>();
+                        
+                        foreach (KeyValuePair<int, ConfigUpdateListener> kvp in _updateListeners)
                         {
-                            await listener();
+                            bool isDone = await kvp.Value();
+
+                            if (isDone)
+                            {
+                                listenersToRemove.Add(kvp.Key);
+                            }
+                        }
+
+                        foreach (int listenerKey in listenersToRemove)
+                        {
+                            _updateListeners.Remove(listenerKey, out _);
+
                         }
                     }
                     catch (Exception e)
