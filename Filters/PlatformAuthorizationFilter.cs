@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -92,13 +93,19 @@ namespace Rumble.Platform.Common.Filters
 			if (token == null)
 				throw new InvalidTokenException(null, TokenAuthEndpoint);
 			long timestamp = Diagnostics.Timestamp;
-			JsonElement result = new JsonElement();
+			// JsonElement result = new JsonElement();
+			GenericData result = null;
+			bool success = false;
 
 			try
 			{
 				try
 				{
-					result = WebRequest.Get(TokenAuthEndpoint, token).RootElement;
+					// result = WebRequest.Get(TokenAuthEndpoint, token).RootElement;
+					result = PlatformRequest.Get(TokenAuthEndpoint, auth: token).Send();
+					success = result.Optional<bool>("success");
+					if (!success)
+						throw new FailedRequestException(TokenAuthEndpoint);
 				}
 				catch (FailedRequestException ex)
 				{
@@ -108,32 +115,46 @@ namespace Rumble.Platform.Common.Filters
 						EncryptedToken = token,
 						Result = result
 					}, exception: ex);
-					result = WebRequest.Get(TokenAuthEndpoint_Legacy, token).RootElement; // fallback to player-service.  TODO: Remove this once everything is moved to token-service
+					// result = WebRequest.Get(TokenAuthEndpoint_Legacy, token).RootElement; // fallback to player-service.  TODO: Remove this once everything is moved to token-service
+					result = PlatformRequest.Get(TokenAuthEndpoint_Legacy, auth: token).Send(); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
 				}
 			}
 			catch (Exception e)
 			{
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
-
-			bool success = JsonHelper.Require<bool>(result, "success"); // This is something exclusive to player-service; when token-service is rewritten, this will change.
+			
+			// bool success = JsonHelper.Require<bool>(result, "success"); // This is something exclusive to player-service; when token-service is rewritten, this will change.
+			success = result.Optional<bool>("success");
 			if (!success)
-				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception(JsonHelper.Optional<string>(result, "error")));
+				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string)result["error"]));
 			try
 			{
-				if (result.TryGetProperty("tokenInfo", out JsonElement tokenInfo))
-					result = tokenInfo;
+				GenericData tokenInfo = (GenericData) result["tokenInfo"];
+				// if (result.TryGetProperty("tokenInfo", out JsonElement tokenInfo))
+				// 	result = tokenInfo;
 				
+				// TokenInfo output = new TokenInfo(token)
+				// {
+				// 	AccountId = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
+				// 	Discriminator = JsonHelper.Optional<int?>(result, TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
+				// 	Expiration = JsonHelper.Require<long>(result, TokenInfo.FRIENDLY_KEY_EXPIRATION),
+				// 	Issuer = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ISSUER),
+				// 	ScreenName = JsonHelper.Optional<string>(result, TokenInfo.FRIENDLY_KEY_SCREENNAME),
+				// 	IsAdmin = JsonHelper.Optional<bool>(result, TokenInfo.FRIENDLY_KEY_IS_ADMIN)
+				// };
+				string foo = result.Optional<string>("screenname");
 				TokenInfo output = new TokenInfo(token)
 				{
-					AccountId = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
-					Discriminator = JsonHelper.Optional<int?>(result, TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
-					Expiration = JsonHelper.Require<long>(result, TokenInfo.FRIENDLY_KEY_EXPIRATION),
-					Issuer = JsonHelper.Require<string>(result, TokenInfo.FRIENDLY_KEY_ISSUER),
-					ScreenName = JsonHelper.Optional<string>(result, TokenInfo.FRIENDLY_KEY_SCREENNAME),
-					IsAdmin = JsonHelper.Optional<bool>(result, TokenInfo.FRIENDLY_KEY_IS_ADMIN)
+					AccountId = result.Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID),
+					Discriminator = result.Optional<int?>(TokenInfo.FRIENDLY_KEY_DISCRIMINATOR) ?? -1,
+					Expiration = result.Require<long>(TokenInfo.FRIENDLY_KEY_EXPIRATION),
+					Issuer = result.Require<string>(TokenInfo.FRIENDLY_KEY_ISSUER),
+					ScreenName = result.Optional<string>(TokenInfo.FRIENDLY_KEY_SCREENNAME) ?? result.Optional<string>("screenName"),
+					IsAdmin = result.Optional<bool>(TokenInfo.FRIENDLY_KEY_IS_ADMIN)
 				};
-				output.ScreenName ??= JsonHelper.Optional<string>(result, "screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
+				// output.ScreenName ??= JsonHelper.Optional<string>(result, "screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
+				output.ScreenName ??= result.Optional<string>("screenName"); // fallback to player-service's json key.  TODO: Remove this once everything is moved to token-service
 				
 				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)
@@ -145,5 +166,21 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
 		}
+	}
+
+	struct Foo
+	{
+		[JsonInclude]
+		public bool success;
+		[JsonInclude]
+		public string aid;
+		[JsonInclude]
+		public long expiration;
+		[JsonInclude]
+		public double secondsRemaining;
+		[JsonInclude]
+		public string issuer;
+		[JsonInclude]
+		public string screenName;
 	}
 }

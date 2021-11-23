@@ -136,7 +136,7 @@ namespace Rumble.Platform.Common.Utilities
 		private Log Send()
 		{
 			if (_severity != LogType.LOCAL)
-				Loggly.Send(this);
+				Loggly?.Send(this);
 			if (PlatformEnvironment.IsLocal)
 				Console.WriteLine(BuildConsoleMessage());
 			return this;

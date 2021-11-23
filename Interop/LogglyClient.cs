@@ -1,43 +1,38 @@
 using System;
+using System.Net;
 using RestSharp;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
 	public class LogglyClient
 	{
-		public static readonly string URL = PlatformEnvironment.Variable("LOGGLY_URL");
-		private WebRequest Request { get; set; }
+		public string URL { get; init; }
 
 		public LogglyClient()
 		{
-			try
-			{
-				Request = new WebRequest(URL, Method.POST);
-			}
-			catch
-			{
-				Log.Local(Owner.Default, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
-			}
+			URL = PlatformEnvironment.Variable("LOGGLY_URL");
 		}
-
+		
+		// ReSharper disable once MemberCanBeMadeStatic.Global
 		public void Send(Log log)
 		{
-			if (Request == null)
-				return;
 			try
 			{
-				string json = log.JSON; // This has to be outside of the Async call; otherwise, data can be modified before the request goes out.
+				string json = log.JSON;
+				
 				if (json != null)
-					Async.Do($"Send data to Loggly ({log.Message})", task: () =>
-					{
-						Request.Send(json);
-						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
-					});
+					PlatformRequest.Post(URL).SendAsync(
+						payload: json, 
+						onComplete: () => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT)
+					);
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine(e.Message);
+				if (URL == null)
+					Log.Local(Owner.Default, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
+				Log.Local(Owner.Default, e.Message);
 			}
 		}
 	}

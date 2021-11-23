@@ -152,6 +152,7 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						WriteJsonArray(ref writer, ref asEnumerable, options);
 						break;
 					case GenericData asGeneric:
+						writer.WritePropertyName(key);
 						Write(writer, asGeneric, options);
 						break;
 					case null:

@@ -27,7 +27,7 @@ namespace Rumble.Platform.Common.Web
 			_config = config;
 			// TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
 		}
-		protected WebRequest TokenVerification { get; set; }
+		protected PlatformRequest TokenVerification { get; set; }
 
 		public ObjectResult Problem(string detail) => Problem(value: new { DebugText = detail });
 

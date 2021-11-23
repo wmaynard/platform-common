@@ -1,7 +1,11 @@
 using System;
+using System.Diagnostics.Tracing;
+using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.CSharp.Common.Interop
 {
@@ -21,33 +25,31 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				: $"Bearer {token}";
 		}
 
-		public JsonElement Send(SlackMessage message)
+		public void Send(SlackMessage message)
 		{
-			// TODO: Async.Do
-			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
+			Task.Run(() =>
+			{
+				message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
-			JsonDocument response = null;
-			message.Channel = Channel;
+				GenericData response = null;
+				message.Channel = Channel;
 
-			try
-			{
-				response = WebRequest.Post(POST_MESSAGE, message.JSON, Token);
-				bool ok = JsonHelper.Require<bool>(response, "ok");
-				if (!ok)
-					throw new FailedRequestException(POST_MESSAGE, message.JSON);
-			}
-			catch (PlatformException)
-			{
-				throw;
-			}
-			catch (Exception e)
-			{
-				throw new Exception("There was an unexpected error when sending a message to Slack.", e);
-			}
+				try
+				{
+					response = PlatformRequest.Post(url: POST_MESSAGE, auth: Token, payload: message.JSON).Send(out HttpStatusCode code);
+					if (!response.Require<bool>("ok"))
+						throw new FailedRequestException(POST_MESSAGE, message.JSON);
+				}
+				catch (Exception e)
+				{
+					Log.Error(Owner.Will, "There was an unexpected error when sending a message to Slack.", data: new
+					{
+						SlackApiResponse = response
+					}, exception: e);
+				}
 			
-			Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
-
-			return response.RootElement;
+				Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
+			});
 		}
 	}
 }

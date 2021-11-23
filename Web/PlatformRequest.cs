@@ -26,6 +26,7 @@ namespace Rumble.Platform.Common.Web
 		};
 		private HttpRequestMessage Request { get; set; }
 		private Uri Uri { get; set; }
+		private HttpResponseMessage Response { get; set; }
 
 		public Dictionary<string, string> Headers
 		{
@@ -58,10 +59,13 @@ namespace Rumble.Platform.Common.Web
 			}
 		}
 		
-		private PlatformRequest(Method method, string url, Dictionary<string, string> headers = null, string payload = null)
+		private PlatformRequest(Method method, string url, Dictionary<string, string> headers = null, string auth = null, string payload = null)
 		{
 			Uri = new Uri(url);
 			Request = new HttpRequestMessage(method: method, requestUri: Uri);
+			headers ??= new Dictionary<string, string>();
+			if (auth != null)
+				headers.Add("Authorization", auth);
 			Headers = headers;
 			Payload = payload;
 		}
@@ -85,9 +89,9 @@ namespace Rumble.Platform.Common.Web
 			{
 				if (payload != null)
 					Payload = payload;
-				HttpResponseMessage response = CLIENT.Send(Request);
-				code = response.StatusCode;
-				HttpContent content = response.Content;
+				Response = CLIENT.Send(Request);
+				code = Response.StatusCode;
+				HttpContent content = Response.Content;
 
 				Task<string> task = content.ReadAsStringAsync();
 				task.Wait(); // TODO: Test timeout failure
@@ -105,19 +109,24 @@ namespace Rumble.Platform.Common.Web
 			Reset();
 			return output;
 		}
-		public async Task<GenericData> SendAsync(GenericData payload = null) => Send(payload); // TODO: implement Async sending
+
+		public Task SendAsync(GenericData payload = null, Action onComplete = null) => Task.Run(() =>
+		{
+			Send(payload);
+			onComplete?.Invoke();
+		});
 
 		// These static wrappers for constructors are intended to improve readability and make it a little more intuitive to send requests out.
 		// PlatformRequest request = PlatformRequest.Post(url, payload);
 		// is nicer to read than
 		// PlatformRequest request = new PlatformRequest(HttpMethod.Post, url, payload);
-		public static PlatformRequest Delete(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Delete, url, headers, payload);
-		public static PlatformRequest Get(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Get, url, headers);
-		public static PlatformRequest Head(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Head, url, headers, payload);
-		public static PlatformRequest Options(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Options, url, headers, payload);
-		public static PlatformRequest Patch(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Patch, url, headers, payload);
-		public static PlatformRequest Post(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Post, url, headers, payload);
-		public static PlatformRequest Put(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Put, url, headers, payload);
-		public static PlatformRequest Trace(string url, Dictionary<string, string> headers = null, GenericData payload = null) => new PlatformRequest(Method.Trace, url, headers, payload);
+		public static PlatformRequest Delete(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Delete, url, headers, auth, payload);
+		public static PlatformRequest Get(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Get, url, headers, auth);
+		public static PlatformRequest Head(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Head, url, headers, auth, payload);
+		public static PlatformRequest Options(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Options, url, headers, auth, payload);
+		public static PlatformRequest Patch(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Patch, url, headers, auth, payload);
+		public static PlatformRequest Post(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Post, url, headers, auth, payload);
+		public static PlatformRequest Put(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Put, url, headers, auth, payload);
+		public static PlatformRequest Trace(string url, Dictionary<string, string> headers = null, string auth = null, GenericData payload = null) => new PlatformRequest(Method.Trace, url, headers, auth, payload);
 	}
 }
