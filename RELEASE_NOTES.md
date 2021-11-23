@@ -1,4 +1,4 @@
-# 1.0.51
+# 1.0.53
 
 - GenericData
 	- Fix for nested GenericData serialization; property names weren't being written.
