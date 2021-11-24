@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -80,8 +81,13 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		public GenericData Send(GenericData payload = null) => Send(payload, out HttpStatusCode unused);
-		public GenericData Send(out HttpStatusCode code) => Send(null, out code);
-		public GenericData Send(GenericData payload, out HttpStatusCode code)
+		public GenericData Send(out HttpStatusCode code) => Send(payload: null, out code);
+		public GenericData Send(GenericData payload, out HttpStatusCode code) => Send(payload, asRawBytes: false, out code);
+		public void Send(out byte[] rawBytes) => rawBytes = Send(payload: null, asRawBytes: true, out HttpStatusCode unused);
+		public void Send(out byte[] rawBytes, out HttpStatusCode code) => Send(payload: null, out rawBytes, out code);
+		public void Send(GenericData payload, out byte[] rawBytes) => rawBytes = Send(payload, asRawBytes: true, out HttpStatusCode unused);
+		public void Send(GenericData payload, out byte[] rawBytes, out HttpStatusCode code) => rawBytes = Send(payload, asRawBytes: true, out code);
+		private dynamic Send(GenericData payload, bool asRawBytes, out HttpStatusCode code)
 		{
 			code = HttpStatusCode.BadRequest;
 			GenericData output = null;
@@ -93,8 +99,16 @@ namespace Rumble.Platform.Common.Web
 				code = Response.StatusCode;
 				HttpContent content = Response.Content;
 
+				if (asRawBytes)
+				{
+					Stream s = content.ReadAsStream();
+					using MemoryStream ms = new MemoryStream();
+					s.CopyTo(ms);
+					return ms.ToArray();
+				}
+
 				Task<string> task = content.ReadAsStringAsync();
-				task.Wait(); // TODO: Test timeout failure
+				task.Wait(30_000); // TODO: Test timeout failure
 				output = task.Result;
 			}
 			catch (HttpRequestException ex)
