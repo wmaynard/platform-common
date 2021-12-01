@@ -7,15 +7,20 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Rewrite;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
+using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
@@ -24,6 +29,7 @@ namespace Rumble.Platform.Common.Web
 	{
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
+		private bool WebServerEnabled { get; set; }
 
 		private static string PasswordlessMongoConnection
 		{
@@ -57,6 +63,7 @@ namespace Rumble.Platform.Common.Web
 				try
 				{
 					string name = GetType().FullName;
+					// ReSharper disable once PossibleNullReferenceException
 					int index = name.LastIndexOf("service", StringComparison.CurrentCultureIgnoreCase);
 					if (index < 0)
 						throw new Exception();
@@ -84,6 +91,7 @@ namespace Rumble.Platform.Common.Web
 		protected IServiceCollection Services { get; set; }
 		
 		private bool _filtersAdded;
+		// ReSharper disable once FieldCanBeMadeReadOnly.Local
 		private List<Type> _bypassedFilters;
 		
 		protected PlatformStartup(IConfiguration configuration = null)
@@ -99,12 +107,15 @@ namespace Rumble.Platform.Common.Web
 			_bypassedFilters ??= new List<Type>();
 		}
 		
-		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000)
+		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, 
+			int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
 		{
+			WebServerEnabled = webServerEnabled;
 			Log.DefaultOwner = defaultOwner;
 			Log.Verbose(Owner.Default, "Logging default owner set.");
 			Log.Verbose(Owner.Default, "Adding Controllers and Filters");
-			services.AddControllers(config =>
+
+			void ConfigureControllers(MvcOptions config)
 			{
 				// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
 				// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
@@ -118,23 +129,14 @@ namespace Rumble.Platform.Common.Web
 				if (!_bypassedFilters.Contains(typeof(PlatformPerformanceFilter)))
 					config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
 				_filtersAdded = true;
-			}).AddJsonOptions(options =>
-			{
-				options.JsonSerializerOptions.IgnoreNullValues = JsonHelper.SerializerOptions.IgnoreNullValues;
-				options.JsonSerializerOptions.IncludeFields = JsonHelper.SerializerOptions.IncludeFields;
-				options.JsonSerializerOptions.IgnoreReadOnlyFields = JsonHelper.SerializerOptions.IgnoreReadOnlyFields;
-				options.JsonSerializerOptions.IgnoreReadOnlyProperties = JsonHelper.SerializerOptions.IgnoreReadOnlyProperties;
-				options.JsonSerializerOptions.PropertyNamingPolicy = JsonHelper.SerializerOptions.PropertyNamingPolicy;
-				options.JsonSerializerOptions.Converters.Add(new JsonTypeConverter());
-				
-				foreach (JsonConverter converter in JsonHelper.SerializerOptions.Converters)
-					options.JsonSerializerOptions.Converters.Add(converter);
-				
-				// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
-				// It throws errors when trying to serialize certain types and breaks the execution to do it.
-				Log.Local(Owner.Default, "JSON serializer options configured.");
-				// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-			});
+			}
+
+			(WebServerEnabled
+				? services.AddControllersWithViews(ConfigureControllers)
+				: services.AddControllers(ConfigureControllers)
+			).AddJsonOptions(JsonHelper.ConfigureJsonOptions);
+			// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
+			// It throws errors when trying to serialize certain types and breaks the execution to do it.
 			
 			BsonSerializer.RegisterSerializer(new BsonGenericConverter());
 			Log.Local(Owner.Default, "BSON converters configured.");
@@ -207,14 +209,29 @@ namespace Rumble.Platform.Common.Web
 		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
-			app.UseRouting();
-			app.UseCors(CORS_SETTINGS_NAME);
-			app.UseAuthorization();
-			app.UseEndpoints(endpoints =>
-			{
-				endpoints.MapControllers();
-			});
-			app.UseResponseCompression();
+			app.UseRouting()
+				.UseCors(CORS_SETTINGS_NAME)
+				.UseAuthorization()
+				.UseEndpoints(endpoints =>
+				{
+					endpoints.MapControllers();
+				})
+				.UseResponseCompression();
+
+			if (!WebServerEnabled)
+				return;
+			Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
+			app.UseExceptionHandler("/Error") // TODO: this needs to be tested
+				.UseHsts()
+				.UseHttpsRedirection()
+				.UseRewriter(new RewriteOptions()
+					.Add(new RemoveWwwRule())
+					.Add(new OmitExtensionsRule())
+					.Add(new RedirectExtensionlessRule())
+				).UseFileServer()
+				.UseEndpoints(ConfigureRoutes);
 		}
+
+		protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }
 	}
 }

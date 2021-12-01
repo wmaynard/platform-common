@@ -1,5 +1,7 @@
 using System;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Utilities.Serializers;
 
 
@@ -9,6 +11,24 @@ namespace Rumble.Platform.Common.Utilities
 	{
 		private static JsonSerializerOptions _serializerOptions;
 		private static JsonDocumentOptions _documentOptions;
+
+		public static void ConfigureJsonOptions(JsonOptions options)
+		{
+			options.JsonSerializerOptions.IgnoreNullValues = JsonHelper.SerializerOptions.IgnoreNullValues;
+			options.JsonSerializerOptions.IncludeFields = JsonHelper.SerializerOptions.IncludeFields;
+			options.JsonSerializerOptions.IgnoreReadOnlyFields = JsonHelper.SerializerOptions.IgnoreReadOnlyFields;
+			options.JsonSerializerOptions.IgnoreReadOnlyProperties = JsonHelper.SerializerOptions.IgnoreReadOnlyProperties;
+			options.JsonSerializerOptions.PropertyNamingPolicy = JsonHelper.SerializerOptions.PropertyNamingPolicy;
+			options.JsonSerializerOptions.Converters.Add(new JsonTypeConverter());
+				
+			foreach (JsonConverter converter in SerializerOptions.Converters)
+				options.JsonSerializerOptions.Converters.Add(converter);
+				
+			// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
+			// It throws errors when trying to serialize certain types and breaks the execution to do it.
+			Log.Local(Owner.Default, "JSON serializer options configured.");
+			// options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+		}
 
 		public static JsonSerializerOptions SerializerOptions => _serializerOptions ??= new JsonSerializerOptions()
 		{
