@@ -9,7 +9,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class PlatformMongoService<Model> where Model : PlatformCollectionDocument
+	public abstract class PlatformMongoService<Model> : PlatformService where Model : PlatformCollectionDocument
 	{
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		private static readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
@@ -22,15 +22,7 @@ namespace Rumble.Platform.Common.Web
 		protected bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
 		public bool IsHealthy => IsConnected || Open();
 
-		public object HealthCheckResponseObject
-		{
-			get
-			{
-				IDictionary<string, object> result = new ExpandoObject();
-				result[GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected";
-				return result;
-			}
-		}
+		public override object HealthCheckResponseObject => new GenericData() { [GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected" };
 
 		protected PlatformMongoService(string collection)
 		{

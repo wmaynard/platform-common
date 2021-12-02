@@ -98,6 +98,9 @@ namespace Rumble.Platform.CSharp.Common.Interop
 			output.Add(new SlackBlock(tempType, tempText));
 			return output;
 		}
-		
+
+		public static SlackBlock Divider() => new SlackBlock(BlockType.DIVIDER);
+		public static SlackBlock Header(string text) => new SlackBlock(BlockType.HEADER, text);
+		public static SlackBlock Markdown(string text) => new SlackBlock(BlockType.MARKDOWN, text);
 	}
 }

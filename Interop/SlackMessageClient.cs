@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.Net;
 using System.Text.Json;
@@ -51,5 +52,8 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
 			});
 		}
+
+		public void Send(List<SlackBlock> content) => Send(new SlackMessage(content));
+		public void Send(List<SlackBlock> content, List<SlackAttachment> attachments) => Send(new SlackMessage(content, attachments.ToArray()));
 	}
 }

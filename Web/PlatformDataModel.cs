@@ -42,7 +42,7 @@ namespace Rumble.Platform.Common.Web
 
 		[BsonIgnore]
 		[JsonIgnore]
-		public static long UnixTime => DateTimeOffset.Now.ToUnixTimeSeconds();
+		public static long UnixTime => Timestamp.UnixTime;
 
 		[BsonIgnore]
 		[JsonIgnore]

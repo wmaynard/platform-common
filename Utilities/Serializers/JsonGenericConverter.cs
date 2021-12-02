@@ -144,6 +144,15 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case string asString:
 						writer.WriteString(key, asString);
 						break;
+					case short asShort:
+						writer.WriteNumber(key, asShort);
+						break;
+					case int asInt:
+						writer.WriteNumber(key, asInt);
+						break;
+					case long asLong:
+						writer.WriteNumber(key, asLong);
+						break;
 					case decimal asDecimal:
 						writer.WriteNumber(key, asDecimal);
 						break;

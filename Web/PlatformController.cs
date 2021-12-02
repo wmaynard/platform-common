@@ -58,6 +58,7 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
+		// TODO: Now that GenericData is useful, can probably cut down on code bloat here by replacing ExpandoObjects with GenericData.
 		protected static object Merge(object foo, object bar)
 		{
 			if (foo == null || bar == null)
@@ -66,17 +67,44 @@ namespace Rumble.Platform.Common.Web
 			ExpandoObject expando = new ExpandoObject();
 			IDictionary<string, object> result = (IDictionary<string, object>)expando;
 			
-			if (foo is ExpandoObject oof)	// Special handling is required when trying to merge two ExpandoObjects together.
-				MergeExpando(ref result, oof);
-			else
-				foreach (PropertyInfo fi in foo.GetType().GetProperties())
-					result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(foo, null);
+			switch (foo)
+			{
+				// Special handling is required when trying to merge two ExpandoObjects together.
+				case ExpandoObject oof:
+					MergeExpando(ref result, oof);
+					break;
+				case GenericData genericFoo:
+				{
+					foreach (string key in genericFoo.Keys)
+						result[JsonNamingPolicy.CamelCase.ConvertName(key)] = genericFoo[key];
+					break;
+				}
+				default:
+				{
+					foreach (PropertyInfo fi in foo.GetType().GetProperties())
+						result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(foo, null);
+					break;
+				}
+			}
 			
-			if (bar is ExpandoObject rab)
-				MergeExpando(ref result, rab);
-			else
-				foreach (PropertyInfo fi in bar.GetType().GetProperties())
-					result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(bar, null);
+			switch (bar)
+			{
+				case ExpandoObject rab:
+					MergeExpando(ref result, rab);
+					break;
+				case GenericData genericBar:
+				{
+					foreach (string key in genericBar.Keys)
+						result[JsonNamingPolicy.CamelCase.ConvertName(key)] = genericBar[key];
+					break;
+				}
+				default:
+				{
+					foreach (PropertyInfo fi in bar.GetType().GetProperties())
+						result[JsonNamingPolicy.CamelCase.ConvertName(fi.Name)] = fi.GetValue(bar, null);
+					break;
+				}
+			}
 			return result;
 		}
 

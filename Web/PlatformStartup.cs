@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -161,25 +162,17 @@ namespace Rumble.Platform.Common.Web
 			});
 			Services = services;
 
-			// Use reflection to create singletons for all of our PlatformMongoServices.  There's no obvious reason
+			Log.Verbose(Owner.Default, "Creating service singletons");
+			// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
 			// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
 			// so this removes an otherwise manual step for every service creation.
-			// This is a little janky; we have to identify the base class by comparing strings (class names).
-			// Covariance isn't supported for generic classes, so this is an alternative.
-			// There's an edge case where this misbehaves because someone is trying to be clever and using another base 
-			// class of "PlatformMongoService" that shouldn't be a singleton, but that seems extremely unlikely.
-			Log.Verbose(Owner.Default, "Creating Service Singletons");
-			string mongoServiceType = typeof(PlatformMongoService<PlatformCollectionDocument>).Name;
-			Type[] mongoServices = Assembly.GetEntryAssembly()?.GetExportedTypes()
+			Type[] platformServices = Assembly.GetEntryAssembly()?.GetExportedTypes()
 				.Where(type => !type.IsAbstract)
-				.Where(type => GetAllTypeNames(type).Contains(mongoServiceType))
-				// .Where(type => mongoServiceType.Name == type.BaseType?.Name)
+				.Where(type => type.IsAssignableTo(typeof(PlatformService)))
 				.ToArray();
-			if (mongoServices == null) 
-				return;
-			foreach (Type service in mongoServices)
-				Services.AddSingleton(service);
-			
+			if (platformServices != null)
+				foreach (Type service in platformServices)
+					Services.AddSingleton(service);
 			Log.Local(Owner.Default, "Service configuration complete.");
 		}
 
