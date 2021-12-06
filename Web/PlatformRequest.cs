@@ -124,11 +124,13 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
-		public Task SendAsync(GenericData payload = null, Action onComplete = null) => Task.Run(() =>
-		{
-			Send(payload);
-			onComplete?.Invoke();
-		});
+		public Task<GenericData> SendAsync(GenericData payload = null, Action onComplete = null) => 
+			Task.Run(function: () =>
+			{
+				GenericData output = Send(payload);
+				onComplete?.Invoke();
+				return output;
+			});
 
 		// These static wrappers for constructors are intended to improve readability and make it a little more intuitive to send requests out.
 		// PlatformRequest request = PlatformRequest.Post(url, payload);
