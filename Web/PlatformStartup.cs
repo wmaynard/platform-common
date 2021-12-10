@@ -166,7 +166,8 @@ namespace Rumble.Platform.Common.Web
 			// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
 			// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
 			// so this removes an otherwise manual step for every service creation.
-			Type[] platformServices = Assembly.GetEntryAssembly()?.GetExportedTypes()
+			Type[] platformServices = Assembly.GetEntryAssembly()?.GetExportedTypes()	// Add the project's types 
+				.Concat(Assembly.GetExecutingAssembly().GetExportedTypes())				// Add platform-common's types
 				.Where(type => !type.IsAbstract)
 				.Where(type => type.IsAssignableTo(typeof(PlatformService)))
 				.ToArray();
