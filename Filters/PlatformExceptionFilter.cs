@@ -53,7 +53,7 @@ namespace Rumble.Platform.Common.Filters
 			if (ex is MongoCommandException mce)
 			{
 				ex = new PlatformMongoException(mce);
-				Log.Critical(Owner.Eric, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
+				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
 			}
 			else
 				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", data: Converter.ContextToEndpointObject(context), exception: ex);
