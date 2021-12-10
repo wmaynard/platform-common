@@ -27,6 +27,7 @@ namespace Rumble.Platform.Common.Web
 		};
 		private HttpRequestMessage Request { get; set; }
 		private Uri Uri { get; set; }
+		public string Url => Uri.AbsoluteUri;
 		private HttpResponseMessage Response { get; set; }
 
 		public Dictionary<string, string> Headers

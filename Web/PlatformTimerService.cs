@@ -6,7 +6,7 @@ namespace Rumble.Platform.Common.Web
 	{
 		private readonly Timer _timer;
 		
-		protected PlatformTimerService(double intervalMS)
+		protected PlatformTimerService(double intervalMS, bool startImmediately = true)
 		{
 			_timer = new Timer(intervalMS);
 			_timer.Elapsed += (sender, args) =>
@@ -15,18 +15,13 @@ namespace Rumble.Platform.Common.Web
 				OnElapsed();
 				Resume();
 			};
-			_timer.Start();
+			if (startImmediately)
+				_timer.Start();
 		}
 
-		protected void Pause()
-		{
-			_timer.Stop();
-		}
+		protected void Pause() => _timer.Stop();
 
-		protected void Resume()
-		{
-			_timer.Start();
-		}
+		protected void Resume() => _timer.Start();
 
 		protected abstract void OnElapsed();
 	}
