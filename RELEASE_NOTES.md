@@ -1,3 +1,24 @@
+# 1.0.56
+
+- Minor bugfixes for PlatformRequest
+- Delayed start supported for `PlatformTimerService`
+- Added `DynamicConfigService`.  The Groovy platform-common had its own singleton to interact with DynamicConfig, and this creates the same functionality.  It leverages `PlatformRequest` and `GenericData` classes to cut out JSON handling.
+- Minor log cleanup
+
+
+# 1.0.55
+
+- Added a `PlatformTimerService`.  Inherit from this when you need a service to run a specific task on a timer.
+- Bugfixes for GenericData serialization when working with numbers.
+- Added GenericData support for `PlatformController.Merge()`.
+- Added a base class, `PlatformService`.  Anything inheriting from this will be automatically instantiated as a singleton in Startup.  Previously, only Mongo services behaved this way, as they were the only services we had.
+- Minor QOL methods for Slack Interop.
+
+# 1.0.54
+
+- Added support for file server functionality.  This update introduces the ability to run websites from a Platform project.  To do this, set the `webServerEnabled` flag in your Startup's `ConfigureServices` method.
+- URL Rewriting and Redirecting is automatically supported using `platform-common/Web/Routing/*` rules.  This removes, for example, the ".html" from "index.html" when working with vanilla files.
+
 # 1.0.53
 
 - GenericData

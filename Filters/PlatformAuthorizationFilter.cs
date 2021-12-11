@@ -143,7 +143,7 @@ namespace Rumble.Platform.Common.Filters
 					IsAdmin = result.Optional<bool>(TokenInfo.FRIENDLY_KEY_IS_ADMIN)
 				};
 				
-				Log.Verbose(Owner.Default, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
+				Log.Verbose(Owner.Will, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
 				if (context != null)
 					context.HttpContext.Items[KEY_TOKEN] = output;
 				return output;

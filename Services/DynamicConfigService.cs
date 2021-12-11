@@ -7,6 +7,9 @@ using Rumble.Platform.Common.Web;
 namespace Rumble.Platform.CSharp.Common.Services
 {
 	// TODO: Subscribe to tower-portal's dynamic config service
+	/// <summary>
+	/// When we get to 
+	/// </summary>
 	public class DynamicConfigService : PlatformTimerService
 	{
 		private const int UPDATE_FREQUENCY_MS = 15_000;
