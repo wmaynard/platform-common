@@ -67,7 +67,7 @@ namespace Rumble.Platform.Common.Filters
 		{
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
-			string message = $"{name} time taken to execute: {taken:N0}ms";
+			string message = $"{name} took a long time to execute.";
 			
 			object diagnostics = LogObject(context, "ActionExecuted", taken);
 			
@@ -87,7 +87,7 @@ namespace Rumble.Platform.Common.Filters
 			// base.OnResultExecuted(context);
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
-			string message = $"{name} time taken to respond: {taken:N0}ms";
+			string message = $"{name} took a long time to respond to the client.";
 			object diagnostics = LogObject(context, "ResultExecuted", taken);
 			
 			if (GetAttributes<PerformanceFilterBypass>(context).Any())
