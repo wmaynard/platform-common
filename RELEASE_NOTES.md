@@ -5,7 +5,6 @@
 - Added `DynamicConfigService`.  The Groovy platform-common had its own singleton to interact with DynamicConfig, and this creates the same functionality.  It leverages `PlatformRequest` and `GenericData` classes to cut out JSON handling.
 - Minor log cleanup
 
-
 # 1.0.55
 
 - Added a `PlatformTimerService`.  Inherit from this when you need a service to run a specific task on a timer.

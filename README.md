@@ -216,6 +216,40 @@ Helpful resources for working with Slack:
 * [Block Kit Builder](https://slack.com/workspace-signin?redir=%2Fapi%2F%2Ftools%2Fblock-kit-builder)
 
 
+## Services
+
+| Name | Description |
+| :--- | :--- |
+| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`. |
+
+### Using the `DynamicConfigService`
+
+As with any other Service, you can use dependency injection to use DynamicConfig now.  In a constructor for a Service or Controller, you can reference it like this:
+
+```
+public class SampleService : PlatformService
+{
+    private readonly DynamicConfigService _dynamicConfigService;
+    
+    public SampleService(DynamicConfigService dynamicConfigService)
+    {
+        _dynamicConfigService = dynamicConfigService;
+    }
+}
+```
+
+If you have `GAME_GUKEY` in your environment variables, the game config scope is automatically tracked by the service, and the values are stored as `GenericData`.  An example on accessing the Game scope:
+
+```
+string chatAdminToken = _dynamicConfigService.GameScope.Require<string>("chatToken");
+```
+
+If you need to use other scopes in your project, you can do so with:
+
+```
+_dynamicConfigService.Track(scope: "foo");
+```
+
 ## Utilities
 
 | Name | Description |
@@ -232,14 +266,40 @@ Helpful resources for working with Slack:
 | `PerformanceFilterBypass` | An attribute used to exempt specific endpoints from being monitored by the performance filter. | 
 | `PlatformEnvironment` | A class used to grab environment variables via the method `Variable(string)`. |
 | `RequireAuth` | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`. |
+| `Timestamp` | Helper class to handle various timestamps, e.g. getting the current Unix Timestamp.
 | `TokenType` | Enum for which type of token to use. |
 | `WebRequest` | A wrapper for RestSharp web requests. |
 
+### Serializers
+
+Occasionally, it's necessary to exercise manual control over the way certain objects are de/serialized.  This is particularly important for the `GenericData` class.  With .NET's built-in JSON handling, JSON defaults to `JsonDocument` / `JsonElement` / `JsonProperty` types.  These aren't proper objects in that they require type information to be stored as strings in order to properly serialize.
+
+This was a problem for Mongo DB.  Take a use case where you want to store data in an agnostic way.  An endpoint accepts any JSON the client sends and stores it in MongoDB.  Your first thought is to parse the data to store as a `JsonDocument`, then just save that to Mongo.
+
+While this does technically save something to Mongo, the data that's actually stored isn't actionable.  The way Mongo DB serializes non-primitive types by default is to store the type names, similar to what you get in a debugger when you call `ToString()` without a custom override, and then tries to instantiate that object at runtime with that time information when reading.
+
+This results in data that's not useful anywhere outside of the project that stored it.  You can't cleanly query it from Compass or command line, it's a pain to read, and if your libraries change, it may break the deserialization.  Rather than rely on brittle handling, we can use custom serializers to prevent this behavior.
+
+There are two flavors that we use: `SerializerBase<T>` for BSON and `JsonConverter<T>` for JSON.
+
+| Name | Description |
+| :--- | :--- |
+| `BsonGenericConverter` | Handles `GenericData` <-> BSON document conversions for Mongo DB insertion. |
+| `BsonSaveAsString` | Forces a field to be saved as a string when written to MongoDB.  Initially required for player-service v2's version number fields. |
+| `JsonExceptionConverter` | Override for serializing Exceptions as JSON.  With the built-in JSON handler, circular references caused the current `Log` tools to crash. |
+| `JsonGenericConverter` | Handles `GenericData` <-> JSON conversions for generating API responses. |
+| `JsonIntConverter` | Handles **int** conversions.  Necessary for proper `GenericData` serialization. |
+| `JsonLongConverter` | Handles **long** conversions.  Necessary for proper `GenericData` serialization. |
+| `JsonShortConverter` | Handles **short** conversions.  Necessary for proper `GenericData` serialization. |
+| `JsonTypeConverter` | Serializes `Type` values to and from strings for proper `GenericData` serialization. |
+
 ### Using `GenericData`
 
-As of this writing, neither `System.Text.Json` nor `Newtonsoft` can create actual objects from JSON withou a model to use as a contract.  This causes problems when storing data in MongoDB.  Sometimes the frontend developers will need a flexible structure to send data to Mongo, and it would be difficult to maintain a model on both the frontend and the backend.
+As of this writing, neither `System.Text.Json` nor `Newtonsoft` can create actual objects from JSON without a model to use as a contract.  This causes problems when storing data in MongoDB.  Sometimes the frontend developers will need a flexible structure to send data to Mongo, and it would be difficult to maintain a model on both the frontend and the backend.
 
-When the MongoDB driver encounters the `JsonElement` class from `System.Text.Json`, it has to serialize the type information along with the data.  This results in particularly ugly code in the database as well as a lot of bloat.  The serialization ends up looking like this:
+`GenericData` provides a way around the restrictions of these JSON libraries.  It translates JSON into a `Dictionary<string, object>` and vice versa, where `object` is a primitive type that's easily stored in Mongo DB.
+
+Consider what happens when we try to store a `JsonElement` in Mongo:
 
 ```
 public class Model : PlatformDataModel
@@ -275,17 +335,7 @@ model: Object
     anotherInt: 13
 ```
 
-Use `GenericData` whenever you need a service to be agnostic about the data that it's sending.  Use it sparingly, though, as project maintenance is much easier with more structured data. 
-
-### Serializers
-
-| Name | Description |
-| :--- | :--- |
-| `BsonGenericConverter` | Converts `GenericData` into BSON, or BSON into a `GenericData` object. |
-| `BsonSaveAsString` | Converts numerical values into BSON.  |
-| `JsonExceptionConverter` | Overrides `Exception` objects into JSON.  Dropping Newtonsoft necessitated this to avoid circular references, which `System.Text.Json` can't handle on its own. |
-| `JsonGenericConverter` | Converts `GenericData` into JSON, or JSON into a `GenericData` object. |
-| `JsonTypeConverter` | Converts a `Type` into JSON, or JSON into a `Type` object. |
+Use `GenericData` whenever you need a service to be agnostic about the data that it's sending.  Use it sparingly, though, as project maintenance is much easier with more structured data.
 
 ## Web
 
@@ -296,9 +346,23 @@ Use `GenericData` whenever you need a service to be agnostic about the data that
 | `PlatformDataModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
 | `PlatformController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
 | `PlatformMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
+| `PlatformRequest` | A replacement for the previous web request tools using `GenericData`. |
+| `PlatformService` | An abstract base class for all platform services. |
 | `PlatformStartup` | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
+| `PlatformTimerService` | A singleton service that runs a task on a specified interval. |
 | `StandardResponse` | Deprecated. |
 | `TokenInfo` | A model that contains all identifiable information for a given token. |
+
+### Routing
+
+For projects that need to serve their own web pages, these routing rules are used to clean up URLs.  While this can be done in Apache / IIS configurations, .NET core does allow us to take care of this internally and keep the changes within the code base, as well as letting us step through it in a debugger.  It's also nice to use full C# code rather than debugging regex.
+
+| Name | Description |
+| :--- | :--- |
+| `OmitExtensionsRule` | Drops extensions for recognized file types such as **.html**. |
+| `PlatformRewriteRule` | Base class that encapsulates rule applications in a try / catch block to prevent breaking rules when something goes wrong. |
+| `RedirectExtensionlessRule` | Attempts to route requests to known file types, e.g. /foo/bar -> /wwwroot/foo/bar.html. |
+| `RemoveWwwRule` | Removes the `www` from the url if explicitly added. |
 
 # Getting Started
 
