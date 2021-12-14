@@ -43,7 +43,13 @@ namespace Rumble.Platform.CSharp.Common.Services
 
 		public GenericData GameConfig => Values.Optional<GenericData>(GameScope);
 
-		public void Track(string scope) => Values[scope] = null;
+		public void Track(string scope, bool updateNow = true)
+		{
+			Values[scope] = null;
+			
+			if (updateNow)
+				Update();
+		}
 		
 		protected override void OnElapsed() => UpdateAsync();
 

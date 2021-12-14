@@ -59,7 +59,7 @@ namespace Rumble.Platform.Common.Web
 		public double SecondsRemaining { get; set; }
 		[BsonIgnore]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_USERNAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-		public string Username => $"{ScreenName ?? "(Unknown Screenname)"}#{(Discriminator.ToString() ?? "").PadLeft(4, '?')}{(IsAdmin ? " (Administrator)" : "")}";
+		public string Username => $"{ScreenName ?? "(Unknown Screenname)"}#{(Discriminator.ToString() ?? "").PadLeft(4, '0')}{(IsAdmin ? " (Administrator)" : "")}";
 
 		[BsonIgnore]
 		[JsonIgnore]
