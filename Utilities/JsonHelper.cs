@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities.Serializers;
 
 
@@ -88,6 +90,10 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				element = json.GetProperty(key);
 				return JsonSerializer.Deserialize<T>(element.GetRawText(), SerializerOptions);
+			}
+			catch (KeyNotFoundException ex)
+			{
+				throw new MissingJsonKeyException(json, key);
 			}
 			catch (Exception e)
 			{

@@ -127,16 +127,19 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
-		protected JsonElement Optional(string key, JsonElement json) => JsonHelper.Optional(json, key);
-		protected JsonElement Optional(string key, JsonDocument json = null) => JsonHelper.Optional(json ?? Body, key);
-		protected T Optional<T>(string key, JsonElement json) => JsonHelper.Optional<T>(json, key);
-		protected T Optional<T>(string key, JsonDocument json = null) => JsonHelper.Optional<T>(json ?? Body, key);
-		protected JsonElement Require(string key, JsonElement json) => JsonHelper.Require(json, key);
-		protected JsonElement Require(string key, JsonDocument json = null) => JsonHelper.Require(json ?? Body, key);
-		protected T Require<T>(string key, JsonElement json) => JsonHelper.Require<T>(json, key);
-		protected T Require<T>(string key, JsonDocument json = null) => JsonHelper.Require<T>(json ?? Body, key);
+		protected object Optional(string key, GenericData json = null) => json?.Optional<object>(key);
+		protected T Optional<T>(string key, GenericData json = null)
+		{
+			json ??= Body;
+			return json != null
+				? json.Optional<T>(key)
+				: default;
+		}
 
-		protected JsonDocument Body => FromContext<JsonDocument>(PlatformResourceFilter.KEY_BODY);
+		protected object Require(string key, GenericData json = null) => (json ?? Body).Require<object>(key);
+		protected T Require<T>(string key, GenericData json = null) => (json ?? Body).Require<T>(key);
+
+		protected GenericData Body => FromContext<GenericData>(PlatformResourceFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN); // TODO: Is it possible to make this accessible to models?
 		protected string IpAddress => Request.HttpContext.Connection.RemoteIpAddress?.ToString();
 		protected string EncryptedToken => FromContext<string>(PlatformResourceFilter.KEY_AUTHORIZATION);

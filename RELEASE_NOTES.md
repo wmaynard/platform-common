@@ -1,3 +1,18 @@
+# 1.0.58
+
+- The `PlatformResourceFilter` now uses `GenericData` for the body instead of `JsonElement`.
+- Query keys and values are now appended to the request body's `GenericData`.  If the same key exists in both query and body, the body value has priority.
+- `PlatformController.Optional<T>(key)` and similar methods now use the `GenericData` body as well.
+- A fix for `PlatformRequest.Get`s guarantees that the request content is null.  While this was not an issue for Slack or internal APIs, Apple's API was returning 403s, even when the content was an empty string.
+
+### Potentially Breaking Changes
+
+If you use `Optional()` or `Require()` to assign to classes from `System.Text.Json`, you may need to convert them to `GenericData`.
+
+# 1.0.57
+
+- Minor bugfix for TokenInfo padding with a '?' instead of '0'.
+
 # 1.0.56
 
 - Minor bugfixes for PlatformRequest

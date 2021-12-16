@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -49,9 +50,9 @@ namespace Rumble.Platform.Common.Web
 		{
 			get
 			{
-				Task<string> task = Request.Content.ReadAsStringAsync();
-				task.Wait();
-				return task.Result;
+				Task<string> task = Request.Content?.ReadAsStringAsync();
+				task?.Wait();
+				return task?.Result;
 			}
 			set
 			{
@@ -94,6 +95,11 @@ namespace Rumble.Platform.Common.Web
 			GenericData output = null;
 			try
 			{
+				if (Request.Method == HttpMethod.Get)
+				{
+					Payload = null;
+					Request.Content = null;
+				}
 				if (payload != null)
 					Payload = payload;
 				Response = CLIENT.Send(Request);

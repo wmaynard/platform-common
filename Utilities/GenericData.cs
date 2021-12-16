@@ -73,6 +73,18 @@ namespace Rumble.Platform.Common.Utilities
 			}
 		}
 
+		public void Combine(GenericData other, bool prioritizeOther = false)
+		{
+			foreach (string key in other.Keys.Where(key => !ContainsKey(key) || prioritizeOther))
+				this[key] = other[key];
+		}
+
+		public static GenericData Combine(GenericData preferred, GenericData other)
+		{
+			preferred.Combine(other);
+			return preferred;
+		}
+
 		public new object this[string key]
 		{
 			get => TryGetValue(key, out object output) ? output : null;
@@ -111,8 +123,13 @@ namespace Rumble.Platform.Common.Utilities
 		// string raw = "{\"foo\": 123, \"bar\": [\"abc\", 42, 88, true]}";
 		// GenericData json = raw;
 		// string backToString = json;
-		public static implicit operator GenericData(string json) => JsonSerializer.Deserialize<GenericData>(json, JsonHelper.SerializerOptions);
+		public static implicit operator GenericData(string json) => json != null
+			? JsonSerializer.Deserialize<GenericData>(json, JsonHelper.SerializerOptions)
+			: null;
 		public static implicit operator string(GenericData data) => JsonSerializer.Serialize(data, JsonHelper.SerializerOptions);
+
+		public static implicit operator GenericData(JsonElement element) => element.GetRawText();
+		public static implicit operator GenericData(JsonDocument document) => document.RootElement.GetRawText();
 
 		public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
 		public static bool operator !=(GenericData a, GenericData b) => !(a == b);
@@ -157,6 +174,34 @@ namespace Rumble.Platform.Common.Utilities
 				// Without this, Convert will yield a default value.
 				if (underlying != null && isNull)
 					return null;
+
+				try
+				{
+					// We're dealing with a collection of objects.  Try to automatically cast it to an array or List.
+					if (typeof(IEnumerable<object>).IsAssignableFrom(type))
+					{
+						// TODO: This only covers simple arrays and Lists; a collection with multiple generic constraints would break (not likely, but still an edge case)
+						// GetElementType() for arrays, GetGenericArguments() for Collection<T> types.
+						Type e = type.GetElementType() ?? type.GetGenericArguments().First();
+
+						dynamic instance = Activator.CreateInstance(typeof(List<>).MakeGenericType(e));
+						// There has to be a better way to do this with LINQ, but have been struggling to get it to work correctly.
+						// Without the for loop, typing gets messed up.
+						foreach (dynamic foo in ((IEnumerable<dynamic>) value).Select(element => Convert.ChangeType(element, e)))
+							instance.Add(foo);
+
+						return type.IsArray
+							? instance.ToArray()
+							: instance;
+					}
+				}
+				catch (Exception e)
+				{
+					Log.Warn(Owner.Will, "Unable to cast GenericData to an Enumerable as requested.", data: new
+					{
+						OutputType = typeof(T).FullName
+					}, exception: e);
+				}
 				
 				return Type.GetTypeCode(underlying ?? type) switch
 				{
