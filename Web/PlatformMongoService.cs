@@ -51,7 +51,12 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		public virtual IEnumerable<Model> List() => _collection.Find(filter: model => true).ToList();
-		public virtual void Create(Model model) => _collection.InsertOne(document: model);
+
+		public virtual Model Create(Model model)
+		{
+			_collection.InsertOne(document: model);
+			return model;
+		}
 		public virtual void Delete(string id) => _collection.DeleteOne(filter: model => model.Id == id);
 
 		public virtual void Delete(Model model) => Delete(model.Id);
