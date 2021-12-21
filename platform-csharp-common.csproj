@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net5.0</TargetFramework>
 		<RootNamespace>Rumble.Platform.CSharp.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.0.58</PackageVersion>
+		<PackageVersion>1.0.59</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
-  </PropertyGroup>
+	  <TargetFramework>net5.0</TargetFramework>
+	  <LangVersion>9</LangVersion>
+	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
 	  <NoWarn>1701;1702;NU5100</NoWarn>

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
@@ -42,18 +43,28 @@ namespace Rumble.Platform.Common.Filters
 					query[pair.Key] = pair.Value.ToString();
 				if (context.HttpContext.Request.Method != "GET")
 				{
-					context.HttpContext.Request.BodyReader.TryRead(out ReadResult result);
-					string json = Encoding.UTF8.GetString(result.Buffer.FirstSpan);
+					string json = "";
+					
+					if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
+						throw new Exception("reader.TryRead() failed when parsing the request body.");
+					
+					SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
+					while (!rdr.End)
+					{
+						json += Encoding.UTF8.GetString(rdr.CurrentSpan);
+						rdr.Advance(rdr.CurrentSpan.Length);
+					}
+					
+					body = json;
+					
 					context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
 					context.HttpContext.Request.BodyReader.Complete();
-					body = json;
 				}
 
 				body?.Combine(query); // If both the body and query have the same key, the values in the body have priority.
 				body ??= query;
 				
 				context.HttpContext.Items[KEY_BODY] = body;
-				// context.HttpContext.Items[KEY_BODY] = JsonDocument.Parse(json, JsonHelper.DocumentOptions);
 			}
 			catch (Exception e)
 			{
