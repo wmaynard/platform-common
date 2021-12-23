@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using RestSharp.Validation;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Utilities
 {
@@ -156,6 +157,21 @@ namespace Rumble.Platform.Common.Utilities
 				return null;
 			}
 		}
+		
+		/// <summary>
+		/// If the object to convert is a PlatformDataModel, this method will serialize the GenericData into JSON
+		/// and attempt to deserialize it into the PlatformDataModel.  It doesn't feel particularly efficient to do this,
+		/// so maybe it can be optimized later.  If the desired type is not a PlatformDataModel, this acts as a wrapper
+		/// for System.Convert.
+		/// </summary>
+		/// <param name="obj">The object to try data conversion on.</param>
+		/// <param name="type">The type to convert the object to.</param>
+		private static dynamic TryConvertToModel(object obj, Type type)
+		{
+			return type.IsAssignableTo(typeof(PlatformDataModel)) && obj is GenericData
+				? JsonSerializer.Deserialize(((GenericData)obj).JSON, type, JsonHelper.SerializerOptions)
+				: Convert.ChangeType(obj, type);
+		}
 
 		/// <summary>
 		/// This is a wrapper for an improved System.Convert.  Without this, several casts fail when converting,
@@ -184,15 +200,21 @@ namespace Rumble.Platform.Common.Utilities
 						// GetElementType() for arrays, GetGenericArguments() for Collection<T> types.
 						Type e = type.GetElementType() ?? type.GetGenericArguments().First();
 
-						dynamic instance = Activator.CreateInstance(typeof(List<>).MakeGenericType(e));
+						dynamic list = Activator.CreateInstance(typeof(List<>).MakeGenericType(e));
 						// There has to be a better way to do this with LINQ, but have been struggling to get it to work correctly.
 						// Without the for loop, typing gets messed up.
-						foreach (dynamic foo in ((IEnumerable<dynamic>) value).Select(element => Convert.ChangeType(element, e)))
-							instance.Add(foo);
+						// TryConvertToModel will automatically try to cast the data to the appropriate PlatformDataModel type if possible.
+						// Otherwise, it uses System.Convert to attempt a data conversion.
+						IEnumerable<dynamic> values = ((IEnumerable<dynamic>)value).Select(element => TryConvertToModel(element, e));
+						foreach (dynamic x in values)
+							list.Add(x);
+
+						// foreach (dynamic foo in ((IEnumerable<dynamic>) value).Select(element => Convert.ChangeType(element, e)))
+						// 	instance.Add(foo);
 
 						return type.IsArray
-							? instance.ToArray()
-							: instance;
+							? list.ToArray()
+							: list;
 					}
 				}
 				catch (Exception e)
