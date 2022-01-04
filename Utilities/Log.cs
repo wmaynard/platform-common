@@ -66,6 +66,9 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public Exception Exception { get; set; }
 
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public string AccountId => Token?.AccountId;
+
 		[JsonIgnore]
 		private static readonly DateTime ServiceStart = DateTime.UtcNow;
 
