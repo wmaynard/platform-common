@@ -2,20 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -162,6 +158,8 @@ namespace Rumble.Platform.Common.Web
 			});
 			Services = services;
 
+			Services.AddHttpContextAccessor();	// Required for classes in common (e.g. Log) to be able to access the HttpContext.
+			
 			Log.Verbose(Owner.Default, "Creating service singletons");
 			// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
 			// why we would ever want to create a service in a project where we wouldn't want to instantiate it,

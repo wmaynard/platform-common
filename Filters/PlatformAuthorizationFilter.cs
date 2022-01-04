@@ -53,10 +53,9 @@ namespace Rumble.Platform.Common.Filters
 			}
 
 			string endpoint = Converter.ContextToEndpoint(context);
-			TokenInfo info = null;
 			try
 			{
-				info = ValidateToken(auth, context);
+				TokenInfo info = ValidateToken(auth, context);
 
 				// Finally, check to see if at least one of the applied RequireAuths is an Admin.  If the token doesn't match,
 				// throw an error.
@@ -70,7 +69,7 @@ namespace Rumble.Platform.Common.Filters
 			catch (InvalidTokenException ex)
 			{
 				Graphite.Track(Graphite.KEY_UNAUTHORIZED_COUNT, 1, endpoint, Graphite.Metrics.Type.FLAT);
-				Log.Info(Owner.Default, ex.Message, token: info, exception: ex);
+				Log.Info(Owner.Default, ex.Message, exception: ex);
 				context.Result = new BadRequestObjectResult(new ErrorResponse(
 					message: "unauthorized",
 					data: ex

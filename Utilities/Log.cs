@@ -3,7 +3,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
+using RestSharp;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.CSharp.Common.Interop;
 
@@ -29,14 +32,9 @@ namespace Rumble.Platform.Common.Utilities
 		private static bool IsVerboseLoggingEnabled()
 		{
 			string value = PlatformEnvironment.Variable("VERBOSE_LOGGING", false);
-
-			if (value == null)
-			{
-				return false;
-
-			}
-				
-			return string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
+			
+			return value != null 
+				&& string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
 		}
 		
 		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
@@ -92,7 +90,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		[JsonIgnore]
 		private string Caller { get; set; }
-		
+
 		private Log(LogType type, Owner owner, Exception exception = null)
 		{
 			_severity = type;
@@ -147,15 +145,12 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Verbose(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		public static void Verbose(Owner owner, string message, object data = null, Exception exception = null)
 		{
 			if (IsVerboseLoggingEnabled())
-			{
-				Write(LogType.VERBOSE, owner, message, token, data, exception);
-			}
+				Write(LogType.VERBOSE, owner, message, data, exception);
 		}
 		/// <summary>
 		/// Logs a LOCAL-level event.  These are only printed to the console, they are not sent to Loggly.  Standard fields
@@ -163,14 +158,13 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Local(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		public static void Local(Owner owner, string message, object data = null, Exception exception = null)
 		{
 			if (!PlatformEnvironment.IsLocal)
 				return;
-			Write(LogType.LOCAL, owner, message, token, data, exception);
+			Write(LogType.LOCAL, owner, message, data, exception);
 		}
 		/// <summary>
 		/// Logs an INFO-level event.  These should be common and provide backups of important information for later browsing.
@@ -178,20 +172,15 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
 		/// <param name="localIfNotDeployed">When working locally, setting this to true will override INFO to LOCAL.</param>
-		public static void Info(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null, bool localIfNotDeployed = false)
+		public static void Info(Owner owner, string message, object data = null, Exception exception = null, bool localIfNotDeployed = false)
 		{
 			if (localIfNotDeployed && PlatformEnvironment.IsLocal)
-			{
-				Write(LogType.LOCAL, owner, message, token, data, exception);
-			}
+				Write(LogType.LOCAL, owner, message, data, exception);
 			else
-			{
-				Write(LogType.INFO, owner, message, token, data, exception);
-			}
+				Write(LogType.INFO, owner, message, data, exception);
 		}
 		/// <summary>
 		/// Logs a WARN-level event.  If these are found frequently, something is probably wrong with the code, but could
@@ -199,53 +188,53 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Warn(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
-		{
-			Write(LogType.WARNING, owner, message, token, data, exception);
-		}
+		public static void Warn(Owner owner, string message, object data = null, Exception exception = null)
+			=> Write(LogType.WARNING, owner, message, data, exception);
 		/// <summary>
 		/// Logs an ERROR-level event.  These should be uncommon; something is broken and needs to be fixed.
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's
 		/// whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Error(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
-		{
-			Write(LogType.ERROR, owner, message, token, data, exception);
-		}
+		public static void Error(Owner owner, string message, object data = null, Exception exception = null)
+			=> Write(LogType.ERROR, owner, message, data, exception);
+		
 		/// <summary>
 		/// Logs a CRITICAL-level event.  These should be very rare and require immediate triage.
 		/// </summary>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's
 		/// whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Critical(Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
-		{
-			Write(LogType.CRITICAL, owner, message, token, data, exception);
-		}
+		public static void Critical(Owner owner, string message, object data = null, Exception exception = null)
+			=> Write(LogType.CRITICAL, owner, message, data, exception);
 
 		/// <summary>
 		/// Sends a message to Loggly.  In doing so, the message is also printed to the console if working locally.
 		/// </summary>
+		/// <param name="type">The level of the log.</param>
 		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
 		/// <param name="message">The message to log.</param>
-		/// <param name="token">The token used in the endpoint, if available.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		private static void Write(LogType type, Owner owner, string message, TokenInfo token = null, object data = null, Exception exception = null)
+		private static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null)
 		{
 			Owner actual = owner == Utilities.Owner.Default
 				? DefaultOwner
 				: owner;
+
+			// Attempt to grab the token if one was used using the current HttpContext.
+			TokenInfo token = null;
+			try
+			{
+				token = (TokenInfo)new HttpContextAccessor()?.HttpContext?.Items[PlatformAuthorizationFilter.KEY_TOKEN];
+			}
+			catch { }
 			
 			Log log = new Log(type, actual, exception)
 			{
