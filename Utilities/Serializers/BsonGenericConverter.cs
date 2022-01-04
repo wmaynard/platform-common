@@ -247,6 +247,7 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						WriteBsonArray(ref context, ref args, asEnumerable);
 						break;
 					case GenericData asGeneric:
+						writer.WriteName(key);
 						WriteBson(ref context, ref args, asGeneric);
 						break;
 					case null:
