@@ -10,17 +10,17 @@ Since this library is used with every C# platform project, be very mindful when 
 
 # Glossary
 
-| Term | Definition |
-| :--- | :--- |
-| Client | The application that consumes a web service.  This could be a phone app / game, an internal website like the publishing app, or even a tool like Postman. |
-| Controller | A static class that handles API routing for requests.  Controllers contain most of the logic for requests and send data back to the client. |
-| JWT / Token | A JSON Web Token.  This is an encrypted token issued by one of our servers.  It can be decrypted to guarantee clients are who they say they are, as well as contain relevant permissions. |
-| Model | A representation of a data object.  If the model represents a MongoDB object, it should have both database and friendly keys for JSON serialization. Models should only contain logic that is relevant to the object they represent. |
-| Request | The incoming message from the client that's asking the service to do something.  Requests should always be JSON. |
-| Response | The outgoing message to the client containing relevant data.  Responses should always be JSON. |
-| Response Object | A JSON-serialized object.  The standard for platform is to use the class name as the field name in a JSON response, e.g. `"foo": { /* foo object data */ }`. |
-| Route | The relative URL path a client uses to access the API.  Example: `/chat/messages/send` |
-| Service | A static class acting as an interface between a Controller and a data layer such as MongoDB. For Mongo specifically, every collection should have a corresponding Service. |
+| Term            | Definition                                                                                                                                                                                                                           |
+|:----------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Client          | The application that consumes a web service.  This could be a phone app / game, an internal website like the publishing app, or even a tool like Postman.                                                                            |
+| Controller      | A static class that handles API routing for requests.  Controllers contain most of the logic for requests and send data back to the client.                                                                                          |
+| JWT / Token     | A JSON Web Token.  This is an encrypted token issued by one of our servers.  It can be decrypted to guarantee clients are who they say they are, as well as contain relevant permissions.                                            |
+| Model           | A representation of a data object.  If the model represents a MongoDB object, it should have both database and friendly keys for JSON serialization. Models should only contain logic that is relevant to the object they represent. |
+| Request         | The incoming message from the client that's asking the service to do something.  Requests should always be JSON.                                                                                                                     |
+| Response        | The outgoing message to the client containing relevant data.  Responses should always be JSON.                                                                                                                                       |
+| Response Object | A JSON-serialized object.  The standard for platform is to use the class name as the field name in a JSON response, e.g. `"foo": { /* foo object data */ }`.                                                                         |
+| Route           | The relative URL path a client uses to access the API.  Example: `/chat/messages/send`                                                                                                                                               |
+| Service         | A static class acting as an interface between a Controller and a data layer such as MongoDB. For Mongo specifically, every collection should have a corresponding Service.                                                           |
 
 # Adding The Library
 
@@ -120,38 +120,38 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 
 ## Exceptions
 
-| Name | Description |
-| :--- | :--- |
-| `AuthNotAvailableException` | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables. |
-| `ConerterException` | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization. |
-| `FailedRequestException` | Raised when a Web Request fails.  Tracks the endpoint and data used for the request. |
-| `FieldNotProvidedException` | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property. |
-| `InvalidTokenException` | Raised when the token passed in the Authorization header fails validation. |
-| `PlatformException` | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
-| `PlatformMongoException` | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them. |
-| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails. |
-| `PlatformStartupException` | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown. |
+| Name                             | Description                                                                                                                                                             |
+|:---------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AuthNotAvailableException`      | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables.                   |
+| `ConerterException`              | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization.                                                              |
+| `FailedRequestException`         | Raised when a Web Request fails.  Tracks the endpoint and data used for the request.                                                                                    |
+| `FieldNotProvidedException`      | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property.                                                                   |
+| `InvalidTokenException`          | Raised when the token passed in the Authorization header fails validation.                                                                                              |
+| `PlatformException`              | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
+| `PlatformMongoException`         | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them.                                       |
+| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails.                                                                                                     |
+| `PlatformStartupException`       | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown.                                                  |
 
 ## Filters
 
-| Name | Description |
-| :--- | :--- |
-| `PlatformAuthorizationFilter` | This filter looks for `RequireAuth` and `NoAuth` attributes on methods and classes.  When it finds these attributes, it attempts to verify request's authorization token against the `RUMBLE_TOKEN_VERIFICATION` environment variable.  Token information can then be used by Controllers via the `Token` property. |
-| `PlatformBaseFilter` | An abstract class that all Platform filters inherit from. |
-| `PlatformExceptionFilter` | This filter is responsible for catching all Exceptions within a project's endpoints.  It standardizes logs and responses to the client. |
-| `PlatformPerformanceFilter` | This filter monitors performance metrics and occasionally generates Loggly reports.  When grafana integration is added, it will also be implemented in this filter. |
-| `PlatformResourceFilter` | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times. |
+| Name                          | Description                                                                                                                                                                                                                                                                                                                  |
+|:------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PlatformAuthorizationFilter` | This filter looks for `RequireAuth` and `NoAuth` attributes on methods and classes.  When it finds these attributes, it attempts to verify request's authorization token against the `RUMBLE_TOKEN_VERIFICATION` environment variable.  Token information can then be used by Controllers via the `Token` property.          |
+| `PlatformBaseFilter`          | An abstract class that all Platform filters inherit from.                                                                                                                                                                                                                                                                    |
+| `PlatformExceptionFilter`     | This filter is responsible for catching all Exceptions within a project's endpoints.  It standardizes logs and responses to the client.                                                                                                                                                                                      |
+| `PlatformPerformanceFilter`   | This filter monitors performance metrics and occasionally generates Loggly reports.  When grafana integration is added, it will also be implemented in this filter.                                                                                                                                                          |
+| `PlatformResourceFilter`      | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times. |
 
 ## Interop
 
-| Name | Description |
-| :--- | :--- |
-| `Graphite` | A TCP messaging client that sends data points to Graphite (Grafana's data store). |
-| `LogglyClient` | A simple wrapper for Loggly integration, solely used to POST logs. |
-| `SlackAttachment` | A model representing an `Attachment` for Slack's API.  Attachments are messages with text set to the right of a colored bar. |
-| `SlackBlock` | A model representing a `Block` for Slack's API.  This is the standard for a message body. |
-| `SlackFormatter` | Utility class to help format data for Slack. |
-| `SlackMessage` | A model representing a `Message` for Slack's API.  A message consists of one or more blocks or attachments. |
+| Name                 | Description                                                                                                                                                                            |
+|:---------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Graphite`           | A TCP messaging client that sends data points to Graphite (Grafana's data store).                                                                                                      |
+| `LogglyClient`       | A simple wrapper for Loggly integration, solely used to POST logs.                                                                                                                     |
+| `SlackAttachment`    | A model representing an `Attachment` for Slack's API.  Attachments are messages with text set to the right of a colored bar.                                                           |
+| `SlackBlock`         | A model representing a `Block` for Slack's API.  This is the standard for a message body.                                                                                              |
+| `SlackFormatter`     | Utility class to help format data for Slack.                                                                                                                                           |
+| `SlackMessage`       | A model representing a `Message` for Slack's API.  A message consists of one or more blocks or attachments.                                                                            |
 | `SlackMessageClient` | A helper class to send messages to Slack.  Accepts a channel ID and API token (issued by Slack) in its constructor so that multiple channels and multiple Slack apps can be supported. |
 
 ### Grafana Integration
@@ -218,8 +218,8 @@ Helpful resources for working with Slack:
 
 ## Services
 
-| Name | Description |
-| :--- | :--- |
+| Name                   | Description                                                                                                                                              |
+|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`. |
 
 ### Using the `DynamicConfigService`
@@ -252,23 +252,23 @@ _dynamicConfigService.Track(scope: "foo");
 
 ## Utilities
 
-| Name | Description |
-| :--- | :--- |
-| `Async` | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs. |
-| `Converter` | A helper class for various conversions. |
-| `Crypto` | Used to encrypt or decrypt string values. |
-| `Diagnostics` | If you need something done using reflection or the stack trace, Diagnostics is the tool to use. |
-| `GenericData` | Represents any JSON we don't have a model for.  By default, C# can't create actual objects from JSON without a model as a data contract.  This class, along with its custom serializers, transform JSON into a `Dictionary<string, object>` that can be used. | 
-| `JsonHelper` | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods. |
-| `Log` | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window. |
-| `NoAuth` | Attribute valid on methods only.  Can be used to bypass class-level `RequireAuth` attributes. |
-| `Owner` | An enum of Rumble employees who can own log events.  This will almost exclusively be reserved for Platform engineers in projects here, though. |
-| `PerformanceFilterBypass` | An attribute used to exempt specific endpoints from being monitored by the performance filter. | 
-| `PlatformEnvironment` | A class used to grab environment variables via the method `Variable(string)`. |
-| `RequireAuth` | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`. |
-| `Timestamp` | Helper class to handle various timestamps, e.g. getting the current Unix Timestamp.
-| `TokenType` | Enum for which type of token to use. |
-| `WebRequest` | A wrapper for RestSharp web requests. |
+| Name                      | Description                                                                                                                                                                                                                                                   |
+|:--------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Async`                   | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs.                                                                     |
+| `Converter`               | A helper class for various conversions.                                                                                                                                                                                                                       |
+| `Crypto`                  | Used to encrypt or decrypt string values.                                                                                                                                                                                                                     |
+| `Diagnostics`             | If you need something done using reflection or the stack trace, Diagnostics is the tool to use.                                                                                                                                                               |
+| `GenericData`             | Represents any JSON we don't have a model for.  By default, C# can't create actual objects from JSON without a model as a data contract.  This class, along with its custom serializers, transform JSON into a `Dictionary<string, object>` that can be used. | 
+| `JsonHelper`              | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods.                                                                                                                                                                                        |
+| `Log`                     | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window.                       |
+| `NoAuth`                  | Attribute valid on methods only.  Can be used to bypass class-level `RequireAuth` attributes.                                                                                                                                                                 |
+| `Owner`                   | An enum of Rumble employees who can own log events.  This will almost exclusively be reserved for Platform engineers in projects here, though.                                                                                                                |
+| `PerformanceFilterBypass` | An attribute used to exempt specific endpoints from being monitored by the performance filter.                                                                                                                                                                | 
+| `PlatformEnvironment`     | A class used to grab environment variables via the method `Variable(string)`.                                                                                                                                                                                 |
+| `RequireAuth`             | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`.                                                            |
+| `Timestamp`               | Helper class to handle various timestamps, e.g. getting the current Unix Timestamp.                                                                                                                                                                           |
+| `TokenType`               | Enum for which type of token to use.                                                                                                                                                                                                                          |
+| `WebRequest`              | A wrapper for RestSharp web requests.                                                                                                                                                                                                                         |
 
 ### Serializers
 
@@ -282,16 +282,16 @@ This results in data that's not useful anywhere outside of the project that stor
 
 There are two flavors that we use: `SerializerBase<T>` for BSON and `JsonConverter<T>` for JSON.
 
-| Name | Description |
-| :--- | :--- |
-| `BsonGenericConverter` | Handles `GenericData` <-> BSON document conversions for Mongo DB insertion. |
-| `BsonSaveAsString` | Forces a field to be saved as a string when written to MongoDB.  Initially required for player-service v2's version number fields. |
+| Name                     | Description                                                                                                                                |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------|
+| `BsonGenericConverter`   | Handles `GenericData` <-> BSON document conversions for Mongo DB insertion.                                                                |
+| `BsonSaveAsString`       | Forces a field to be saved as a string when written to MongoDB.  Initially required for player-service v2's version number fields.         |
 | `JsonExceptionConverter` | Override for serializing Exceptions as JSON.  With the built-in JSON handler, circular references caused the current `Log` tools to crash. |
-| `JsonGenericConverter` | Handles `GenericData` <-> JSON conversions for generating API responses. |
-| `JsonIntConverter` | Handles **int** conversions.  Necessary for proper `GenericData` serialization. |
-| `JsonLongConverter` | Handles **long** conversions.  Necessary for proper `GenericData` serialization. |
-| `JsonShortConverter` | Handles **short** conversions.  Necessary for proper `GenericData` serialization. |
-| `JsonTypeConverter` | Serializes `Type` values to and from strings for proper `GenericData` serialization. |
+| `JsonGenericConverter`   | Handles `GenericData` <-> JSON conversions for generating API responses.                                                                   |
+| `JsonIntConverter`       | Handles **int** conversions.  Necessary for proper `GenericData` serialization.                                                            |
+| `JsonLongConverter`      | Handles **long** conversions.  Necessary for proper `GenericData` serialization.                                                           |
+| `JsonShortConverter`     | Handles **short** conversions.  Necessary for proper `GenericData` serialization.                                                          |
+| `JsonTypeConverter`      | Serializes `Type` values to and from strings for proper `GenericData` serialization.                                                       |
 
 ### Using `GenericData`
 
@@ -339,30 +339,30 @@ Use `GenericData` whenever you need a service to be agnostic about the data that
 
 ## Web
 
-| Name | Description |
-| :--- | :--- |
-| `ErrorResponse` | Whenever a request encounters an Exception, the `PlatformExceptionFilter` class sends one of these out.  They contain debug data in local environments. |
-| `PlatformCollectionDocument` | An abstract subclass of `PlatformDataModel`; this adds a `BsonId` and is intended for MongoDB collection-level models.  More features may be added later. |
-| `PlatformDataModel` | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties. |
-| `PlatformController` | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects. |
-| `PlatformMongoService` | An abstract class that all services that connect to MongoDB should inherit from. |
-| `PlatformRequest` | A replacement for the previous web request tools using `GenericData`. |
-| `PlatformService` | An abstract base class for all platform services. |
-| `PlatformStartup` | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
-| `PlatformTimerService` | A singleton service that runs a task on a specified interval. |
-| `StandardResponse` | Deprecated. |
-| `TokenInfo` | A model that contains all identifiable information for a given token. |
+| Name                         | Description                                                                                                                                                                   |
+|:-----------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ErrorResponse`              | Whenever a request encounters an Exception, the `PlatformExceptionFilter` class sends one of these out.  They contain debug data in local environments.                       |
+| `PlatformCollectionDocument` | An abstract subclass of `PlatformDataModel`; this adds a `BsonId` and is intended for MongoDB collection-level models.  More features may be added later.                     |
+| `PlatformDataModel`          | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties.                                                               |
+| `PlatformController`         | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects.                            |
+| `PlatformMongoService`       | An abstract class that all services that connect to MongoDB should inherit from.                                                                                              |
+| `PlatformRequest`            | A replacement for the previous web request tools using `GenericData`.                                                                                                         |
+| `PlatformService`            | An abstract base class for all platform services.                                                                                                                             |
+| `PlatformStartup`            | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
+| `PlatformTimerService`       | A singleton service that runs a task on a specified interval.                                                                                                                 |
+| `StandardResponse`           | Deprecated.                                                                                                                                                                   |
+| `TokenInfo`                  | A model that contains all identifiable information for a given token.                                                                                                         |
 
 ### Routing
 
 For projects that need to serve their own web pages, these routing rules are used to clean up URLs.  While this can be done in Apache / IIS configurations, .NET core does allow us to take care of this internally and keep the changes within the code base, as well as letting us step through it in a debugger.  It's also nice to use full C# code rather than debugging regex.
 
-| Name | Description |
-| :--- | :--- |
-| `OmitExtensionsRule` | Drops extensions for recognized file types such as **.html**. |
-| `PlatformRewriteRule` | Base class that encapsulates rule applications in a try / catch block to prevent breaking rules when something goes wrong. |
-| `RedirectExtensionlessRule` | Attempts to route requests to known file types, e.g. /foo/bar -> /wwwroot/foo/bar.html. |
-| `RemoveWwwRule` | Removes the `www` from the url if explicitly added. |
+| Name                        | Description                                                                                                                |
+|:----------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+| `OmitExtensionsRule`        | Drops extensions for recognized file types such as **.html**.                                                              |
+| `PlatformRewriteRule`       | Base class that encapsulates rule applications in a try / catch block to prevent breaking rules when something goes wrong. |
+| `RedirectExtensionlessRule` | Attempts to route requests to known file types, e.g. /foo/bar -> /wwwroot/foo/bar.html.                                    |
+| `RemoveWwwRule`             | Removes the `www` from the url if explicitly added.                                                                        |
 
 # Getting Started
 
