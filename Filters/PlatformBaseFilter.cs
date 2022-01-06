@@ -2,16 +2,14 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
 {
 	public abstract class PlatformBaseFilter : IFilterMetadata
 	{
-		protected PlatformBaseFilter() : base()
-		{
-			Log.Info(Owner.Default, $"{GetType().Name} initialized.");
-		}
+		protected PlatformBaseFilter() : base() => Log.Info(Owner.Default, $"{GetType().Name} initialized.");
 
 		protected static Attribute[] GetAttributes<T>(FilterContext context) where T : Attribute
 		{

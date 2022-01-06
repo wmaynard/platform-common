@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
+using RestSharp;
+using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
@@ -14,9 +17,18 @@ namespace Rumble.Platform.Common.Web
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
 		private static readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
 		// protected abstract string CollectionName { get; }
-		protected readonly MongoClient _client;
+		private readonly MongoClient _client;
 		protected readonly IMongoDatabase _database;
-		protected IMongoCollection<Model> _collection;
+		protected readonly IMongoCollection<Model> _collection;
+		protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
+
+		private bool UseMongoTransaction => (bool)(HttpContext.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
+		protected IClientSessionHandle MongoSession
+		{
+			get => (IClientSessionHandle)HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
+			set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
+		}
+		private readonly HttpContextAccessor _httpContextAccessor; 
 		
 		
 		protected bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
@@ -30,6 +42,7 @@ namespace Rumble.Platform.Common.Web
 			_client = new MongoClient(MongoConnection);
 			_database = _client.GetDatabase(Database);
 			_collection = _database.GetCollection<Model>(collection);
+			_httpContextAccessor = new HttpContextAccessor();
 		}
 		
 		/// <summary>
@@ -52,15 +65,43 @@ namespace Rumble.Platform.Common.Web
 
 		public virtual IEnumerable<Model> List() => _collection.Find(filter: model => true).ToList();
 
-		public virtual Model Create(Model model)
+		private void StartTransactionIfRequested(out IClientSessionHandle session)
 		{
-			_collection.InsertOne(document: model);
+			session = MongoSession;
+
+			// Return if the session has already started or if we don't need to use one.
+			if (session != null || !UseMongoTransaction)
+				return;
+			
+			Log.Info(Owner.Default, "Starting MongoDB transaction.");
+			session = _client.StartSession();
+			session.StartTransaction();
+			MongoSession = session;
+		}
+
+		public Model Create(Model model)
+		{
+			StartTransactionIfRequested(out IClientSessionHandle session);
+			if (session != null)
+				_collection.InsertOne(session, model);
+			else
+				_collection.InsertOne(model);
 			return model;
 		}
-		public virtual void Delete(string id) => _collection.DeleteOne(filter: model => model.Id == id);
+		public void Delete(string id)
+		{
+			StartTransactionIfRequested(out IClientSessionHandle session);
+			_collection.DeleteOne(filter: model => model.Id == id);
+		}
 
-		public virtual void Delete(Model model) => Delete(model.Id);
-		public virtual void Update(Model model) => _collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+		public void Delete(Model model) => Delete(model.Id);
+		public void Update(Model model)
+		{
+			StartTransactionIfRequested(out IClientSessionHandle session);
+			
+			_collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+		}
+
 		public virtual Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
 		public virtual Model FindOne(Expression<Func<Model, bool>> filter) => _collection.Find(filter).FirstOrDefault();
 

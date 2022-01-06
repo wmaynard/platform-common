@@ -117,6 +117,7 @@ namespace Rumble.Platform.Common.Web
 				// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
 				// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
 				// Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
+				// TODO: Do this with reflection so we can add filters without maintaining two files
 				if (!_bypassedFilters.Contains(typeof(PlatformAuthorizationFilter)))
 					config.Filters.Add(new PlatformAuthorizationFilter());
 				if (!_bypassedFilters.Contains(typeof(PlatformResourceFilter)))
@@ -125,6 +126,8 @@ namespace Rumble.Platform.Common.Web
 					config.Filters.Add(new PlatformExceptionFilter());
 				if (!_bypassedFilters.Contains(typeof(PlatformPerformanceFilter)))
 					config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
+				if (!_bypassedFilters.Contains(typeof(PlatformMongoTransactionFilter)))
+					config.Filters.Add(new PlatformMongoTransactionFilter());
 				_filtersAdded = true;
 			}
 

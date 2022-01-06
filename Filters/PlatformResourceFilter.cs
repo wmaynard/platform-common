@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
+using MongoDB.Driver;
 using RestSharp.Serialization.Json;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -21,6 +22,7 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
+			// Remove "Bearer " from the token.
 			try
 			{
 				string auth = context.HttpContext.Request.Headers
@@ -34,6 +36,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				Log.Verbose(Owner.Default, "The request authorization could not be read.");
 			}
+			// Read the query parameters and request body and place them into a GenericData for later use in the endpoint.
 			try
 			{
 				GenericData query = new GenericData();
@@ -68,7 +71,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Default, "The request body could not be read.", data: Converter.ContextToEndpointObject(context), exception: e);
+				Log.Warn(Owner.Default, "The request body or query parameters could not be read.", data: Converter.ContextToEndpointObject(context), exception: e);
 			}
 		}
 
