@@ -10,6 +10,7 @@ using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Web;
 using JsonTokenType = System.Text.Json.JsonTokenType;
 
 namespace Rumble.Platform.Common.Utilities.Serializers
@@ -133,10 +134,10 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 		{
 			writer.WriteStartObject();
 
-			foreach (KeyValuePair<string, object> kvp in value)
+			foreach (KeyValuePair<string, object> pair in value)
 			{
-				string key = kvp.Key;
-				switch (kvp.Value)
+				string key = pair.Key;
+				switch (pair.Value)
 				{
 					case bool asBool:
 						writer.WriteBoolean(key, asBool);
@@ -153,6 +154,12 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case long asLong:
 						writer.WriteNumber(key, asLong);
 						break;
+					case float asFloat:
+						writer.WriteNumber(key, asFloat);
+						break;
+					case double asDouble:
+						writer.WriteNumber(key, asDouble);
+						break;
 					case decimal asDecimal:
 						writer.WriteNumber(key, asDecimal);
 						break;
@@ -167,8 +174,19 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case null:
 						writer.WriteNull(key);
 						break;
+					case PlatformDataModel asModel:
+						writer.WritePropertyName(key);
+						Write(writer, asModel.JSON, options);
+						break;
 					default:
-						throw new ConverterException("Unexpected data type.", kvp.Value.GetType());
+						Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
+						{
+							Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",
+							DataType = pair.Value.GetType()
+						});
+						writer.WritePropertyName(key);
+						Write(writer, JsonSerializer.Serialize(pair.Value, options), options);
+						break;
 				}
 			}
 			writer.WriteEndObject();
