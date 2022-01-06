@@ -30,7 +30,6 @@ namespace Rumble.Platform.Common.Web
 		}
 		private readonly HttpContextAccessor _httpContextAccessor; 
 		
-		
 		protected bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
 		public bool IsHealthy => IsConnected || Open();
 
@@ -91,15 +90,20 @@ namespace Rumble.Platform.Common.Web
 		public void Delete(string id)
 		{
 			StartTransactionIfRequested(out IClientSessionHandle session);
-			_collection.DeleteOne(filter: model => model.Id == id);
+			if (session != null)
+				_collection.DeleteOne(session, filter: model => model.Id == id);
+			else
+				_collection.DeleteOne(filter: model => model.Id == id);
 		}
 
 		public void Delete(Model model) => Delete(model.Id);
 		public void Update(Model model)
 		{
 			StartTransactionIfRequested(out IClientSessionHandle session);
-			
-			_collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+			if (session != null)
+				_collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model);
+			else
+				_collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
 		}
 
 		public virtual Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
@@ -121,12 +125,16 @@ namespace Rumble.Platform.Common.Web
 		public virtual void DeleteAll()
 		{
 #if DEBUG
-			_collection.DeleteMany(filter: model => true);
+			StartTransactionIfRequested(out IClientSessionHandle session);
+			if (session != null)
+				_collection.DeleteMany(session, filter: model => true);
+			else
+				_collection.DeleteMany(filter: model => true);
 			Log.Local(Owner.Default, "All documents deleted.");
 #else
 			Log.Error(Owner.Default, "Deleting all documents in a collection is not supported outside of local / debug environments.", data: new
 			{
-				Details = "If this call truly is intended, you need to override the DeleteAll method in your service.",
+				Details = "If this call truly is intended, you need to override the DeleteAll method in your service and will need to manually control the Mongo transactions (if using them).",
 				Service = GetType().FullName
 			});
 #endif
