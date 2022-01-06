@@ -25,6 +25,11 @@ namespace Rumble.Platform.Common.Filters
 		/// </summary>
 		public void OnAuthorization(AuthorizationFilterContext context)
 		{
+			if (TokenAuthEndpoint == null)
+				Log.Error(Owner.Default, "Missing token auth environment variable for token-service (RUMBLE_TOKEN_VALIDATION).");
+			if (TokenAuthEndpoint_Legacy == null)
+				Log.Error(Owner.Default, "Missing token auth environment variable for legacy player-service (RUMBLE_TOKEN_VERIFICATION).");
+			
 			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
 				return;
 			

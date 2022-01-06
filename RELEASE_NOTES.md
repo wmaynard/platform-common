@@ -1,3 +1,27 @@
+# 1.0.63
+
+- At Sean's request, added spammy Loggly errors when two important environment variables are missing for token auth verification.  These variables always need to be present for the `PlatformAuthorizationFilter` to function properly.
+- Added Mongo transaction support.  To use it, add the `[UseMongoTransaction]` attribute to any `PlatformController` or one of its methods.  The entire method will be encapsulated in a transaction.
+  - If any unhandled exception is encountered, the transaction will be rolled back, and no changes will be recorded in the database.
+  - Otherwise, the transaction is committed and the changes are made.
+  - Transactions are only started when a data modification is made.  So, if your endpoint is read-only (e.g. using `PlatformMongoService.Find()`), no transaction will be active.
+
+# 1.0.62
+
+- Changed `Log` calls so that token information is passively collected.  This enables Loggly reports to accurately identify how many distinct users are affected when counting errors.
+
+# 1.0.61
+
+- Fixed a critical issue for `GenericData` where nested instances would crash on serialization.
+
+# 1.0.60
+
+- Fixed an issue where `GenericData` wouldn't properly deserialize to `PlatformDataModel` instances.
+
+# 1.0.59
+
+- Fixed an issue where JSON request bodies would fail to parse when too large (over 4KB).
+
 # 1.0.58
 
 - The `PlatformResourceFilter` now uses `GenericData` for the body instead of `JsonElement`.
