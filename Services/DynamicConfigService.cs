@@ -42,6 +42,7 @@ namespace Rumble.Platform.CSharp.Common.Services
 		}
 
 		public GenericData GameConfig => Values.Optional<GenericData>(GameScope);
+		public string PlatformUrl => GameConfig?.Optional<string>("platformUrl");
 
 		public void Track(string scope, bool updateNow = true)
 		{
