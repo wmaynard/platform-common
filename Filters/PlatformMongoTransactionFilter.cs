@@ -34,9 +34,15 @@ namespace Rumble.Platform.Common.Filters
 			IClientSessionHandle session = GetMongoSession(context);
 			if (session == null)
 				return;
-			Log.Info(Owner.Default, "Aborting Mongo transaction...");
-			session.AbortTransaction();
-			Log.Error(Owner.Default, "Mongo transaction was aborted.", exception: context.Exception);
+			try
+			{
+				session.AbortTransaction();
+				Log.Error(Owner.Default, "Mongo transaction was aborted.", exception: context.Exception);
+			}
+			catch (Exception e)
+			{
+				Log.Error(Owner.Default, "Failed to abort Mongo transaction.", exception: e);
+			}
 		}
 
 		public void OnResultExecuting(ResultExecutingContext context)
@@ -47,7 +53,7 @@ namespace Rumble.Platform.Common.Filters
 			try
 			{
 				session.CommitTransaction();
-				Log.Local(Owner.Default, "Mongo transaction committed.");
+				Log.Verbose(Owner.Default, "Mongo transaction committed.");
 			}
 			catch (Exception e)
 			{
@@ -58,6 +64,6 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnResultExecuted(ResultExecutedContext context) { }
 
-		private IClientSessionHandle GetMongoSession(FilterContext context) => (IClientSessionHandle)context.HttpContext.Items[KEY_MONGO_SESSION];
+		private static IClientSessionHandle GetMongoSession(FilterContext context) => (IClientSessionHandle)context.HttpContext.Items[KEY_MONGO_SESSION];
 	}
 }

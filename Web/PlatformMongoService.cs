@@ -72,7 +72,7 @@ namespace Rumble.Platform.Common.Web
 			if (session != null || !UseMongoTransaction)
 				return;
 			
-			Log.Info(Owner.Default, "Starting MongoDB transaction.");
+			Log.Verbose(Owner.Default, "Starting MongoDB transaction.");
 			session = _client.StartSession();
 			session.StartTransaction();
 			MongoSession = session;

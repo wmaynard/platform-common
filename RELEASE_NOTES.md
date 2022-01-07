@@ -1,3 +1,8 @@
+# 1.0.64
+
+- Added additional logging to help diagnose issues with malformed request bodies and deserialization errors in `PlatformResourceFilter`.
+- Modified log severity for Mongo transactions to reduce potential Loggly spam.
+
 # 1.0.63
 
 - At Sean's request, added spammy Loggly errors when two important environment variables are missing for token auth verification.  These variables always need to be present for the `PlatformAuthorizationFilter` to function properly.

@@ -32,7 +32,7 @@ namespace Rumble.Platform.Common.Utilities
 					{
 						output[property.Name] = property.Value.GetString();
 					}
-					catch (Exception e)
+					catch (Exception)
 					{
 						Log.Warn(Owner.Default, $"{property.Name} must be a string in environment.json.");
 					}

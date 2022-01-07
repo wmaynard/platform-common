@@ -120,17 +120,18 @@ Write with the assumption that your reader has no knowledge of the topic.  Impor
 
 ## Exceptions
 
-| Name                             | Description                                                                                                                                                             |
-|:---------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AuthNotAvailableException`      | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables.                   |
-| `ConerterException`              | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization.                                                              |
-| `FailedRequestException`         | Raised when a Web Request fails.  Tracks the endpoint and data used for the request.                                                                                    |
-| `FieldNotProvidedException`      | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property.                                                                   |
-| `InvalidTokenException`          | Raised when the token passed in the Authorization header fails validation.                                                                                              |
-| `PlatformException`              | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it. |
-| `PlatformMongoException`         | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them.                                       |
-| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails.                                                                                                     |
-| `PlatformStartupException`       | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown.                                                  |
+| Name                             | Description                                                                                                                                                                                                              |
+|:---------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AuthNotAvailableException`      | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables.                                                                    |
+| `ConerterException`              | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization.                                                                                                               |
+| `FailedRequestException`         | Raised when a Web Request fails.  Tracks the endpoint and data used for the request.                                                                                                                                     |
+| `FieldNotProvidedException`      | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property.                                                                                                                    |
+| `InvalidTokenException`          | Raised when the token passed in the Authorization header fails validation.                                                                                                                                               |
+| `PlatformException`              | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it.                                                  |
+| `PlatformMongoException`         | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them.                                                                                        |
+| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails.                                                                                                                                                      |
+| `PlatformStartupException`       | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown.                                                                                                   |
+| `ResourceFailureException`       | This indicates a failure when parsing the request query or body.  The root cause is likely either invalid JSON or a `GenericData` deserialization error.  If it's the latter, debugging platform-common may be required. |
 
 ## Filters
 
@@ -416,4 +417,4 @@ Almost all runtime Exceptions are caught by the `PlatformExceptionFilter` and ar
 
 #### _I need to bypass a filter that Startup is adding._
 
-The filters are an important part of Platform's boilerplate reduction and unified behaviors, but if you're certain you must ignore one of the common filters, you can do so by calling `BypassFilter<PlatformBaseFilter>()` in your project's `Startup.ConfigureServices()`.  Be warned, though, that you may not have some expected functionality if you do this.
+The filters are an important part of Platform's boilerplate reduction and unified behaviors, but if you're certain you must ignore one of the common filters, you can do so by calling `BypassFilter<T>()` in your project's `Startup.ConfigureServices()`.  Be warned, though, that you may not have some expected functionality if you do this.

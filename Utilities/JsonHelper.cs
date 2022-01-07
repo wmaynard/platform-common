@@ -91,7 +91,7 @@ namespace Rumble.Platform.Common.Utilities
 				element = json.GetProperty(key);
 				return JsonSerializer.Deserialize<T>(element.GetRawText(), SerializerOptions);
 			}
-			catch (KeyNotFoundException ex)
+			catch (KeyNotFoundException)
 			{
 				throw new MissingJsonKeyException(json, key);
 			}
