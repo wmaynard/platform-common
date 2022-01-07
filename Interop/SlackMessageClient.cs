@@ -43,7 +43,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				}
 				catch (Exception e)
 				{
-					Log.Error(Owner.Will, "There was an unexpected error when sending a message to Slack.", data: new
+					Log.Warn(Owner.Will, "There was an error sending a message to Slack.", data: new
 					{
 						SlackApiResponse = response
 					}, exception: e);

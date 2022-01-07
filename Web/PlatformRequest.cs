@@ -120,11 +120,11 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (HttpRequestException ex)
 			{
-				Log.Error(Owner.Default, "Unable to send web request.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload });
+				Log.Warn(Owner.Default, "Unable to send web request.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload });
 			}
 			catch (JsonException ex)
 			{
-				Log.Error(Owner.Default, "Unable to parse response.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload });
+				Log.Warn(Owner.Default, "Unable to parse response.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload });
 			}
 
 			Reset();
