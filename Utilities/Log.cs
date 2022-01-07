@@ -233,9 +233,11 @@ namespace Rumble.Platform.Common.Utilities
 
 			// Attempt to grab the token if one was used using the current HttpContext.
 			TokenInfo token = null;
+
+			HttpContext context = new HttpContextAccessor()?.HttpContext;
 			try
 			{
-				token = (TokenInfo)new HttpContextAccessor()?.HttpContext?.Items[PlatformAuthorizationFilter.KEY_TOKEN];
+				token = (TokenInfo)context?.Items[PlatformAuthorizationFilter.KEY_TOKEN];
 			}
 			catch { }
 			
@@ -243,7 +245,8 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				Data = data,
 				Message = message ?? exception?.Message,
-				Token = token
+				Token = token,
+				Endpoint = Converter.ContextToEndpoint(context)
 			}.Send();
 		}
 	}

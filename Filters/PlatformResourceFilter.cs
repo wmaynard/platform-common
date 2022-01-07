@@ -22,6 +22,7 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
+			string json = "";
 			// Remove "Bearer " from the token.
 			try
 			{
@@ -46,8 +47,6 @@ namespace Rumble.Platform.Common.Filters
 					query[pair.Key] = pair.Value.ToString();
 				if (context.HttpContext.Request.Method != "GET")
 				{
-					string json = "";
-					
 					if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
 						throw new Exception("reader.TryRead() failed when parsing the request body.");
 					
@@ -71,7 +70,11 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Default, "The request body or query parameters could not be read.", data: Converter.ContextToEndpointObject(context), exception: e);
+				Log.Warn(Owner.Default, "The request body or query parameters could not be read.", data: new
+				{
+					InputBody = json,
+					InputQuery = context.HttpContext.Request.Query
+				}, exception: e);
 			}
 		}
 

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 
@@ -136,8 +137,17 @@ namespace Rumble.Platform.Common.Web
 				: default;
 		}
 
-		protected object Require(string key, GenericData json = null) => (json ?? Body).Require<object>(key);
-		protected T Require<T>(string key, GenericData json = null) => (json ?? Body).Require<T>(key);
+		// protected object Require(string key, GenericData json = null) => (json ?? Body).Require<object>(key);
+		protected object Require(string key, GenericData json = null) => Require<object>(key);
+		// protected T Require<T>(string key, GenericData json = null) => (json ?? Body).Require<T>(key);
+
+		protected T Require<T>(string key, GenericData json = null)
+		{
+			GenericData data = json ?? Body;
+			if (data == null)
+				throw new ResourceFailureException("The current request is missing a JSON body or query parameters.  This can occur from malformed JSON or a serialization error.", new MissingJsonKeyException(key));
+			return data.Require<T>(key);
+		}
 
 		protected GenericData Body => FromContext<GenericData>(PlatformResourceFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN); // TODO: Is it possible to make this accessible to models?
