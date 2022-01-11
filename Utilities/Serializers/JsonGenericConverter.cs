@@ -207,6 +207,15 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case string asString:
 						writer.WriteStringValue(asString);
 						break;
+					case int asInt:
+						writer.WriteNumberValue(asInt);
+						break;
+					case long asLong:
+						writer.WriteNumberValue(asLong);
+						break;
+					case float asFloat:
+						writer.WriteNumberValue(asFloat);
+						break;
 					case decimal asDecimal:
 						if (asDecimal.ToString(CultureInfo.InvariantCulture).Contains('.'))
 							writer.WriteNumberValue((double)asDecimal);
@@ -219,11 +228,20 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case GenericData asGeneric:
 						Write(writer, asGeneric, options);
 						break;
+					case PlatformDataModel asModel:
+						Write(writer, asModel.JSON, options);
+						break;
 					case null:
 						writer.WriteNullValue();
 						break;
 					default:
-						throw new ConverterException("Unexpected data type.", obj.GetType());
+						Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
+						{
+							Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",
+							DataType = obj.GetType()
+						});
+						Write(writer, JsonSerializer.Serialize(obj, options), options);
+						break;
 				}
 			writer.WriteEndArray();
 		}

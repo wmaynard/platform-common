@@ -8,8 +8,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
-using MongoDB.Driver;
-using RestSharp.Serialization.Json;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 

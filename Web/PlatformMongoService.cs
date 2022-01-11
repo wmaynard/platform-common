@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
-using RestSharp;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 

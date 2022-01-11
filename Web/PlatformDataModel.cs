@@ -56,7 +56,7 @@ namespace Rumble.Platform.Common.Web
 				}
 				catch (Exception e)
 				{
-					Log.Verbose(Owner.Default, e.Message);
+					Log.Local(Owner.Default, e.Message);
 					return null;
 				}
 			}

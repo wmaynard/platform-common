@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
-using RestSharp;
 
 namespace Rumble.Platform.Common.Exceptions
 {

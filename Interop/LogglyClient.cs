@@ -1,6 +1,4 @@
 using System;
-using System.Net;
-using RestSharp;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
