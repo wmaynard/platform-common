@@ -23,31 +23,18 @@ namespace Rumble.Platform.Common.Web
 		// public static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
 
 		protected readonly IConfiguration _config;
-		protected PlatformController(IConfiguration config)
-		{
-			_config = config;
-			// TokenVerification = new WebRequest(TokenAuthEndpoint, Method.GET);
-		}
+		protected PlatformController(IConfiguration config) => _config = config;
+		
 		protected PlatformRequest TokenVerification { get; set; }
 
 		public ObjectResult Problem(string detail) => Problem(value: new { DebugText = detail });
 
-		public OkObjectResult Problem(object value)
-		{
-			return base.Ok(Merge(new { Success = false }, value));
-		}
+		public OkObjectResult Problem(object value) => base.Ok(Merge(new { Success = false }, value));
 
 		public new OkObjectResult Ok() => base.Ok(null);
 		public OkObjectResult Ok(string message) => Ok( new { Message = message });
-		private new OkObjectResult Ok(object value)
-		{
-			return base.Ok(Merge(new { Success = true }, value));
-		}
-
-		public OkObjectResult Ok(params object[] objects)
-		{
-			return this.Ok(value: Merge(objects));
-		}
+		private new OkObjectResult Ok(object value) => base.Ok(Merge(new { Success = true }, value));
+		public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
 
 		protected static object Merge(params object[] objects)
 		{

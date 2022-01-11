@@ -73,7 +73,16 @@ namespace Rumble.Platform.Common.Web
 			
 			Log.Verbose(Owner.Default, "Starting MongoDB transaction.");
 			session = _client.StartSession();
-			session.StartTransaction();
+			try
+			{
+				session.StartTransaction();
+			}
+			catch (NotSupportedException e)
+			{
+				Log.Error(Owner.Default, "Unable to start a MongoDB transaction.", exception: e);
+				HttpContext.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] = false;
+				return;
+			}
 			MongoSession = session;
 		}
 
