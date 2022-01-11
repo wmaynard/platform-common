@@ -17,6 +17,7 @@ namespace Rumble.Platform.Common.Filters
 	{
 		public const string KEY_AUTHORIZATION = "EncryptedToken";
 		public const string KEY_BODY = "RequestBody";
+		private static readonly string[] NO_BODY = { "HEAD", "GET", "DELETE" }; // These HTTP methods ignore the body reader code.
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
@@ -43,22 +44,33 @@ namespace Rumble.Platform.Common.Filters
 				
 				foreach (KeyValuePair<string, StringValues> pair in context.HttpContext.Request.Query)
 					query[pair.Key] = pair.Value.ToString();
-				if (context.HttpContext.Request.Method != "GET")
+				
+				if (!NO_BODY.Contains(context.HttpContext.Request.Method))
 				{
-					if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
-						throw new Exception("reader.TryRead() failed when parsing the request body.");
-					
-					SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
-					while (!rdr.End)
+					if (context.HttpContext.Request.HasFormContentType)	// Request is using form-data or x-www-form-urlencoded
 					{
-						json += Encoding.UTF8.GetString(rdr.CurrentSpan);
-						rdr.Advance(rdr.CurrentSpan.Length);
+						Log.Warn(Owner.Default, "Incoming request is using form-data, which converts all fields to a string.  JSON is strongly preferred.");
+						body = new GenericData();
+						foreach (string key in context.HttpContext.Request.Form.Keys)
+							body[key] = context.HttpContext.Request.Form[key].ToString();
 					}
-					
-					body = json;
-					
-					context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
-					context.HttpContext.Request.BodyReader.Complete();
+					else												// Request is using JSON (preferred).
+					{
+						if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
+							throw new Exception("reader.TryRead() failed when parsing the request body.");
+
+						SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
+						while (!rdr.End)
+						{
+							json += Encoding.UTF8.GetString(rdr.CurrentSpan);
+							rdr.Advance(rdr.CurrentSpan.Length);
+						}
+
+						body = json;
+
+						context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
+						context.HttpContext.Request.BodyReader.Complete();
+					}
 				}
 
 				body?.Combine(query); // If both the body and query have the same key, the values in the body have priority.
