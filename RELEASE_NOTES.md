@@ -1,3 +1,25 @@
+# 1.0.69
+
+- Added body reader support for requests sent with `form-data` or `x-www-form-urlencoded`.
+  - These methods of passing data to an API are **strongly discouraged**.  All data is converted to strings, and JSON is far more common in API design.
+
+# 1.0.68
+
+- Added exception handling for MongoDB transactions.  Transactions are only supported on clustered servers, which is not the default when working on `localhost`.
+
+# 1.0.67
+
+- `GenericData` serialization fixes.
+- Fully removed RestSharp from NuGet and all `using` statements.
+
+# 1.0.66
+
+- Negligible update.  Added a QOL property to `DynamicConfigService`: `PlatformUrl`.
+
+# 1.0.65
+
+- Log severity downgraded for Slack interop and web requests.  The issues here have been moved from ERROR to WARNING; services should be able to tolerate these failures on their own, and if there's something that should be an error for something like a failed request, it's up to each service to report missing data as such.
+
 # 1.0.64
 
 - Added additional logging to help diagnose issues with malformed request bodies and deserialization errors in `PlatformResourceFilter`.
