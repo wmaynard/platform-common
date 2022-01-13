@@ -24,6 +24,7 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
+			PrepareIpAddress(context);
 			PrepareToken(context);
 			ReadBody(context);
 		}
@@ -103,7 +104,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 		}
 
-		private static void PrepareIP(ActionContext context)
+		private static void PrepareIpAddress(ActionContext context)
 		{
 			try
 			{
