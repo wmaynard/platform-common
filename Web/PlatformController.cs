@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.CSharp.Common.Models;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -138,14 +139,35 @@ namespace Rumble.Platform.Common.Web
 
 		protected GenericData Body => FromContext<GenericData>(PlatformResourceFilter.KEY_BODY);
 		protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN); // TODO: Is it possible to make this accessible to models?
-		protected string IpAddress => Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+		protected string IpAddress => FromContext<string>(PlatformResourceFilter.KEY_IP_ADDRESS);
+		protected GeoIPData GeoIPData => FromContext<GeoIPData>(PlatformResourceFilter.KEY_GEO_IP_DATA, method: () => GeoIPData.FromAddress(IpAddress));
 		protected string EncryptedToken => FromContext<string>(PlatformResourceFilter.KEY_AUTHORIZATION);
 
-		protected T FromContext<T>(string key)
+		/// <summary>
+		/// Looks for a value in the HttpContext.  If the value isn't found, evaluates a method to find it, then assigns it to the HttpContext to avoid re-evaluations.
+		/// </summary>
+		protected T FromContext<T>(string key, Func<T> method)
 		{
 			try
 			{
-				return (T) Request.HttpContext.Items[key];
+				if (Request.HttpContext.Items.ContainsKey(key))
+					return (T) Request.HttpContext.Items[key];
+				return (T) (Request.HttpContext.Items[key] = method.Invoke());
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Default, $"{key} was requested from the HttpContext but nothing was found.", exception: e);
+				return default;
+			}
+			
+		}
+		protected T FromContext<T>(string key, object _default = null)
+		{
+			try
+			{
+				if (Request.HttpContext.Items.ContainsKey(key))
+					return (T) Request.HttpContext.Items[key];
+				return (T) (Request.HttpContext.Items[key] = _default);
 			}
 			catch (Exception e)
 			{

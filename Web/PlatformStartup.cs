@@ -19,6 +19,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.CSharp.Common.Interop;
+using Rumble.Platform.CSharp.Common.Models;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -104,8 +105,7 @@ namespace Rumble.Platform.Common.Web
 			_bypassedFilters ??= new List<Type>();
 		}
 		
-		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, 
-			int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
+		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
 		{
 			WebServerEnabled = webServerEnabled;
 			Log.DefaultOwner = defaultOwner;

@@ -21,6 +21,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			AutomaticDecompression = DecompressionMethods.All
 		});
+		private static readonly WebClient WEB_CLIENT = new WebClient();
 		private static readonly Dictionary<string, string> STANDARD_HEADERS = new Dictionary<string, string>() {
 			{"User-Agent", $"{Assembly.GetExecutingAssembly().GetName().Name}/{Assembly.GetExecutingAssembly().GetName().Version}"},
 			{"Accept", "*/*"},
@@ -71,6 +72,12 @@ namespace Rumble.Platform.Common.Web
 				headers.Add("Authorization", auth);
 			Headers = headers;
 			Payload = payload;
+		}
+
+		public static FileInfo Download(string address, string fileName)
+		{
+			WEB_CLIENT.DownloadFile(address, fileName);
+			return new FileInfo(fileName);
 		}
 
 		private void Reset()

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using Rumble.Platform.Common.Utilities;
@@ -17,26 +18,22 @@ namespace Rumble.Platform.Common.Filters
 	{
 		public const string KEY_AUTHORIZATION = "EncryptedToken";
 		public const string KEY_BODY = "RequestBody";
+		public const string KEY_IP_ADDRESS = "IpAddress";
+		public const string KEY_GEO_IP_DATA = "GeoIpData";
 		private static readonly string[] NO_BODY = { "HEAD", "GET", "DELETE" }; // These HTTP methods ignore the body reader code.
 
 		public void OnResourceExecuting(ResourceExecutingContext context)
 		{
+			PrepareToken(context);
+			ReadBody(context);
+		}
+
+		public void OnResourceExecuted(ResourceExecutedContext context) { }
+
+		// Read the query parameters and request body and place them into a GenericData for later use in the endpoint.
+		private static void ReadBody(ActionContext context)
+		{
 			string json = "";
-			// Remove "Bearer " from the token.
-			try
-			{
-				string auth = context.HttpContext.Request.Headers
-					.First(kvp => kvp.Key == "Authorization")
-					.Value
-					.First()
-					.Replace("Bearer ", "");
-					context.HttpContext.Items[KEY_AUTHORIZATION] = auth;
-			}
-			catch (Exception)
-			{
-				Log.Verbose(Owner.Default, "The request authorization could not be read.");
-			}
-			// Read the query parameters and request body and place them into a GenericData for later use in the endpoint.
 			try
 			{
 				GenericData query = new GenericData();
@@ -88,6 +85,35 @@ namespace Rumble.Platform.Common.Filters
 			}
 		}
 
-		public void OnResourceExecuted(ResourceExecutedContext context) { }
+		// Remove "Bearer " from the token.
+		private static void PrepareToken(ActionContext context)
+		{
+			try
+			{
+				string auth = context.HttpContext.Request.Headers
+					.First(kvp => kvp.Key == "Authorization")
+					.Value
+					.First()
+					.Replace("Bearer ", "");
+				context.HttpContext.Items[KEY_AUTHORIZATION] = auth;
+			}
+			catch (Exception)
+			{
+				Log.Verbose(Owner.Default, "The request authorization could not be read.");
+			}
+		}
+
+		private static void PrepareIP(ActionContext context)
+		{
+			try
+			{
+				context.HttpContext.Items[KEY_IP_ADDRESS] = context?.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Default, "The client's IP Address could not be read.", exception: e);
+			}
+			
+		}
 	}
 }

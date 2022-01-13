@@ -11,6 +11,16 @@ namespace Rumble.Platform.Common.Utilities
 	{
 		public GenericData() { }
 
+		public static GenericData FromDictionary(Dictionary<string, object> dict)
+		{
+			GenericData output = new GenericData();
+			foreach (string key in dict.Keys)
+				output[key] = dict[key] is Dictionary<string, object> asDict
+					? FromDictionary(asDict)
+					: dict[key];
+			return output;
+		}
+
 		[JsonIgnore]
 		public string JSON => JsonSerializer.Serialize(this, JsonHelper.SerializerOptions);
 
@@ -128,7 +138,6 @@ namespace Rumble.Platform.Common.Utilities
 
 		public static implicit operator GenericData(JsonElement element) => element.GetRawText();
 		public static implicit operator GenericData(JsonDocument document) => document.RootElement.GetRawText();
-
 		public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
 		public static bool operator !=(GenericData a, GenericData b) => !(a == b);
 
