@@ -8,6 +8,7 @@ namespace Rumble.Platform.Common.Web
 	{
 		public const string DB_KEY_ACCOUNT_ID = "aid";
 		public const string DB_KEY_AUTHORIZATION = "auth";
+		public const string DB_KEY_COUNTRY_CODE = "cc";
 		public const string DB_KEY_DISCRIMINATOR = "d";
 		public const string DB_KEY_EMAIL_ADDRESS = "@";
 		public const string DB_KEY_EXPIRATION = "exp";
@@ -17,6 +18,7 @@ namespace Rumble.Platform.Common.Web
 		public const string DB_KEY_IP_ADDRESS = "ip";
 		
 		public const string FRIENDLY_KEY_ACCOUNT_ID = "aid";
+		public const string FRIENDLY_KEY_COUNTRY_CODE = "country";
 		public const string FRIENDLY_KEY_DISCRIMINATOR = "discriminator";
 		public const string FRIENDLY_KEY_EMAIL_ADDRESS = "email";
 		public const string FRIENDLY_KEY_EXPIRATION = "expiration";
@@ -45,6 +47,9 @@ namespace Rumble.Platform.Common.Web
 		[BsonElement(DB_KEY_IP_ADDRESS), BsonIgnoreIfNull]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IP_ADDRESS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string IpAddress { get; set; }
+		[BsonElement(DB_KEY_COUNTRY_CODE), BsonIgnoreIfNull]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_COUNTRY_CODE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public string CountryCode { get; set; }
 		[BsonElement(DB_KEY_ISSUER)]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ISSUER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Issuer { get; set; }

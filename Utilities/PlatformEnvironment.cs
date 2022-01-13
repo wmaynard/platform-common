@@ -55,12 +55,16 @@ namespace Rumble.Platform.Common.Utilities
 			catch (KeyNotFoundException ex)
 			{
 				if (warnOnMissing)
-				{
 					Log.Warn(Owner.Default, $"Missing environment variable `{name}`.", exception: ex);
-				}
 			}
 
 			return null;
+		}
+
+		public static bool Variable(string name, out string value)
+		{
+			value = Variable(name, false);
+			return value != null;
 		}
 
 		/// <summary>
