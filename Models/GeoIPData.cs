@@ -14,6 +14,7 @@ namespace Rumble.Platform.CSharp.Common.Models
 		internal const string KEY_ENGLISH = "en";
 		internal const string KEY_NAMES = "names";
 		internal const string KEY_CODE = "code";
+		internal const string KEY_ISO_CODE = "iso_code";
 		private GenericData Data { get; init; }
 		
 		public string Continent { get; init; }
@@ -41,7 +42,7 @@ namespace Rumble.Platform.CSharp.Common.Models
 				?.Optional<GenericData>(KEY_NAMES)
 				?.Optional<string>(KEY_ENGLISH);
 			
-			CountryCode = country?.Optional<string>(KEY_CODE);
+			CountryCode = country?.Optional<string>(KEY_ISO_CODE);
 			Country = country
 				?.Optional<GenericData>(KEY_NAMES)
 				?.Optional<string>(KEY_ENGLISH);
