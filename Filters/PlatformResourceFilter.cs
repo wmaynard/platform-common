@@ -108,7 +108,14 @@ namespace Rumble.Platform.Common.Filters
 		{
 			try
 			{
-				context.HttpContext.Items[KEY_IP_ADDRESS] = context?.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+				// Note: in the Groovy services, all of these keys were capitalized.
+				string ip = context.HttpContext.Request.Headers["X-Real-IP"].ToString()
+					?? context.HttpContext.Request.Headers["X-Forwarded-For"].ToString()
+					?? context.HttpContext.Request.Headers["X-Original-Forwarded-For"].ToString()
+					?? context.HttpContext.Request.Headers["Proxy-Client-IP"].ToString()
+					?? context.HttpContext.Request.Headers["Client-IP"].ToString()
+					?? context.HttpContext.Connection.RemoteIpAddress?.ToString();
+				context.HttpContext.Items[KEY_IP_ADDRESS] = ip?.Replace("::ffff:", "");
 			}
 			catch (Exception e)
 			{
