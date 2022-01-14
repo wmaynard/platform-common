@@ -230,7 +230,13 @@ namespace Rumble.Platform.Common.Utilities
 						OutputType = typeof(T).FullName
 					}, exception: e);
 				}
-				
+
+				// This is a very frustrating special case.  Without this, the cast of (T) value in the below switch statement will fail,
+				// saying that System.String cannot be cast to GenericData.  This appears to be a consequence of the implicit operator for
+				// converting from a string.
+				if (value is string asString && type == typeof(GenericData))
+					return (GenericData)asString;
+
 				return Type.GetTypeCode(underlying ?? type) switch
 				{
 					TypeCode.Boolean => Convert.ToBoolean(value),
