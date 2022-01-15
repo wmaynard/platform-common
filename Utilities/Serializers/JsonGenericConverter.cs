@@ -1,8 +1,10 @@
 using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,11 +19,26 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 {
 	public class JsonGenericConverter : JsonConverter<GenericData>
 	{
+		// Debug helpers used with below kluge.
+		private static string Debug(ReadOnlySequence<byte> seq) => string.Join("", seq.ToArray().Select(s => (char)s));
+		private static string Debug(ReadOnlySpan<byte> seq) => string.Join("", seq.ToArray().Select(s => (char)s));
 		#region READ
 		public override GenericData Read(ref Utf8JsonReader reader, Type data, JsonSerializerOptions options)
 		{
 			try
 			{
+				// TODO: Identify the root cause of this problem and clean up this kluge.
+				// Will on 2021.01.14: This addresses a very specific scenario:
+				//   * You are deserializing a PlatformDataModel.
+				//   * That Model has a GenericData field.
+				//   * That GenericData field is coming from stringified JSON.
+				// Something is causing the reader to start at the *end* of the stringified JSON.  When this happens,
+				// the GenericData field is skipped entirely, and the reader moves on to a token it shouldn't be accessing,
+				// resulting in an Exception later on, which subsequently yields a null GenericData.
+				// This recursive call to deserialize the stringified JSON seems to work, but it's dangerous, janky, and hard to understand.
+				if (reader.TokenType == JsonTokenType.String)
+					try { return reader.GetString(); }
+					catch { }
 				return ReadGeneric(ref reader);
 			}
 			catch (Exception e)

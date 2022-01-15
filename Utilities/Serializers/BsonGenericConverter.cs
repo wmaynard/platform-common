@@ -93,6 +93,7 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					break;
 				case BsonType.Null:
 					data[key] = null;
+					reader.ReadNull();
 					break;
 				case BsonType.Symbol:
 					data[key] = reader.ReadSymbol();

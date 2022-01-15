@@ -63,7 +63,7 @@ namespace Rumble.Platform.Common.Web
 
 		public virtual IEnumerable<Model> List() => _collection.Find(filter: model => true).ToList();
 
-		private void StartTransactionIfRequested(out IClientSessionHandle session)
+		protected void StartTransactionIfRequested(out IClientSessionHandle session)
 		{
 			session = MongoSession;
 
