@@ -170,6 +170,8 @@ namespace Rumble.Platform.CSharp.Common.Interop
 
 		public static void Track(string name, double value, string endpoint = null, Metrics.Type type = Metrics.Type.FLAT)
 		{
+			if (PlatformEnvironment.SwarmMode)
+				return;
 			if (string.IsNullOrWhiteSpace(name))
 			{
 				Log.Warn(Owner.Default, "Graphite tracking error: data point must have a name.  Data will not be tracked.", data: new

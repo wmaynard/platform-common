@@ -16,7 +16,7 @@ namespace Rumble.Platform.Common.Filters
 {
 	public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilter, IActionFilter, IResultFilter
 	{
-		private const int COUNT_BEFORE_LOG_FLUSH = 50;
+		private const int COUNT_BEFORE_LOG_FLUSH = 50_000;
 		public const string KEY_START = "StartTime";
 		public int THRESHOLD_MS_CRITICAL { get; init; }
 		public int THRESHOLD_MS_ERROR { get; init; }

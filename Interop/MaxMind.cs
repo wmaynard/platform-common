@@ -26,7 +26,7 @@ namespace Rumble.Platform.CSharp.Common.Interop
 				Log.Warn(Owner.Default, "Unable to retrieve GeoIP data.", data: new
 				{
 					IpAddress = ipAddress
-				});
+				}, exception: e);
 				return new GeoIPData(ipAddress);
 			}
 			

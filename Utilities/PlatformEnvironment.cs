@@ -20,6 +20,7 @@ namespace Rumble.Platform.Common.Utilities
 		private static Dictionary<string, string> LocalSecrets { get; set; }
 
 		public static readonly bool IsLocal = Variable("RUMBLE_DEPLOYMENT")?.Contains("local") ?? false;
+		public static readonly bool SwarmMode = Variable("SWARM_MODE") == "true";
 
 		private static Dictionary<string, string> ReadLocalSecretsFile()
 		{

@@ -19,7 +19,6 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.CSharp.Common.Interop;
-using Rumble.Platform.CSharp.Common.Models;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -84,16 +83,20 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		[JsonIgnore]
+		// ReSharper disable once UnusedAutoPropertyAccessor.Global
 		protected IConfiguration Configuration { get; }
 		[JsonIgnore]
 		protected IServiceCollection Services { get; set; }
 		
 		private bool _filtersAdded;
-		// ReSharper disable once FieldCanBeMadeReadOnly.Local
-		private List<Type> _bypassedFilters;
+		private readonly List<Type> _bypassedFilters;
 		
 		protected PlatformStartup(IConfiguration configuration = null)
 		{
+#if RELEASE
+			if (PlatformEnvironment.SwarmMode)
+				Log.Info(Owner.Default, "Swarm mode is enabled.  Some features, such as Loggly and Graphite integration, are disabled for load testing.");
+#endif
 			Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 			Configuration = configuration;
 			
@@ -102,7 +105,7 @@ namespace Rumble.Platform.Common.Web
 				Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
 			Graphite.Initialize(ServiceName);
-			_bypassedFilters ??= new List<Type>();
+			_bypassedFilters = new List<Type>();
 		}
 		
 		protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Platform, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
@@ -176,18 +179,6 @@ namespace Rumble.Platform.Common.Web
 				foreach (Type service in platformServices)
 					Services.AddSingleton(service);
 			Log.Local(Owner.Default, "Service configuration complete.");
-		}
-
-		private static List<string> GetAllTypeNames(Type type)
-		{
-			List<string> output = new List<string>();
-			do
-			{
-				output.Add(type.Name);
-				type = type.BaseType;
-			} while (type != null);
-
-			return output;
 		}
 		
 		protected void BypassFilter<T>() where T : PlatformBaseFilter

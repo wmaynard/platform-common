@@ -15,7 +15,6 @@ namespace Rumble.Platform.Common.Utilities
 	public class Log : PlatformDataModel
 	{
 		private static Owner? _defaultOwner;
-
 		public static Owner DefaultOwner
 		{
 			get => _defaultOwner ?? Utilities.Owner.Platform;
@@ -26,7 +25,7 @@ namespace Rumble.Platform.Common.Utilities
 				_defaultOwner ??= value;
 			}
 		}
-		private static readonly LogglyClient Loggly = new LogglyClient();
+		private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode ? null : new LogglyClient();
 
 		private static bool IsVerboseLoggingEnabled()
 		{
