@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
@@ -8,13 +7,14 @@ using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.CSharp.Common.Interfaces;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class PlatformMongoService<Model> : PlatformService where Model : PlatformCollectionDocument
+	public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMongoService where Model : PlatformCollectionDocument
 	{
-		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
-		private static readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
+		private readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
+		private readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
 		// protected abstract string CollectionName { get; }
 		private readonly MongoClient _client;
 		protected readonly IMongoDatabase _database;
@@ -49,14 +49,9 @@ namespace Rumble.Platform.Common.Web
 		/// <returns>True if the ping is successful and the connection state is open.</returns>
 		public bool Open()
 		{
-			try
-			{
-				_database.RunCommandAsync((Command<BsonDocument>) "{ping:1}").Wait(); // TODO: This evidently isn't working as expected.  When we had issues with a mongo connection string, this wasn't catching it.
-			}
-			catch
-			{
-				return false;
-			}
+			// TODO: This evidently isn't working as expected.  When we had issues with a mongo connection string, this wasn't catching it.
+			try { _database.RunCommandAsync((Command<BsonDocument>) "{ping:1}").Wait(); }
+			catch { return false; }
 
 			return IsConnected;
 		}
@@ -130,6 +125,38 @@ namespace Rumble.Platform.Common.Web
 					Service = GetType().Name,
 				});
 			return output;
+		}
+
+		public void InitializeCollection()
+		{
+			string name = _collection.CollectionNamespace.CollectionName;
+			try
+			{
+				bool exists = _database.ListCollectionsAsync(new ListCollectionsOptions()
+				{
+					Filter = new BsonDocument("name", name)
+				}).Result.Any();
+
+				if (exists)
+					return;
+
+				_database.CreateCollection(name);
+				Log.Info(Owner.Will, $"Created collection '{name}'");
+			}
+			catch (Exception e)
+			{
+				string command = "";
+				if (e.InnerException is MongoCommandException)
+				{
+					string msg = e.InnerException.Message;
+					int colon = msg.IndexOf(":", StringComparison.Ordinal);
+					if (colon > -1)
+						command = $" ({msg[..colon]})";
+				}
+				Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions issue.", exception: e);
+				throw;
+			}
+			
 		}
 
 		public virtual void DeleteAll()

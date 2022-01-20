@@ -18,6 +18,7 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
+using Rumble.Platform.CSharp.Common.Interfaces;
 using Rumble.Platform.CSharp.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
@@ -167,20 +168,21 @@ namespace Rumble.Platform.Common.Web
 			Services.AddHttpContextAccessor();	// Required for classes in common (e.g. Log) to be able to access the HttpContext.
 			
 			Log.Verbose(Owner.Default, "Creating service singletons");
-			// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
-			// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
-			// so this removes an otherwise manual step for every service creation.
-			Type[] platformServices = Assembly.GetEntryAssembly()?.GetExportedTypes()	// Add the project's types 
-				.Concat(Assembly.GetExecutingAssembly().GetExportedTypes())				// Add platform-common's types
-				.Where(type => !type.IsAbstract)
-				.Where(type => type.IsAssignableTo(typeof(PlatformService)))
-				.ToArray();
-			if (platformServices != null)
-				foreach (Type service in platformServices)
-					Services.AddSingleton(service);
+			foreach (Type service in PlatformServices)
+				Services.AddSingleton(service);
 			Log.Local(Owner.Default, "Service configuration complete.");
 		}
 		
+		// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
+		// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
+		// so this removes an otherwise manual step for every service creation.
+		protected static IEnumerable<Type> PlatformServices => Assembly
+			.GetEntryAssembly()?.GetExportedTypes()									// Add the project's types 
+			.Concat(Assembly.GetExecutingAssembly().GetExportedTypes())				// Add platform-common's types
+			.Where(type => !type.IsAbstract)
+			.Where(type => type.IsAssignableTo(typeof(PlatformService)))
+			?? Array.Empty<Type>();
+
 		protected void BypassFilter<T>() where T : PlatformBaseFilter
 		{
 			if (_filtersAdded)
@@ -192,8 +194,15 @@ namespace Rumble.Platform.Common.Web
 			});
 		}
 
-		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 		{
+			// Iterate over every PlatformMongoService and create their collections if necessary.
+			// This is necessary for Controllers deployed with the UseMongoTransaction attribute;
+			// Collections cannot be created from within a transaction, which causes the operation to fail.
+			// Besides, it makes sense to create the collections on startup, anyway.
+			foreach (Type type in PlatformServices.Where(t => t.IsAssignableTo(typeof(IPlatformMongoService))))
+				((IPlatformMongoService)provider.GetService(type))?.InitializeCollection();
+			
 			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
 			app.UseRouting()
 				.UseCors(CORS_SETTINGS_NAME)
