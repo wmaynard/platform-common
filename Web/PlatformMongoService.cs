@@ -76,7 +76,8 @@ namespace Rumble.Platform.Common.Web
 			{
 				// MongoDB Transactions are not supported in non-clustered environments ("standalone servers").  Mark the context field as false so we don't keep retrying.
 				// This should not affect deployed code - only local.
-				Log.Error(Owner.Default, "Unable to start a MongoDB transaction.", exception: e);
+				if (!PlatformEnvironment.IsLocal)
+					Log.Error(Owner.Default, "Unable to start a MongoDB transaction.", exception: e);
 				HttpContext.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] = false;
 				return;
 			}

@@ -46,7 +46,7 @@ namespace Rumble.Platform.Common.Filters
 			{
 				if (auth == null)					// If we don't even have a token to check, don't bother trying.
 					return;
-				Log.Local(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: Converter.ContextToEndpointObject(context));
+				Log.Verbose(Owner.Default, "Endpoint does not require authorization, but a token was provided anyway.", data: Converter.ContextToEndpointObject(context));
 				try
 				{
 					if (TokenAuthEndpoint == null)
