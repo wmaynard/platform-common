@@ -7,7 +7,7 @@ using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.CSharp.Common.Interfaces;
+using Rumble.Platform.Common.Interfaces;
 
 namespace Rumble.Platform.Common.Web
 {

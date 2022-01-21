@@ -18,8 +18,8 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
-using Rumble.Platform.CSharp.Common.Interfaces;
-using Rumble.Platform.CSharp.Common.Interop;
+using Rumble.Platform.Common.Interfaces;
+using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Web
 {

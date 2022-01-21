@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.CSharp.Common.Interop;
+using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Utilities
 {

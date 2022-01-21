@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using MongoDB.Driver.Core.Authentication;
 using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
 	public class Graphite
 	{

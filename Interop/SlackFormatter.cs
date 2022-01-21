@@ -1,4 +1,4 @@
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
 	public static class SlackFormatter
 	{

@@ -13,7 +13,7 @@ using Rumble.Platform.Common.Utilities;
 using StackExchange.Redis;
 using WebRequest = System.Net.WebRequest;
 
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
     public class DynamicConfigClient : IService
     {

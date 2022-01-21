@@ -15,7 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.CSharp.Common.Models;
+using Rumble.Platform.Common.Models;
 
 namespace Rumble.Platform.Common.Web
 {

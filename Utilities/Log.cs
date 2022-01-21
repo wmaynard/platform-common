@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.CSharp.Common.Interop;
+using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Utilities
 {

@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
-namespace Rumble.Platform.CSharp.Common.Models
+namespace Rumble.Platform.Common.Models
 {
 	public class GeoIPData : PlatformDataModel
 	{

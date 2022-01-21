@@ -12,7 +12,7 @@ using MongoDB.Driver;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.CSharp.Common.Interop;
+using Rumble.Platform.Common.Interop;
 
 // TODO: Review all endpoints for appropriate HTTP methods (e.g. DELETE, PUT)
 namespace Rumble.Platform.Common.Filters

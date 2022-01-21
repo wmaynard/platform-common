@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
-namespace Rumble.Platform.CSharp.Common.Services
+namespace Rumble.Platform.Common.Services
 {
 	// TODO: Subscribe to tower-portal's dynamic config service
 	/// <summary>

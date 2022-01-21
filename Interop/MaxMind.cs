@@ -4,9 +4,9 @@ using System.Net;
 using MaxMind.Db;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.CSharp.Common.Models;
+using Rumble.Platform.Common.Models;
 
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
 	public static class MaxMind
 	{

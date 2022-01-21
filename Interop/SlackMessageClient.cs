@@ -8,7 +8,7 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
 	public class SlackMessageClient
 	{

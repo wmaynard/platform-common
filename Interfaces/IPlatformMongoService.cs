@@ -1,4 +1,4 @@
-namespace Rumble.Platform.CSharp.Common.Interfaces
+namespace Rumble.Platform.Common.Interfaces
 {
 	public interface IPlatformMongoService
 	{

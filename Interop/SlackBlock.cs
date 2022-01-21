@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.CSharp.Common.Interop
+namespace Rumble.Platform.Common.Interop
 {
 	public struct SlackBlock
 	{

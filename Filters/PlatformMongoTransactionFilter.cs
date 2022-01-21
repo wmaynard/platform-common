@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Filters;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
