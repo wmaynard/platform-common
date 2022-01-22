@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interfaces;
@@ -128,6 +131,46 @@ namespace Rumble.Platform.Common.Web
 			return output;
 		}
 
+		public void CreateIndexes()
+		{
+			List<BsonDocument> docs = _collection.Indexes.List().ToList();
+			MongoIndex[] dbIndexes = docs.Select(doc => new MongoIndex()
+			{
+				IndexName = doc.GetElement("name").Value.ToString(),
+				DatabaseKey = ((BsonDocument)doc.GetElement("key").Value).Elements.FirstOrDefault().Name
+			}).ToArray();
+
+			SimpleIndex[] modelIndexes = typeof(Model)
+				.GetProperties()
+				.Select(property => ((SimpleIndex)property
+					.GetCustomAttributes()
+					.FirstOrDefault(attribute => attribute is SimpleIndex))
+					?.SetPropertyName(property.Name)
+				)
+				.Where(attribute => attribute != null)
+				.Select(attribute => (SimpleIndex)attribute)
+				.ToArray();
+
+			if (!modelIndexes.Any())
+				return;
+
+			foreach (SimpleIndex modelIndex in modelIndexes)
+			{
+				string name = $"{_database.DatabaseNamespace.DatabaseName}.{_collection.CollectionNamespace.CollectionName}.{modelIndex.DatabaseKey}";
+				MongoIndex dbIndex = dbIndexes.FirstOrDefault(index => index.DatabaseKey == modelIndex.DatabaseKey);
+				if (dbIndex == null)
+				{
+					Log.Info(Owner.Will, $"Creating index '{modelIndex.Name}' on '{name}'.");
+					_collection.Indexes.CreateOne(Builders<Model>.IndexKeys.Ascending(modelIndex.DatabaseKey), new CreateIndexOptions()
+					{
+						Name = modelIndex.Name
+					});
+				}
+				else if (dbIndex.IndexName != modelIndex.Name)
+					Log.Info(Owner.Will, $"An index already exists on '{name}' ({dbIndex.IndexName}).  Manually assigned indexes have priority, so the model's is ignored.");
+			}
+		}
+
 		public void InitializeCollection()
 		{
 			string name = _collection.CollectionNamespace.CollectionName;
@@ -157,7 +200,6 @@ namespace Rumble.Platform.Common.Web
 				Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions issue.", exception: e);
 				throw;
 			}
-			
 		}
 
 		public virtual void DeleteAll()
@@ -176,6 +218,12 @@ namespace Rumble.Platform.Common.Web
 				Service = GetType().FullName
 			});
 #endif
+		}
+
+		private class MongoIndex
+		{
+			internal string IndexName { get; set; }
+			internal string DatabaseKey { get; set; }
 		}
 	}
 }

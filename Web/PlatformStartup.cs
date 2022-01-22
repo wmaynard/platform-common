@@ -201,8 +201,12 @@ namespace Rumble.Platform.Common.Web
 			// Collections cannot be created from within a transaction, which causes the operation to fail.
 			// Besides, it makes sense to create the collections on startup, anyway.
 			foreach (Type type in PlatformServices.Where(t => t.IsAssignableTo(typeof(IPlatformMongoService))))
-				((IPlatformMongoService)provider.GetService(type))?.InitializeCollection();
-			
+			{
+				IPlatformMongoService service = (IPlatformMongoService)provider.GetService(type);
+				service?.InitializeCollection();
+				service?.CreateIndexes();
+			}
+
 			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
 			app.UseRouting()
 				.UseCors(CORS_SETTINGS_NAME)

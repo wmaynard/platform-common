@@ -43,10 +43,18 @@ class ServiceUser(HttpUser):
 
 _Note: Replace `{base}` with your service path._ 
 
-#### 4. Run `locustfile.py`.
+## Start Locust processes
 
-#### 5. In your browser, navigate to `localhost:8089`.
+Python has a limitation in that it can't run more than one core per process.  However, Locust has the ability to use worker processes to increase its load.  This is an important factor in nuking services.
 
-Enter `http://localhost:{port}`, where `{port}` is your service's assigned port number.
+#### 1. In your main Terminal tab, run the command `locust -f locustfile.py --master`.
+
+#### 2. For each worker process, open a new Terminal tab and run the command `locust -f locustfile.py --worker`
+
+Each worker process will increase your requests per second (up to the number of cores in your machine).  It's recommended to have at least 4 worker processes.
+
+#### 3. In your browser, navigate to `localhost:8089`, then click "New test" in the upper right corner.
+
+#### 4. Enter the number of Locust workers as your number of users and `http://localhost:{port}`, where `{port}` is your service's assigned port number.
 
 ![](Docs/Locust_NewTestPopup.png)
