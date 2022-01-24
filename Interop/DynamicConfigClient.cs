@@ -51,6 +51,11 @@ namespace Rumble.Platform.Common.Interop
             _updateListeners[_lastListenerId] = OnDynamicConfigUpdated;
         }
 
+        public bool IsInitialized()
+        {
+            return _isInitialized;
+        }
+
         private string GetGameScope()
         {
             return string.Format("game:{0}", _gameId);
