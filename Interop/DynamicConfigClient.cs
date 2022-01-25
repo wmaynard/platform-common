@@ -33,6 +33,7 @@ namespace Rumble.Platform.Common.Interop
         private DateTime _lastUpdateTime;
         private Task _updateTask;
         private int _lastListenerId = 0;
+        private bool _isInitialized = false;
 
         public DynamicConfigClient(String configServiceUrl, String secret, string gameId)
         {
@@ -48,6 +49,11 @@ namespace Rumble.Platform.Common.Interop
         {
             _lastListenerId++;
             _updateListeners[_lastListenerId] = OnDynamicConfigUpdated;
+        }
+
+        public bool IsInitialized()
+        {
+            return _isInitialized;
         }
 
         private string GetGameScope()
@@ -294,6 +300,7 @@ namespace Rumble.Platform.Common.Interop
 
             _isUpdating = false;
             _lastUpdateTime = DateTime.Now;
+            _isInitialized = true;
         }
         
 
