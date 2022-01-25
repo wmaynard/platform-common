@@ -24,10 +24,10 @@ namespace Rumble.Platform.Common.Web
 		protected readonly IMongoCollection<Model> _collection;
 		protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
 
-		private bool UseMongoTransaction => (bool)(HttpContext.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
+		private bool UseMongoTransaction => (bool)(HttpContext?.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
 		protected IClientSessionHandle MongoSession
 		{
-			get => (IClientSessionHandle)HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
+			get => (IClientSessionHandle)HttpContext?.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
 			set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
 		}
 		private readonly HttpContextAccessor _httpContextAccessor; 
