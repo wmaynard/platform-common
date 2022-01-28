@@ -56,7 +56,7 @@ namespace Rumble.Platform.Common.Filters
 				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"Encountered {ex.GetType().Name}: {code}", data: Converter.ContextToEndpointObject(context), exception: ex);
+				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {code}", data: Converter.ContextToEndpointObject(context), exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: code,
