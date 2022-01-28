@@ -1,17 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data.SqlTypes;
 using System.Dynamic;
-using System.IO.Pipelines;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
@@ -21,10 +16,39 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformController : ControllerBase
 	{
-		// public static readonly string TokenAuthEndpoint = PlatformEnvironment.Variable("RUMBLE_TOKEN_VERIFICATION");
+		private readonly IConfiguration _config;
+		private readonly IServiceProvider _services;
+		protected PlatformController(IConfiguration config = null, IServiceProvider services = null)
+		{
+			_services = services ?? new HttpContextAccessor().HttpContext?.RequestServices;
+			_config = config;
+			
+			if (_services == null)
+				return;
+			
+			foreach (PropertyInfo info in GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+				if (info.PropertyType.IsAssignableTo(typeof(PlatformService)))
+					try
+					{
+						info.SetValue(this, _services.GetService(info.PropertyType));
+					}
+					catch (Exception e)
+					{
+						Log.Error(Owner.Will, $"Unable to retrieve {info.PropertyType.Name}.");
+					}
+			foreach (FieldInfo info in GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+				if (info.FieldType.IsAssignableTo(typeof(PlatformService)))
+					try
+					{
+						info.SetValue(this, _services.GetService(info.FieldType));
+					}
+					catch (Exception e)
+					{
+						Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.");
+					}
+		}
 
-		protected readonly IConfiguration _config;
-		protected PlatformController(IConfiguration config) => _config = config;
+		protected T Require<T>() where T : PlatformService => _services.GetRequiredService<T>();
 		
 		protected PlatformRequest TokenVerification { get; set; }
 
