@@ -31,7 +31,6 @@ namespace Rumble.Platform.Common.Interop
         ConcurrentDictionary<string, JsonDocument> _configScopeValues = new ConcurrentDictionary<string, JsonDocument>();
         private ConcurrentDictionary<int, ConfigUpdateListener> _updateListeners = new ConcurrentDictionary<int, ConfigUpdateListener>();
         private DateTime _lastUpdateTime;
-        private Task _updateTask;
         private int _lastListenerId = 0;
         private bool _isInitialized = false;
 
@@ -157,7 +156,7 @@ namespace Rumble.Platform.Common.Interop
             await UpdateConfigsAsync(_updateCancelToken.Token);
 
             //For whatever reason dynamic config/redis does not get sub events on aws, so we start this polling thread
-            _updateTask = Task.Run(PollForConfigLoop);
+            await Task.Run(PollForConfigLoop);
             
             //Only update if we have a version (prevents local servers from unnessiary pings)
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CLIENT_VERSION")))
@@ -277,7 +276,16 @@ namespace Rumble.Platform.Common.Interop
                         
                         foreach (KeyValuePair<int, ConfigUpdateListener> kvp in _updateListeners)
                         {
-                            bool isDone = await kvp.Value();
+                            bool isDone = false;
+
+                            try
+                            {
+                                isDone = await kvp.Value();
+                            }
+                            catch (Exception e)
+                            {
+                                Log.Error(Owner.Sean, "Dynamic Config: Update listener Failed", exception: e);
+                            }
 
                             if (isDone)
                             {
