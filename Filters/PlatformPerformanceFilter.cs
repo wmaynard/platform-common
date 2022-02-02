@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -71,7 +72,7 @@ namespace Rumble.Platform.Common.Filters
 			
 			object diagnostics = LogObject(context, "ActionExecuted", taken);
 			
-			if (taken > THRESHOLD_MS_CRITICAL && THRESHOLD_MS_CRITICAL > 0)
+			if (taken > THRESHOLD_MS_CRITICAL && !HasAttribute<IgnorePerformance>(context))
 				Log.Verbose(Owner.Default, message, data: diagnostics);
 		}
 
@@ -82,15 +83,16 @@ namespace Rumble.Platform.Common.Filters
 		/// </summary>
 		public void OnResultExecuted(ResultExecutedContext context)
 		{
+			
 			// base.OnResultExecuted(context);
 			string name = context.HttpContext.Request.Path.Value;
 			long taken = TimeTaken(context);
 			string message = $"{name} took a long time to respond to the client.";
 			object diagnostics = LogObject(context, "ResultExecuted", taken);
-			
-			if (GetAttributes<PerformanceFilterBypass>(context).Any())
+
+			if (GetAttributes<IgnorePerformance>(context).Any())
 			{
-				Log.Verbose(Owner.Default, $"Performance not recorded; {message}");
+				Log.Local(Owner.Default, $"Performance metrics ignored for {name}.");
 				return;
 			}
 

@@ -11,16 +11,17 @@ namespace Rumble.Platform.Common.Filters
 	{
 		protected PlatformBaseFilter() : base() => Log.Info(Owner.Default, $"{GetType().Name} initialized.");
 
-		protected static Attribute[] GetAttributes<T>(FilterContext context) where T : Attribute
+		protected static T[] GetAttributes<T>(FilterContext context) where T : Attribute
 		{
 			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
 				return null;
-			Attribute[] attributes = descriptor.ControllerTypeInfo	// class-level attributes
-				.GetCustomAttributes(inherit: true)					// method-level attributes
-				.Concat(descriptor.MethodInfo.GetCustomAttributes(inherit: true))
-				.OfType<T>()
-				.ToArray(); // TODO: Use this in AuthFilter
-			return attributes;
+			return descriptor.ControllerTypeInfo				// class-level attributes
+					.GetCustomAttributes(inherit: true)			// method-level attributes
+					.Concat(descriptor.MethodInfo.GetCustomAttributes(inherit: true))
+					.OfType<T>()
+					.ToArray(); // TODO: Use this in AuthFilter
 		}
+
+		protected bool HasAttribute<T>(FilterContext context) where T : Attribute => GetAttributes<T>(context).Any();
 	}
 }
