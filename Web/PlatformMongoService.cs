@@ -106,13 +106,14 @@ namespace Rumble.Platform.Common.Web
 		}
 
 		public void Delete(Model model) => Delete(model.Id);
-		public void Update(Model model)
+		public void Update(Model model, bool createIfNotFound = false)
 		{
 			StartTransactionIfRequested(out IClientSessionHandle session);
+			ReplaceOptions options = new ReplaceOptions() { IsUpsert = createIfNotFound };
 			if (session != null)
-				_collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model);
+				_collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model, options: options);
 			else
-				_collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model);
+				_collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model, options: options);
 		}
 
 		public virtual Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();

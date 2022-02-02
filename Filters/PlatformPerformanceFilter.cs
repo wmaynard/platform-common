@@ -71,9 +71,7 @@ namespace Rumble.Platform.Common.Filters
 			
 			object diagnostics = LogObject(context, "ActionExecuted", taken);
 			
-			if (taken > THRESHOLD_MS_CRITICAL)
-				Log.Local(Owner.Default, message, data: diagnostics);
-			else 
+			if (taken > THRESHOLD_MS_CRITICAL && THRESHOLD_MS_CRITICAL > 0)
 				Log.Verbose(Owner.Default, message, data: diagnostics);
 		}
 

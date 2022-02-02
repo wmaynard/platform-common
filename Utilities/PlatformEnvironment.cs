@@ -17,7 +17,7 @@ namespace Rumble.Platform.Common.Utilities
 	public static class PlatformEnvironment
 	{
 		private const string FILE = "environment.json";
-		private static Dictionary<string, string> LocalSecrets { get; set; }
+		private static Dictionary<string, string> LocalSecrets { get; set; }	// TODO: convert into GenericData
 
 		public static readonly bool IsLocal = Variable("RUMBLE_DEPLOYMENT")?.Contains("local") ?? false;
 		public static readonly bool SwarmMode = Variable("SWARM_MODE") == "true";
@@ -40,7 +40,8 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch
 			{
-				Log.Local(Owner.Default, message: $"PlatformEnvironment was unable to read the '{FILE}' file.");
+				// If there's an error parsing this file, trying to log it with Log.Local can cause an endless loop here, and never print anything.
+				Console.WriteLine($"PlatformEnvironment was unable to read the '{FILE}' file.  Check to make sure there are no errors in your file.");
 			}
 
 			return output;

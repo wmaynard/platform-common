@@ -20,6 +20,7 @@ using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -206,6 +207,33 @@ namespace Rumble.Platform.Common.Web
 				service?.InitializeCollection();
 				service?.CreateIndexes();
 			}
+
+			// PlatformServices can rely on other services to function.  For each of those services, try to add the
+			// singletons of those dependent services.  Doing so will instantiate those services - which can cause issues
+			// if a dependent service has not yet been resolved.
+			// Example:
+			//		Service A requires Service B to properly be constructed.
+			//		Service A appears first in this LINQ query.
+			//		Service A throws an Exception because B is still null.
+			// It's bad practice to require another service to properly instantiate, but startup code shouldn't break when
+			// that happens regardless.
+			// TODO: Find an elegant way to determine instantiation order
+			foreach (Type type in PlatformServices.Where(type => type.IsAssignableTo(typeof(PlatformService))))
+				try
+				{
+					PlatformService service = (PlatformService)provider.GetService(type);
+					if (service == null)
+						continue;
+					if (!service.ResolveServices(provider))
+						Log.Warn(Owner.Default, "Unable to resolve services.  Dependency injection via constructor is more reliable.", data: new
+						{
+							Type = type.FullName
+						});
+				}
+				catch (Exception e)
+				{
+					Log.Warn(Owner.Default, $"There was an issue in resolving dependent services for {type.Name}.", exception: e);
+				}
 
 			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
 			app.UseRouting()

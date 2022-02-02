@@ -1,3 +1,5 @@
+using System;
+
 namespace Rumble.Platform.Common.Interfaces
 {
 	public interface IPlatformMongoService
