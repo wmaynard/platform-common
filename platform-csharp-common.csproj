@@ -4,7 +4,7 @@
 		<RootNamespace>Rumble.Platform.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.0.89</PackageVersion>
+		<PackageVersion>1.0.90</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 	  <TargetFramework>net5.0</TargetFramework>

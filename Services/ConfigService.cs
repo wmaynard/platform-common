@@ -31,7 +31,7 @@ namespace Rumble.Platform.Common.Services
 
 		public class ServiceConfig : PlatformCollectionDocument
 		{
-			internal GenericData Data { get; set; }
+			public GenericData Data { get; set; }
 			internal ServiceConfig() => Data = new GenericData();
 		}
 	}

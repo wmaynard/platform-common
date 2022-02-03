@@ -1,4 +1,6 @@
+using System;
 using System.Timers;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -12,7 +14,14 @@ namespace Rumble.Platform.Common.Web
 			_timer.Elapsed += (sender, args) =>
 			{
 				Pause();
-				OnElapsed();
+				try
+				{
+					OnElapsed();
+				}
+				catch (Exception e)
+				{
+					Log.Error(Owner.Default, $"{GetType().Name}.OnElapsed failed.", exception: e);
+				}
 				Resume();
 			};
 			if (startImmediately)

@@ -240,6 +240,12 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case string asString:
 						writer.WriteString(key, asString);
 						break;
+					case int asInt:
+						writer.WriteInt32(key, asInt);
+						break;
+					case long asLong:
+						writer.WriteInt64(key, asLong);
+						break;
 					case decimal asDecimal:
 						writer.WriteDecimal128(key, asDecimal);
 						break;
@@ -277,6 +283,12 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						break;
 					case string asString:
 						writer.WriteString(asString);
+						break;
+					case int asInt:
+						writer.WriteInt32(asInt);
+						break;
+					case long asLong:
+						writer.WriteInt64(asLong);
 						break;
 					case decimal asDecimal:
 						writer.WriteDecimal128(asDecimal);

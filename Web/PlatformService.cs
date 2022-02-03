@@ -17,6 +17,9 @@ namespace Rumble.Platform.Common.Web
 		[BsonIgnore]
 		[JsonIgnore]
 		public static long UnixTime => Timestamp.UnixTime;
+		[BsonIgnore]
+		[JsonIgnore]
+		public static long UnixTimeMS => Timestamp.UnixTimeMS;
 
 		protected PlatformService(IServiceProvider services = null) { }
 
