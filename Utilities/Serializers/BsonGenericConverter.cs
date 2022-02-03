@@ -253,6 +253,9 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						writer.WriteName(key);
 						WriteBsonArray(ref context, ref args, asEnumerable);
 						break;
+					case DateTime asDateTime:
+						writer.WriteDateTime(key, (long)asDateTime.Subtract(DateTime.UnixEpoch).TotalMilliseconds);
+						break;
 					case GenericData asGeneric:
 						writer.WriteName(key);
 						WriteBson(ref context, ref args, asGeneric);
@@ -295,6 +298,9 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						break;
 					case IEnumerable<object> asArray:
 						WriteBsonArray(ref context, ref args, asArray);
+						break;
+					case DateTime asDateTime:
+						writer.WriteDateTime((long)asDateTime.Subtract(DateTime.UnixEpoch).TotalMilliseconds);
 						break;
 					case GenericData asGeneric:
 						WriteBson(ref context, ref args, asGeneric);

@@ -98,8 +98,6 @@ namespace Rumble.Platform.Common.Utilities
 			get => TryGetValue(key, out object output) ? output : null;
 			set => base[key] = value;
 		}
-		
-		
 
 		public override bool Equals(object obj)
 		{
@@ -242,7 +240,9 @@ namespace Rumble.Platform.Common.Utilities
 					TypeCode.Char => Convert.ToChar(value),
 					TypeCode.DateTime => isNull
 						? null
-						: Convert.ToDateTime(value),
+						: value is long asLong
+							? DateTime.UnixEpoch.AddMilliseconds(asLong)
+							: Convert.ToDateTime(value),
 					TypeCode.DBNull => null,
 					TypeCode.Decimal => Convert.ToDecimal(value),
 					TypeCode.Double => Convert.ToDouble(value),

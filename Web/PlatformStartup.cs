@@ -27,6 +27,7 @@ namespace Rumble.Platform.Common.Web
 	public abstract class PlatformStartup
 	{
 		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
+		private static bool MongoDisabled => MongoConnection == null;
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
 		private bool WebServerEnabled { get; set; }
 
@@ -170,7 +171,12 @@ namespace Rumble.Platform.Common.Web
 			
 			Log.Verbose(Owner.Default, "Creating service singletons");
 			foreach (Type service in PlatformServices)
+			{
+				if (service.IsAssignableTo(typeof(IPlatformMongoService)) && MongoDisabled)
+					continue;
 				Services.AddSingleton(service);
+			}
+				
 			Log.Local(Owner.Default, "Service configuration complete.");
 		}
 		
@@ -201,12 +207,13 @@ namespace Rumble.Platform.Common.Web
 			// This is necessary for Controllers deployed with the UseMongoTransaction attribute;
 			// Collections cannot be created from within a transaction, which causes the operation to fail.
 			// Besides, it makes sense to create the collections on startup, anyway.
-			foreach (Type type in PlatformServices.Where(t => t.IsAssignableTo(typeof(IPlatformMongoService))))
-			{
-				IPlatformMongoService service = (IPlatformMongoService)provider.GetService(type);
-				service?.InitializeCollection();
-				service?.CreateIndexes();
-			}
+			if (!MongoDisabled)
+				foreach (Type type in PlatformServices.Where(t => t.IsAssignableTo(typeof(IPlatformMongoService))))
+				{
+					IPlatformMongoService service = (IPlatformMongoService)provider.GetService(type);
+					service?.InitializeCollection();
+					service?.CreateIndexes();
+				}
 
 			// PlatformServices can rely on other services to function.  For each of those services, try to add the
 			// singletons of those dependent services.  Doing so will instantiate those services - which can cause issues
