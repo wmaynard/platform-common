@@ -26,7 +26,7 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformStartup
 	{
-		private static readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
+		private static readonly string MongoConnection = PlatformEnvironment.MongoConnectionString;
 		private static bool MongoDisabled => MongoConnection == null;
 		public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
 		private bool WebServerEnabled { get; set; }
@@ -41,7 +41,8 @@ namespace Rumble.Platform.Common.Web
 					int address = MongoConnection.IndexOf('@');
 					if (colon < 0 || address < 0)
 					{
-						Log.Local(Owner.Default, "PasswordlessMongoConnection can't be created.  Ignore this if you're using localhost.");
+						if (!PlatformEnvironment.IsLocal)
+							Log.Local(Owner.Default, "PasswordlessMongoConnection can't be created.");
 						return MongoConnection;
 					}
 

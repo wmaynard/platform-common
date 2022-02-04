@@ -29,7 +29,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		private static bool IsVerboseLoggingEnabled()
 		{
-			string value = PlatformEnvironment.Variable("VERBOSE_LOGGING", false);
+			string value = PlatformEnvironment.OptionalVariable("VERBOSE_LOGGING");
 			
 			return value != null 
 				&& string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
@@ -53,7 +53,7 @@ namespace Rumble.Platform.Common.Utilities
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string StackTrace { get; set; }
 		[JsonInclude, JsonPropertyName("env")]
-		public string Environment => PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "Unknown";
+		public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Time { get; set; }
 
@@ -81,8 +81,6 @@ namespace Rumble.Platform.Common.Utilities
 				return $"{ms:N0}ms".PadLeft(13, ' ');
 			}
 		}
-		// [JsonIgnore]
-		// public static readonly bool LocalDev = PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT").Contains("local");
 		[JsonIgnore]
 		private static int MaxOwnerNameLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 

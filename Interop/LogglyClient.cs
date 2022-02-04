@@ -8,10 +8,7 @@ namespace Rumble.Platform.Common.Interop
 	{
 		public string URL { get; init; }
 
-		public LogglyClient()
-		{
-			URL = PlatformEnvironment.Variable("LOGGLY_URL");
-		}
+		public LogglyClient() => URL = PlatformEnvironment.LogglyUrl;
 		
 		// ReSharper disable once MemberCanBeMadeStatic.Global
 		public void Send(Log log)

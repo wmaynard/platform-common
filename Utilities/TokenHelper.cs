@@ -15,7 +15,7 @@ namespace Rumble.Platform.Common.Utilities
                 return null;
             }
             
-            string variableName = PlatformEnvironment.Variable("RUMBLE_COMPONENT") + "-token";
+            string variableName = PlatformEnvironment.ServiceName + "-token";
 
             string token = client.GetGameConfig(variableName);
 

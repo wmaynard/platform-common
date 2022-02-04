@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interop;
 
@@ -16,18 +17,42 @@ namespace Rumble.Platform.Common.Utilities
 	/// </summary>
 	public static class PlatformEnvironment
 	{
-		private const string FILE = "environment.json";
-		private static Dictionary<string, string> LocalSecrets { get; set; }	// TODO: convert into GenericData
+		internal const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
+		internal const string KEY_GAME_ID = "GAME_GUKEY";
+		internal const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
+		internal const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
+		internal const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
+		internal const string KEY_LOGGLY_URL = "LOGGLY_URL";
+		internal const string KEY_COMPONENT = "RUMBLE_COMPONENT";
+		internal const string KEY_MONGODB_URI = "MONGODB_URI";
+		internal const string KEY_MONGODB_NAME = "MONGODB_NAME";
+		internal const string KEY_GRAPHITE = "GRAPHITE";
+		
+		private const string LOCAL_SECRETS_JSON = "environment.json";
 
-		public static readonly bool IsLocal = Variable("RUMBLE_DEPLOYMENT")?.Contains("local") ?? false;
-		public static readonly bool SwarmMode = Variable("SWARM_MODE") == "true";
+		public static string ConfigServiceUrl => Variable(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
+		public static string GameSecret => Variable(KEY_GAME_ID);
+		public static string RumbleSecret => Variable(KEY_RUMBLE_SECRET);
+		public static string Deployment => Variable(KEY_DEPLOYMENT);
+		public static string TokenValidation => Variable(KEY_TOKEN_VALIDATION);
+		public static string LogglyUrl => Variable(KEY_LOGGLY_URL);
+		public static string ServiceName => Variable(KEY_COMPONENT);
+		public static string MongoConnectionString => OptionalVariable(KEY_MONGODB_URI);
+		public static string MongoDatabaseName => OptionalVariable(KEY_MONGODB_NAME);
+		public static string Graphite => Variable(KEY_GRAPHITE);
+
+		private static Dictionary<string, string> LocalSecrets { get; set; }	// TODO: convert into GenericData
+		private static Dictionary<string, string> FallbackValues { get; set; }
+
+		public static readonly bool IsLocal = Deployment?.Contains("local") ?? false;
+		public static readonly bool SwarmMode = OptionalVariable("SWARM_MODE") == "true";
 
 		private static Dictionary<string, string> ReadLocalSecretsFile()
 		{
 			Dictionary<string, string> output = new Dictionary<string, string>();
 			try
 			{
-				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(FILE), JsonHelper.DocumentOptions);
+				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(LOCAL_SECRETS_JSON), JsonHelper.DocumentOptions);
 				foreach (JsonProperty property in environment.RootElement.EnumerateObject())
 					try
 					{
@@ -41,58 +66,54 @@ namespace Rumble.Platform.Common.Utilities
 			catch
 			{
 				// If there's an error parsing this file, trying to log it with Log.Local can cause an endless loop here, and never print anything.
-				Console.WriteLine($"PlatformEnvironment was unable to read the '{FILE}' file.  Check to make sure there are no errors in your file.");
+				if (IsLocal)
+					Console.WriteLine($"PlatformEnvironment was unable to read the '{LOCAL_SECRETS_JSON}' file.  Check to make sure there are no errors in your file.");
 			}
 
 			return output;
 		}
+
+		private static string GetFallbackValue(string name)
+		{
+			FallbackValues ??= new Dictionary<string, string>();
+			string output = FallbackValues[name];
+			Log.Error(Owner.Default, $"Hardcoded fallback environment variable fetched: '{name}.'  This indicates an issue with the deployment.", data: new
+			{
+				Value = output
+			});
+			return output;
+		}
+
+		internal static string Variable(string key, string fallbackValue)
+		{
+			FallbackValues ??= new Dictionary<string, string>();
+			return FallbackValues[key] ??= fallbackValue;
+		}
 		
-		public static string Variable(string name, bool warnOnMissing = true)
+		public static string Variable(string key) => GetVariable(key, isOptional: false);
+		public static string OptionalVariable(string key) => GetVariable(key, isOptional: true);
+
+		private static string GetVariable(string key, bool isOptional = false)
 		{
 			LocalSecrets ??= ReadLocalSecretsFile();
 			try
 			{
-				return Environment.GetEnvironmentVariable(name) ?? LocalSecrets[name];
+				return Environment.GetEnvironmentVariable(key) ?? LocalSecrets[key];
 			}
 			catch (KeyNotFoundException ex)
 			{
-				if (warnOnMissing)
-					Log.Warn(Owner.Default, $"Missing environment variable `{name}`.", exception: ex);
+				if (isOptional)
+					Log.Warn(Owner.Default, $"Missing optional environment variable '{key}`.", exception: ex);
+				else
+					Log.Error(Owner.Default, $"Missing environment variable `{key}`.", exception: ex);
+				return GetFallbackValue(FallbackValues[key]);
 			}
-
-			return null;
 		}
 
 		public static bool Variable(string name, out string value)
 		{
-			value = Variable(name, false);
+			value = OptionalVariable(name);
 			return value != null;
-		}
-
-		/// <summary>
-		/// Returns all text in a file.
-		/// </summary>
-		/// <param name="path">The path of the file to read.</param>
-		/// <param name="relativePath">Defaults to true.  If set, prepends Directory.GetCurrentDirectory() to the path.</param>
-		/// <returns>The file contents as a string.</returns>
-		public static string FileText(string path, bool relativePath = true)
-		{
-			try
-			{
-				if (relativePath)
-					path = Directory.GetCurrentDirectory() + $"/{path}";
-				return File.ReadAllText(path);
-			}
-			catch (FileNotFoundException ex)
-			{
-				Log.Warn(Owner.Default, $"Unable to locate file `{path}`.", exception: ex);
-			}
-			catch (Exception ex)
-			{
-				Log.Warn(Owner.Default, $"Unable to read file `{path}`.", exception: ex);
-			}
-
-			return null;
 		}
 	}
 }

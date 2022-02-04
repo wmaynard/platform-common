@@ -13,18 +13,18 @@ namespace Rumble.Platform.Common.Services
 	public class DynamicConfigService : PlatformTimerService
 	{
 		private const int UPDATE_FREQUENCY_MS = 15_000;
-		public string Url { get; private set; }
-		public string GameId { get; private set; }
-		public string RumbleKey { get; private set; }
+		public string Url { get; init; }
+		public string GameId { get; init; }
+		public string RumbleKey { get; init; }
 		public GenericData Values { get; private set; }
 		private bool IsUpdating { get; set; }
 		private string GameScope => $"game:{GameId}";
 		
 		public DynamicConfigService() : base(UPDATE_FREQUENCY_MS, startImmediately: false)
 		{
-			RumbleKey = PlatformEnvironment.Variable("RUMBLE_KEY");
-			Url = PlatformEnvironment.Variable("RUMBLE_CONFIG_SERVICE_URL");
-			GameId = PlatformEnvironment.Variable("GAME_GUKEY");
+			RumbleKey = PlatformEnvironment.RumbleSecret;
+			Url = PlatformEnvironment.ConfigServiceUrl;
+			GameId = PlatformEnvironment.GameSecret;
 
 			Values = new GenericData();
 			

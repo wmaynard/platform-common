@@ -16,8 +16,8 @@ namespace Rumble.Platform.Common.Web
 {
 	public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMongoService where Model : PlatformCollectionDocument
 	{
-		private readonly string MongoConnection = PlatformEnvironment.Variable("MONGODB_URI");
-		private readonly string Database = PlatformEnvironment.Variable("MONGODB_NAME");
+		private string Connection { get; init; }
+		private string Database { get; init; }
 		// protected abstract string CollectionName { get; }
 		private readonly MongoClient _client;
 		protected readonly IMongoDatabase _database;
@@ -40,7 +40,16 @@ namespace Rumble.Platform.Common.Web
 		protected PlatformMongoService(string collection)
 		{
 			Log.Local(Owner.Default, $"Creating {GetType().Name}");
-			_client = new MongoClient(MongoConnection);
+
+			Connection = PlatformEnvironment.MongoConnectionString;
+			Database = PlatformEnvironment.MongoDatabaseName;
+			
+			if (string.IsNullOrEmpty(Connection))
+				Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_URI}'.");
+			if (string.IsNullOrEmpty(Database))
+				Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_NAME}'.");
+
+			_client = new MongoClient(Connection);
 			_database = _client.GetDatabase(Database);
 			_collection = _database.GetCollection<Model>(collection);
 			_httpContextAccessor = new HttpContextAccessor();

@@ -23,7 +23,7 @@ namespace Rumble.Platform.Common.Interop
 		public const string KEY_LOGGLY_ENTRIES = "loggly-entries";
 
 
-		private static readonly string Deployment = PlatformEnvironment.Variable("RUMBLE_DEPLOYMENT") ?? "unknown";
+		private static readonly string Deployment = PlatformEnvironment.Deployment ?? "unknown";
 		private static Graphite Client { get; set; }
 		
 		private int Frequency { get; init; }
@@ -44,7 +44,7 @@ namespace Rumble.Platform.Common.Interop
 
 			try
 			{
-				string value = PlatformEnvironment.Variable("GRAPHITE");
+				string value = PlatformEnvironment.Graphite;
 				string server = value[..value.IndexOf(':')];
 				int port = int.Parse(value[(value.IndexOf(':') + 1)..]);
 				Client ??= new Graphite(service, server, port, frequencyInMs);

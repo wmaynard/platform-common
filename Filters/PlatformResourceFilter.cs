@@ -123,12 +123,14 @@ namespace Rumble.Platform.Common.Filters
 					?? GetHeader("Proxy-Client-IP")
 					?? GetHeader("Client-IP")
 					?? context.HttpContext.Connection.RemoteIpAddress?.ToString();
-
+				
+#if DEBUG
 				// Working locally when you need geoIP data is tough, since the loopback address never yields anything.
 				// This allows us to mock our location through environment.json.
 				if (ip == "::1" && PlatformEnvironment.Variable("LOCAL_IP_OVERRIDE", out string value))
 					ip = value;
-
+#endif
+				
 				context.HttpContext.Items[KEY_IP_ADDRESS] = ip?.Replace("::ffff:", "");
 			}
 			catch (Exception e)
