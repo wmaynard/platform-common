@@ -73,11 +73,14 @@ namespace Rumble.Platform.Common.Utilities
 			return output;
 		}
 
-		private static string GetFallbackValue(string name)
+		private static string GetFallbackValue(string key)
 		{
 			FallbackValues ??= new Dictionary<string, string>();
-			string output = FallbackValues[name];
-			Log.Error(Owner.Default, $"Hardcoded fallback environment variable fetched: '{name}.'  This indicates an issue with the deployment.", data: new
+			if (!FallbackValues.ContainsKey(key))
+				return null;
+			
+			string output = FallbackValues[key];
+			Log.Error(Owner.Default, $"Hardcoded fallback environment variable fetched: '{key}.'  This indicates an issue with the deployment.", data: new
 			{
 				Value = output
 			});
@@ -87,7 +90,10 @@ namespace Rumble.Platform.Common.Utilities
 		internal static string Variable(string key, string fallbackValue)
 		{
 			FallbackValues ??= new Dictionary<string, string>();
-			return FallbackValues[key] ??= fallbackValue;
+			if (FallbackValues.ContainsKey(key))
+				return FallbackValues[key];
+			FallbackValues[key] = fallbackValue;
+			return fallbackValue;
 		}
 		
 		public static string Variable(string key) => GetVariable(key, isOptional: false);
