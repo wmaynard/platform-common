@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -78,11 +80,17 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Default, "The request body or query parameters could not be read.", data: new
+				string message = "The request body or query parameters could not be read.";
+				Log.Warn(Owner.Default, message, data: new
 				{
 					InputBody = json,
 					InputQuery = context.HttpContext.Request.Query
 				}, exception: e);
+				SlackDiagnostics.Log(message, e.Message)
+					.Tag(Owner.Default)
+					.Attach("InputBody.txt", json)
+					.Send()
+					.Wait();
 			}
 		}
 

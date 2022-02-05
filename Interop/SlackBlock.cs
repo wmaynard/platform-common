@@ -102,5 +102,6 @@ namespace Rumble.Platform.Common.Interop
 		public static SlackBlock Divider() => new SlackBlock(BlockType.DIVIDER);
 		public static SlackBlock Header(string text) => new SlackBlock(BlockType.HEADER, text);
 		public static SlackBlock Markdown(string text) => new SlackBlock(BlockType.MARKDOWN, text);
+		public static implicit operator SlackBlock(string text) => new SlackBlock(BlockType.MARKDOWN, text);
 	}
 }

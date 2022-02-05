@@ -39,7 +39,7 @@ namespace Rumble.Platform.Common.Web
 					}
 					catch (Exception e)
 					{
-						Log.Error(Owner.Will, $"Unable to retrieve {info.PropertyType.Name}.");
+						Log.Error(Owner.Will, $"Unable to retrieve {info.PropertyType.Name}.", exception: e);
 					}
 			foreach (FieldInfo info in GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
 				if (info.FieldType.IsAssignableTo(typeof(PlatformService)))
@@ -49,7 +49,7 @@ namespace Rumble.Platform.Common.Web
 					}
 					catch (Exception e)
 					{
-						Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.");
+						Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.", exception: e);
 					}
 			return true;
 		}

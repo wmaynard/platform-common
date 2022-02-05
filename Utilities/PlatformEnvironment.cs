@@ -27,6 +27,8 @@ namespace Rumble.Platform.Common.Utilities
 		internal const string KEY_MONGODB_URI = "MONGODB_URI";
 		internal const string KEY_MONGODB_NAME = "MONGODB_NAME";
 		internal const string KEY_GRAPHITE = "GRAPHITE";
+		internal const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
+		internal const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
 		
 		private const string LOCAL_SECRETS_JSON = "environment.json";
 
@@ -40,6 +42,8 @@ namespace Rumble.Platform.Common.Utilities
 		public static string MongoConnectionString => OptionalVariable(KEY_MONGODB_URI);
 		public static string MongoDatabaseName => OptionalVariable(KEY_MONGODB_NAME);
 		public static string Graphite => Variable(KEY_GRAPHITE);
+		public static string SlackLogChannel => Variable(KEY_SLACK_LOG_CHANNEL);
+		public static string SlackLogBotToken => Variable(KEY_SLACK_LOG_BOT_TOKEN);
 
 		private static Dictionary<string, string> LocalSecrets { get; set; }	// TODO: convert into GenericData
 		private static Dictionary<string, string> FallbackValues { get; set; }

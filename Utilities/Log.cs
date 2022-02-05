@@ -22,7 +22,7 @@ namespace Rumble.Platform.Common.Utilities
 			{
 				if (_defaultOwner != null)
 					Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new {Owner = Enum.GetName(DefaultOwner)});
-				_defaultOwner ??= value;
+				_defaultOwner ??= OwnerInformation.Default = value;
 			}
 		}
 		private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode ? null : new LogglyClient();
@@ -165,6 +165,48 @@ namespace Rumble.Platform.Common.Utilities
 				return;
 			Write(LogType.LOCAL, owner, message, data, exception);
 		}
+
+		/// <summary>
+		/// Logs an INFO-level event.  These are sent to Loggly, but more importantly, they will be escalated as errors in staging
+		/// or prod environments.  Any time these errors show up, they should be promptly addressed.  In an effort to help clean up
+		/// log spam, any misuse of these will also ping its respective owner on Slack.
+		/// </summary>
+		/// <param name="owner">Who should be the point of contact should this event be found in Loggly.  Typically, it's whoever wrote the code.</param>
+		/// <param name="message">The message to log.</param>
+		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
+		/// <param name="exception">Any exception encountered, if available.</param>
+		public static async void Dev(Owner owner, string message, object data = null, Exception exception = null)
+		{
+			try
+			{
+				if (!(PlatformEnvironment.Deployment.StartsWith("2") || PlatformEnvironment.Deployment.StartsWith("3")))
+				{
+					Info(owner, message, data, exception);
+					return;
+				}
+
+				string newMessage = "A Dev log type was used outside of a local or dev environment.  Remove the log call.";
+				Error(owner, newMessage, data: new
+				{
+					OriginalMessage = message,
+					OriginalData = data,
+					OriginalException = exception
+				});
+				GenericData details = new GenericData()
+				{
+					{ "Data", data },
+					{ "Exception", exception }
+				};
+				await SlackDiagnostics.Log("Improper Dev log call!", newMessage)
+					.Tag(owner)
+					.Attach("details.txt", details.JSON)
+					.Send();
+			}
+			catch (Exception e)
+			{
+				Error(owner, "Unable to send Dev log type.", data: new { OriginalMessage = message }, exception: e);
+			}
+		}
 		/// <summary>
 		/// Logs an INFO-level event.  These should be common and provide backups of important information for later browsing.
 		/// If localIfNotDeployed is set, the event will be LOCAL if working on a dev machine.
@@ -201,7 +243,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="exception">Any exception encountered, if available.</param>
 		public static void Error(Owner owner, string message, object data = null, Exception exception = null)
 			=> Write(LogType.ERROR, owner, message, data, exception);
-		
+
 		/// <summary>
 		/// Logs a CRITICAL-level event.  These should be very rare and require immediate triage.
 		/// </summary>
@@ -210,8 +252,21 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="message">The message to log.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		public static void Critical(Owner owner, string message, object data = null, Exception exception = null)
-			=> Write(LogType.CRITICAL, owner, message, data, exception);
+		public static async void Critical(Owner owner, string message, object data = null, Exception exception = null)
+		{
+			Write(LogType.CRITICAL, owner, message, data, exception);
+
+			GenericData details = new GenericData()
+			{
+				{ "Data", data },
+				{ "Exception", exception }
+			};
+
+			await SlackDiagnostics.Log(message, "A critical error has been reported.")
+				.Tag(owner)
+				.Attach("details.txt", details.JSON)
+				.Send();
+		}
 
 		/// <summary>
 		/// Sends a message to Loggly.  In doing so, the message is also printed to the console if working locally.
