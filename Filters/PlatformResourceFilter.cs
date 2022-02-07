@@ -71,12 +71,6 @@ namespace Rumble.Platform.Common.Filters
 
 						context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
 						context.HttpContext.Request.BodyReader.Complete();
-						
-						SlackDiagnostics.Log(context.HttpContext.Request.Path + " success", "Temporary slack spam, will be removed with next platform-common update.")
-							.Tag(Owner.Default)
-							.Attach("InputBody.txt", json)
-							.Send()
-							.Wait();
 					}
 				}
 

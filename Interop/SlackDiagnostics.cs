@@ -24,6 +24,7 @@ namespace Rumble.Platform.Common.Interop
 		private string UploadDirectory { get; set; }
 		private List<string> Attachments { get; set; }
 		private List<string> Messages { get; set; }
+		private List<string> AdditionalChannels { get; set; }
 		private Dictionary<Owner, SlackUser> UsersToTag { get; init; }
 		private static Dictionary<string, Cache> CachedLogs { get; set; }
 
@@ -51,7 +52,7 @@ namespace Rumble.Platform.Common.Interop
 
 		private bool CanSend => CachedLogs.ContainsKey(Title) 
 			&& (CachedLogs[Title].LastTimestampSent == 0 
-			|| CachedLogs[Title].LastTimestampSent > Timestamp.UnixTimeMS - COOLDOWN_MS);
+			|| CachedLogs[Title].LastTimestampSent < Timestamp.UnixTimeUTCMS - COOLDOWN_MS);
 		
 #pragma warning disable CS4014
 		/// <summary>
@@ -102,14 +103,31 @@ namespace Rumble.Platform.Common.Interop
 			
 			if (Attachments.Any())
 				content.Add("*Attachments:*");
-			await Client.Send(new SlackMessage(content));
-			foreach (string path in Attachments)
-				Client.TryUpload(path);
+			try
+			{
+				await Client.Send(new SlackMessage(content));
+				foreach (string path in Attachments)
+					await Client.TryUpload(path);
+			}
+			catch (Exception e)
+			{
+				Utilities.Log.Error(Owner.Default, "An error occurred sending a SlackDiagnostics log.", exception: e);
+			}
+			
 			
 			// Clean everything up
-			Directory.Delete(UploadDirectory, true);
+			try
+			{
+				if (!string.IsNullOrWhiteSpace(UploadDirectory))
+					Directory.Delete(UploadDirectory, true);
+			}
+			catch (Exception e)
+			{
+				Utilities.Log.Error(Owner.Default, "Unable to delete uploaded files.", exception: e);
+			}
+			
 			info.Count = 0;
-			info.LastTimestampSent = Timestamp.UnixTimeMS;
+			info.LastTimestampSent = Timestamp.UnixTimeUTCMS;
 			CachedLogs[Title] = info;
 			return this;
 		}
@@ -125,11 +143,7 @@ namespace Rumble.Platform.Common.Interop
 		public SlackDiagnostics Attach(string name, string content)
 		{
 			if (!CanSend)
-			{
-				// TODO: Remove when promoting
-				Utilities.Log.Info(Owner.Default, "A Slack log was generated, but can't send yet.  No file will be created.");
-				return this;
-			}
+				return this;	// A Slack log was requested, but can't send yet.  No file will be created.
 			Attachments ??= new List<string>();
 			UploadDirectory = Path.Combine(Environment.CurrentDirectory, FILE_DIRECTORY, ID);
 			string path = Path.Combine(UploadDirectory, name);
@@ -137,6 +151,13 @@ namespace Rumble.Platform.Common.Interop
 			File.WriteAllText(path, content);
 			Attachments.Add(path);
 			
+			return this;
+		}
+
+		public SlackDiagnostics AddChannel(string channelId)
+		{
+			AdditionalChannels ??= new List<string>();
+			AdditionalChannels.Add(channelId);
 			return this;
 		}
 
