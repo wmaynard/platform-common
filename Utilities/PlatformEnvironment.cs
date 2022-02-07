@@ -116,7 +116,7 @@ namespace Rumble.Platform.Common.Utilities
 					Log.Warn(Owner.Default, $"Missing optional environment variable '{key}`.", exception: ex);
 				else
 					Log.Error(Owner.Default, $"Missing environment variable `{key}`.", exception: ex);
-				return GetFallbackValue(FallbackValues[key]);
+				return GetFallbackValue(key);
 			}
 		}
 
