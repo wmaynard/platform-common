@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -70,6 +71,12 @@ namespace Rumble.Platform.Common.Filters
 
 						context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
 						context.HttpContext.Request.BodyReader.Complete();
+						
+						SlackDiagnostics.Log(context.HttpContext.Request.Path + " success", "Temporary slack spam, will be removed with next platform-common update.")
+							.Tag(Owner.Default)
+							.Attach("InputBody.txt", json)
+							.Send()
+							.Wait();
 					}
 				}
 
