@@ -20,14 +20,15 @@ namespace Rumble.Platform.Common.Interop
 		public static readonly string GET_USER_LIST = PlatformEnvironment.Variable("SLACK_ENDPOINT_USER_LIST", fallbackValue: "https://slack.com/api/users.list");
 		public const int SLACK_BLOCK_LIMIT = 50;
 		
-		public string Channel { get; private set; }
+		internal HashSet<string> Channels { get; private set; }
+		// public string Channel { get; private set; }
 		public string Token { get; private set; }
 		
 		private Task UserLoading { get; set; }
 
 		public SlackMessageClient(string channel, string token)
 		{
-			Channel = channel;
+			Channels = new HashSet<string>() { channel };
 			Token = token.StartsWith("Bearer")
 				? token
 				: $"Bearer {token}";
@@ -68,17 +69,15 @@ namespace Rumble.Platform.Common.Interop
 				Users.Add(memberData);
 		}
 
-		public async Task Send(SlackMessage message)
+		private async Task<GenericData> Send(SlackMessage message, string channel)
 		{
-			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
-
 			GenericData response = null;
-			message.Channel = Channel;
 
 			try
 			{
-				// TODO: await, update PlatformRequest
-				response = PlatformRequest.Post(url: POST_MESSAGE, auth: Token, payload: message.JSON).Send(out HttpStatusCode code);
+				message.Compress();
+				message.Channel = channel;
+				response = PlatformRequest.Post(POST_MESSAGE, auth: Token, payload: message.JSON).Send(out HttpStatusCode code);
 				if (!response.Require<bool>("ok"))
 					throw new FailedRequestException(POST_MESSAGE, message.JSON);
 			}
@@ -89,34 +88,59 @@ namespace Rumble.Platform.Common.Interop
 					SlackApiResponse = response
 				}, exception: e);
 			}
-		
+			
 			Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
+			return response;
+		}
+
+		public async Task<GenericData> Send(SlackMessage message)
+		{
+			message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
+
+			GenericData response = null;
+
+			foreach (string channel in Channels)
+				response = await Send(message, channel);
+
+			return response;
+		}
+
+		public async Task<GenericData> DirectMessage(SlackMessage message, Owner owner)
+		{
+			SlackUser info = UserSearch(owner).FirstOrDefault();
+			if (info == null)
+				return null;
+			return await Send(message, info.ID);
 		}
 
 		public async Task<GenericData> TryUpload(string path)
 		{
 			GenericData response = null;
-			try
+			foreach (string channel in Channels)
 			{
-				MultipartFormDataContent multiForm = new MultipartFormDataContent();
-				multiForm.Add(new StringContent(Token.Replace("Bearer ", "")), name: "token"); // our token isn't a header here
-				multiForm.Add(new StringContent(Channel), name: "channels");
-				multiForm.Add(new StreamContent(File.OpenRead(path)), name: "file", Path.GetFileName(path));
-
-				HttpResponseMessage httpResponse = await PlatformRequest.CLIENT.PostAsync(POST_UPLOAD, multiForm);
-				response = await httpResponse.Content.ReadAsStringAsync();
-				
-				// response = PlatformRequest.Post(url: POST_UPLOAD, auth: Token, payload: null).Send(out HttpStatusCode code);
-				if (!response.Require<bool>("ok"))
-					throw new FailedRequestException(POST_UPLOAD, responseData: response);
-			}
-			catch (Exception e)
-			{
-				Log.Error(Owner.Default, "Unable to upload file to Slack.", data: new
+				try
 				{
-					Path = path
-				}, exception: e);
+					MultipartFormDataContent multiForm = new MultipartFormDataContent();
+					multiForm.Add(new StringContent(Token.Replace("Bearer ", "")), name: "token"); // our token isn't a header here
+					multiForm.Add(new StringContent(channel), name: "channels");
+					multiForm.Add(new StreamContent(File.OpenRead(path)), name: "file", Path.GetFileName(path));
+
+					HttpResponseMessage httpResponse = await PlatformRequest.CLIENT.PostAsync(POST_UPLOAD, multiForm);
+					response = await httpResponse.Content.ReadAsStringAsync();
+				
+					// response = PlatformRequest.Post(url: POST_UPLOAD, auth: Token, payload: null).Send(out HttpStatusCode code);
+					if (!response.Require<bool>("ok"))
+						throw new FailedRequestException(POST_UPLOAD, responseData: response);
+				}
+				catch (Exception e)
+				{
+					Log.Error(Owner.Default, "Unable to upload file to Slack.", data: new
+					{
+						Path = path
+					}, exception: e);
+				}
 			}
+			
 			return response;
 		}
 

@@ -6,11 +6,11 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Interop
 {
-	// TODO: Test file upload size
 	public class SlackDiagnostics
 	{
 		private const int COOLDOWN_MS = 3_600_000; // 1 hour
@@ -27,6 +27,9 @@ namespace Rumble.Platform.Common.Interop
 		private List<string> AdditionalChannels { get; set; }
 		private Dictionary<Owner, SlackUser> UsersToTag { get; init; }
 		private static Dictionary<string, Cache> CachedLogs { get; set; }
+		private string[] AllChannels => Client.Channels.ToArray();
+		
+		private bool Sent { get; set; }
 
 		private SlackDiagnostics(string title, string message = null)
 		{
@@ -48,6 +51,7 @@ namespace Rumble.Platform.Common.Interop
 			CachedLogs ??= new Dictionary<string, Cache>() { { Title, new Cache() }};
 			Messages = new List<string>();
 			Attachments = new List<string>();
+			AdditionalChannels = new List<string>();
 		}
 
 		private bool CanSend => CachedLogs.ContainsKey(Title) 
@@ -56,11 +60,12 @@ namespace Rumble.Platform.Common.Interop
 		
 #pragma warning disable CS4014
 		/// <summary>
-		/// Sends the log off to Slack.  Awaitable.
+		/// Sends the log off to Slack.  Awaitable.  Calling this ends the chain and prevents further sending.
 		/// </summary>
-		/// <returns>A Task with the SlackDiagnostics as a result.</returns>
-		public async Task<SlackDiagnostics> Send() // TODO: Warn if the message is never sent; or find a way to elegantly send automatically.
+		/// <returns>An awaitable Task.</returns>
+		public async Task Send() // TODO: Warn if the message is never sent; or find a way to elegantly send automatically.
 		{
+			CheckSentStatus();
 			if (!CachedLogs.ContainsKey(Title))
 				CachedLogs[Title] = new Cache() 
 				{ 
@@ -73,7 +78,7 @@ namespace Rumble.Platform.Common.Interop
 				info.Count++;
 				CachedLogs[Title] = info;
 				Utilities.Log.Dev(Owner.Will, "It's too recent for the SlackDiagnostics to send another log for the given message.");
-				return this;
+				return;
 			}
 
 			List<SlackBlock> content = new List<SlackBlock>()
@@ -88,10 +93,15 @@ namespace Rumble.Platform.Common.Interop
 				content.Add("*Owners:* " + string.Join(", ", UsersToTag.Values.Select(user => user.Tag)));
 			else
 			{
-				content.Add("*Owners:* " + string.Join(", ", UsersToTag.Values.Select(user => $"`{user.DisplayName ?? user.FirstName ?? user.Name}`")));
-				content.Add("_No one has been tagged because it's late._");
+				content.Add("*Owners:* " 
+					+ string.Join(", ", UsersToTag.Values.Select(user => $"`{user.DisplayName ?? user.FirstName ?? user.Name}`"))
+					+ " (_No one has been tagged because it's late._)"
+				);
 				Utilities.Log.Info(Owner.Default, "It's too late or too early to tag Slack users.");
 			}
+
+			foreach (string channel in AdditionalChannels)
+				Client.Channels.Add(channel);
 			content.Add(SlackBlock.Divider());
 			
 			content.Add(Message);
@@ -129,7 +139,7 @@ namespace Rumble.Platform.Common.Interop
 			info.Count = 0;
 			info.LastTimestampSent = Timestamp.UnixTimeUTCMS;
 			CachedLogs[Title] = info;
-			return this;
+			Sent = true;
 		}
 #pragma warning restore CS4014
 
@@ -142,6 +152,7 @@ namespace Rumble.Platform.Common.Interop
 		/// <returns>The SlackDiagnostics object for chaining.</returns>
 		public SlackDiagnostics Attach(string name, string content)
 		{
+			CheckSentStatus();
 			if (!CanSend)
 				return this;	// A Slack log was requested, but can't send yet.  No file will be created.
 			Attachments ??= new List<string>();
@@ -154,8 +165,15 @@ namespace Rumble.Platform.Common.Interop
 			return this;
 		}
 
+		/// <summary>
+		/// Adds a channel to the list of places to send this message.
+		/// </summary>
+		/// <param name="channelId">The ID of a channel to send to.  You can find this by right-clicking on a channel in Slack
+		/// and selecting "Open channel details".</param>
+		/// <returns>The SlackDiagnostics object for chaining.</returns>
 		public SlackDiagnostics AddChannel(string channelId)
 		{
+			CheckSentStatus();
 			AdditionalChannels ??= new List<string>();
 			AdditionalChannels.Add(channelId);
 			return this;
@@ -168,9 +186,36 @@ namespace Rumble.Platform.Common.Interop
 		/// <returns>The SlackDiagnostics object for chaining.</returns>
 		public SlackDiagnostics AddMessage(string content)
 		{
+			CheckSentStatus();
 			Messages ??= new List<string>();
 			Messages.Add(content);
 			return this;
+		}
+
+		/// <summary>
+		/// Alternative to Send().  Sends direct messages directly to users.  Assumes you want to ignore the default log channel.
+		/// To use the default log channel in addition to a DM, use AddChannel(PlatformEnvironment.SlackLogChannel) before this call.
+		/// Calling this ends the chain and prevents further sending.
+		/// </summary>
+		/// <param name="owners">People to send DMs to.</param>
+		/// <returns>An awaitable Task.</returns>
+		public async Task DirectMessage(params Owner[] owners)
+		{
+			CheckSentStatus();
+			AdditionalChannels ??= new List<string>();
+
+			// If we're sending a DM, ignore the default log channel.
+			if (!string.IsNullOrWhiteSpace(PlatformEnvironment.SlackLogChannel) && Client.Channels.Contains(PlatformEnvironment.SlackLogChannel))
+				Client.Channels.Remove(PlatformEnvironment.SlackLogChannel);
+
+			foreach (Owner owner in owners.Distinct())
+			{
+				SlackUser user = Client.UserSearch(owner).FirstOrDefault();
+				if (user != null)
+					AdditionalChannels.Add(user.ID);
+			}
+
+			await Send();
 		}
 
 		/// <summary>
@@ -181,10 +226,13 @@ namespace Rumble.Platform.Common.Interop
 		/// <returns>The SlackDiagnostics object for chaining.</returns>
 		public SlackDiagnostics Tag(params Owner[] owners)
 		{
+			CheckSentStatus();
 			foreach (Owner owner in owners.Where(owner => !UsersToTag.ContainsKey(owner)))
 				UsersToTag[owner] = Client.UserSearch(owner).FirstOrDefault();
 			return this;
 		}
+
+		private bool CheckSentStatus() => Sent ? throw new SlackMessageException(AllChannels, "Message has already been sent.") : false;
 
 		/// <summary>
 		/// Creates a log message to send to Slack.  All methods can be chained to create the Log, which must end in

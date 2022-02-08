@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -57,20 +58,25 @@ namespace Rumble.Platform.Common.Filters
 					}
 					else												// Request is using JSON (preferred).
 					{
-						if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
-							throw new Exception("reader.TryRead() failed when parsing the request body.");
-
-						SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
-						while (!rdr.End)
-						{
-							json += Encoding.UTF8.GetString(rdr.CurrentSpan);
-							rdr.Advance(rdr.CurrentSpan.Length);
-						}
-
-						body = json;
-
-						context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
-						context.HttpContext.Request.BodyReader.Complete();
+						using Stream stream = context.HttpContext.Request.BodyReader.AsStream();
+						using StreamReader reader = new StreamReader(stream);
+						
+						body = json = reader.ReadToEnd();
+						
+						// if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
+						// 	throw new Exception("reader.TryRead() failed when parsing the request body.");
+						//
+						// SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
+						// while (!rdr.End)
+						// {
+						// 	json += Encoding.UTF8.GetString(rdr.CurrentSpan);
+						// 	rdr.Advance(rdr.CurrentSpan.Length);
+						// }
+						//
+						// body = json;
+						//
+						// context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
+						// context.HttpContext.Request.BodyReader.Complete();
 					}
 				}
 
@@ -81,16 +87,13 @@ namespace Rumble.Platform.Common.Filters
 			}
 			catch (Exception e)
 			{
-				string message = "The request body or query parameters could not be read.";
-				Log.Warn(Owner.Default, message, data: new
+				Log.Error(Owner.Default, "The request body or query parameters could not be parsed into GenericData, probably as a result of incomplete or invalid JSON.", data: new
 				{
-					InputBody = json,
-					InputQuery = context.HttpContext.Request.Query
+					Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
 				}, exception: e);
-				SlackDiagnostics.Log(message, e.Message)
-					.Tag(Owner.Default)
-					.Attach("InputBody.txt", json)
-					.Send()
+				SlackDiagnostics.Log("Request body failed to read.", "Unable to deserialize GenericData")
+					.Attach($"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}.txt", string.IsNullOrEmpty(json) ? "(no json)" : json)
+					.DirectMessage(Owner.Will)
 					.Wait();
 			}
 		}
