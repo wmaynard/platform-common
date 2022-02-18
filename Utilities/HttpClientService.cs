@@ -13,7 +13,7 @@ namespace Rumble.Platform.Common.Utilities
 
         public HttpClientService(string userAgent)
         {
-            string maxConnectionsStr = PlatformEnvironment.OptionalVariable("MAX_CONNECTIONS");
+            string maxConnectionsStr = PlatformEnvironment.Optional("MAX_CONNECTIONS");
             int maxConnections = DEFAULT_MAX_CONNECTIONS;
             
             if (!string.IsNullOrEmpty(maxConnectionsStr))

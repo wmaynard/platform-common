@@ -15,9 +15,9 @@ namespace Rumble.Platform.Common.Interop
 {
 	public class SlackMessageClient
 	{
-		public static readonly string POST_MESSAGE = PlatformEnvironment.Variable("SLACK_ENDPOINT_POST_MESSAGE", fallbackValue: "https://slack.com/api/chat.postMessage");
-		public static readonly string POST_UPLOAD = PlatformEnvironment.Variable("SLACK_ENDPOINT_UPLOAD", fallbackValue: "https://slack.com/api/files.upload");
-		public static readonly string GET_USER_LIST = PlatformEnvironment.Variable("SLACK_ENDPOINT_USER_LIST", fallbackValue: "https://slack.com/api/users.list");
+		public static readonly string POST_MESSAGE = PlatformEnvironment.Optional("SLACK_ENDPOINT_POST_MESSAGE");
+		public static readonly string POST_UPLOAD = PlatformEnvironment.Optional("SLACK_ENDPOINT_UPLOAD");
+		public static readonly string GET_USER_LIST = PlatformEnvironment.Optional("SLACK_ENDPOINT_USER_LIST");
 		public const int SLACK_BLOCK_LIMIT = 50;
 		
 		internal HashSet<string> Channels { get; private set; }

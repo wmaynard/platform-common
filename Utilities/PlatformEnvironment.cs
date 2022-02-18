@@ -29,23 +29,23 @@ namespace Rumble.Platform.Common.Utilities
 		
 		private const string LOCAL_SECRETS_JSON = "environment.json";
 
-		public static string ConfigServiceUrl => Variable(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
-		public static string GameSecret => Variable(KEY_GAME_ID);
-		public static string RumbleSecret => Variable(KEY_RUMBLE_SECRET);
-		public static string Deployment => Variable(KEY_DEPLOYMENT);
-		public static string TokenValidation => Variable(KEY_TOKEN_VALIDATION);
-		public static string LogglyUrl => Variable(KEY_LOGGLY_URL);
-		public static string ServiceName => Variable(KEY_COMPONENT);
-		public static string MongoConnectionString => OptionalVariable(KEY_MONGODB_URI);
-		public static string MongoDatabaseName => OptionalVariable(KEY_MONGODB_NAME);
-		public static string Graphite => Variable(KEY_GRAPHITE);
-		public static string SlackLogChannel => Variable(KEY_SLACK_LOG_CHANNEL);
-		public static string SlackLogBotToken => Variable(KEY_SLACK_LOG_BOT_TOKEN);
+		public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
+		public static string GameSecret => Optional(KEY_GAME_ID);
+		public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
+		public static string Deployment => Optional(KEY_DEPLOYMENT);
+		public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
+		public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
+		public static string ServiceName => Optional(KEY_COMPONENT);
+		public static string MongoConnectionString => Optional(KEY_MONGODB_URI);
+		public static string MongoDatabaseName => Optional(KEY_MONGODB_NAME);
+		public static string Graphite => Optional(KEY_GRAPHITE);
+		public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
+		public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
 
 		private static Dictionary<string, string> FallbackValues { get; set; }
 
 		public static readonly bool IsLocal = Deployment?.Contains("local") ?? false;
-		public static readonly bool SwarmMode = OptionalVariable("SWARM_MODE") == "true";
+		public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
 		private static bool Initialized => Variables != null;
 		private static GenericData Variables { get; set; }
@@ -146,5 +146,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
 		public static string OptionalVariable(string key) => Optional(key);
+		
+		// TODO: Incorporate DynamicConfig?
 	}
 }
