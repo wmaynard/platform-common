@@ -9,17 +9,22 @@ namespace Rumble.Platform.Common.Utilities
 	/// .NET doesn't always like to play nice with Environment Variables.  Conventional wisdom is to set them in the
 	/// appsettings.json file, but secrets (e.g. connection strings) are supposed to be handled in the .NET user secrets
 	/// tool.  After a couple hours of unsuccessful fiddling to get it to cooperate in Rider, I decided to do it the
-	/// old-fashioned way, by parsing a local file and ignoring it in .gitignore.
+	/// old-fashioned way, by parsing a local file and ignoring it in .gitignore.  This class operates in much the same way
+	/// that GenericData does, allowing developers to take advantage of Require<T>() and Optional<T>().  It also contains custom
+	/// environment variable serialization for common platform environment variables, allowing us to configure any number of services
+	/// from a group-level CI variable in gitlab.
 	/// </summary>
 	public static class PlatformEnvironment
 	{
+		private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
+		private const string LOCAL_SECRETS_JSON = "environment.json";
+		
 		internal const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
 		internal const string KEY_GAME_ID = "GAME_GUKEY";
 		internal const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
 		internal const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
 		internal const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
 		internal const string KEY_LOGGLY_URL = "LOGGLY_URL";
-		private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
 		internal const string KEY_COMPONENT = "RUMBLE_COMPONENT";
 		internal const string KEY_MONGODB_URI = "MONGODB_URI";
 		internal const string KEY_MONGODB_NAME = "MONGODB_NAME";
@@ -27,9 +32,8 @@ namespace Rumble.Platform.Common.Utilities
 		internal const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
 		internal const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
 		internal const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
-		
-		private const string LOCAL_SECRETS_JSON = "environment.json";
 
+		// Helper getter properties
 		public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
 		public static string GameSecret => Optional(KEY_GAME_ID);
 		public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
@@ -106,7 +110,6 @@ namespace Rumble.Platform.Common.Utilities
 				return new GenericData();
 			}
 		}
-
 		private static GenericData LoadEnvironmentVariables()
 		{
 			try
@@ -173,6 +176,6 @@ namespace Rumble.Platform.Common.Utilities
 		[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
 		public static string OptionalVariable(string key) => Optional(key);
 		
-		// TODO: Incorporate DynamicConfig?
+		// TODO: Incorporate DynamicConfigService as fallback values?
 	}
 }
