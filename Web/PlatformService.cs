@@ -9,7 +9,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class PlatformService
+	public abstract class PlatformService : IService
 	{
 		private IServiceProvider _services;
 		public virtual object HealthCheckResponseObject => GenerateHealthCheck("ready");
@@ -57,6 +57,11 @@ namespace Rumble.Platform.Common.Web
 		protected GenericData GenerateHealthCheck(object data)
 		{
 			return new GenericData() { [GetType().Name] = data };
+		}
+
+		public void OnDestroy()
+		{
+			
 		}
 	}
 }

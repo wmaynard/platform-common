@@ -1,11 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.Json;
-using MongoDB.Driver;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Utilities
 {
@@ -29,6 +25,7 @@ namespace Rumble.Platform.Common.Utilities
 		internal const string KEY_GRAPHITE = "GRAPHITE";
 		internal const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
 		internal const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
+		internal const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
 		
 		private const string LOCAL_SECRETS_JSON = "environment.json";
 
@@ -45,85 +42,109 @@ namespace Rumble.Platform.Common.Utilities
 		public static string SlackLogChannel => Variable(KEY_SLACK_LOG_CHANNEL);
 		public static string SlackLogBotToken => Variable(KEY_SLACK_LOG_BOT_TOKEN);
 
-		private static Dictionary<string, string> LocalSecrets { get; set; }	// TODO: convert into GenericData
 		private static Dictionary<string, string> FallbackValues { get; set; }
 
 		public static readonly bool IsLocal = Deployment?.Contains("local") ?? false;
 		public static readonly bool SwarmMode = OptionalVariable("SWARM_MODE") == "true";
 
-		private static Dictionary<string, string> ReadLocalSecretsFile()
+		private static bool Initialized => Variables != null;
+		private static GenericData Variables { get; set; }
+		private static GenericData Initialize()
 		{
-			Dictionary<string, string> output = new Dictionary<string, string>();
-			try
-			{
-				JsonDocument environment = JsonDocument.Parse(File.ReadAllText(LOCAL_SECRETS_JSON), JsonHelper.DocumentOptions);
-				foreach (JsonProperty property in environment.RootElement.EnumerateObject())
-					try
-					{
-						output[property.Name] = property.Value.GetString();
-					}
-					catch (Exception)
-					{
-						Log.Warn(Owner.Default, $"{property.Name} must be a string in environment.json.");
-					}
-			}
-			catch
-			{
-				// If there's an error parsing this file, trying to log it with Log.Local can cause an endless loop here, and never print anything.
-				if (IsLocal)
-					Console.WriteLine($"PlatformEnvironment was unable to read the '{LOCAL_SECRETS_JSON}' file.  Check to make sure there are no errors in your file.");
-			}
-
-			return output;
-		}
-
-		private static string GetFallbackValue(string key)
-		{
-			FallbackValues ??= new Dictionary<string, string>();
-			if (!FallbackValues.ContainsKey(key))
-				return null;
+			GenericData output = new GenericData();
 			
-			string output = FallbackValues[key];
-			Log.Error(Owner.Default, $"Hardcoded fallback environment variable fetched: '{key}.'  This indicates an issue with the deployment.", data: new
-			{
-				Value = output
-			});
+			output.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
+			output.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
+			output.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+			
 			return output;
 		}
 
-		internal static string Variable(string key, string fallbackValue)
+		private static GenericData LoadCommonVariables()
 		{
-			FallbackValues ??= new Dictionary<string, string>();
-			if (FallbackValues.ContainsKey(key))
-				return FallbackValues[key];
-			FallbackValues[key] = fallbackValue;
-			return fallbackValue;
-		}
-		
-		public static string Variable(string key) => GetVariable(key, isOptional: false);
-		public static string OptionalVariable(string key) => GetVariable(key, isOptional: true);
-
-		private static string GetVariable(string key, bool isOptional = false)
-		{
-			LocalSecrets ??= ReadLocalSecretsFile();
 			try
 			{
-				return Environment.GetEnvironmentVariable(key) ?? LocalSecrets[key];
+				GenericData output = new GenericData();
+				
+				string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
+				GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
+
+				foreach (string key in common.Keys)
+					output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment) 
+						?? common?.Optional<GenericData>(key)?.Optional<object>("*");
+				return output;
 			}
-			catch (KeyNotFoundException ex)
+			catch (Exception e)
 			{
-				if (isOptional)
-					Log.Warn(Owner.Default, $"Missing optional environment variable '{key}`.", exception: ex);
-				else
-					Log.Error(Owner.Default, $"Missing environment variable `{key}`.", exception: ex);
-				return GetFallbackValue(key);
+				Log.Warn(Owner.Will, "Could not read PLATFORM_COMMON variables.", exception: e);
+				return new GenericData();
 			}
 		}
 
-		public static bool Variable(string name, out string value)
+		private static GenericData LoadEnvironmentVariables()
 		{
-			value = OptionalVariable(name);
-			return value != null;
+			try
+			{
+				GenericData output = new GenericData();
+				IDictionary vars = Environment.GetEnvironmentVariables();
+				foreach (string key in vars.Keys)
+					output[key] = vars[key];
+				return output;
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Will, "Could not read environment variables.", exception: e);
+				return new GenericData();
+			}
 		}
+		private static GenericData LoadLocalSecrets()
+		{
+			try
+			{
+				GenericData output = File.Exists(LOCAL_SECRETS_JSON)
+					? File.ReadAllText(LOCAL_SECRETS_JSON)
+					: new GenericData();
+				return output;
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Will, "Could not read local secrets file.", exception: e);
+				return new GenericData();
+			}
+		}
+
+		private static T Fetch<T>(string key, bool optional)
+		{
+			Variables ??= Initialize();
+			return optional
+				? Variables.Optional<T>(key)
+				: Variables.Require<T>(key);
+		}
+		public static T Require<T>(string key) => Fetch<T>(key, optional: false);
+		public static string Require(string key) => Require<string>(key);
+		public static void Require<T>(string key, out T value) => value = Require<T>(key);
+		public static void Require(string key, out string value) => value = Require(key);
+		public static T Optional<T>(string key) => Fetch<T>(key, optional: true);
+		public static string Optional(string key) => Optional<string>(key);
+		public static void Optional<T>(string key, out T value) => value = Optional<T>(key);
+		public static void Optional(string key, out string value) => value = Optional(key);
+
+		public static string Optional(string key, string fallbackValue) => Optional<string>(key, fallbackValue);
+		public static T Optional<T>(string key, T fallbackValue)
+		{
+			T output = Fetch<T>(key, optional: true);
+			return output.Equals(default)
+				? fallbackValue
+				: output;
+		}
+
+		[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
+		internal static string Variable(string key, string fallbackValue) => Optional(key, fallbackValue);
+
+		[Obsolete("Use PlatformEnvironment's Require() or Require<T>() methods instead.")]
+		public static string Variable(string key) => Require(key);
+
+		[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
+		public static string OptionalVariable(string key) => Optional(key);
 	}
 }

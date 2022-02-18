@@ -139,8 +139,8 @@ namespace Rumble.Platform.Common.Filters
 #if DEBUG
 				// Working locally when you need geoIP data is tough, since the loopback address never yields anything.
 				// This allows us to mock our location through environment.json.
-				if (ip == "::1" && PlatformEnvironment.Variable("LOCAL_IP_OVERRIDE", out string value))
-					ip = value;
+				if (ip == "::1")
+					ip = PlatformEnvironment.Optional("LOCAL_IP_OVERRIDE") ?? ip;
 #endif
 				
 				context.HttpContext.Items[KEY_IP_ADDRESS] = ip?.Replace("::ffff:", "");
