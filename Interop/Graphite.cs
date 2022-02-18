@@ -52,7 +52,6 @@ namespace Rumble.Platform.Common.Interop
 			catch (Exception e)
 			{
 				Log.Error(Owner.Will, "Failed to parse GRAPHITE env var.", exception: e);
-				return;
 			}
 		}
 		private Graphite(string parentService, string server, int port, int frequency)
@@ -197,7 +196,7 @@ namespace Rumble.Platform.Common.Interop
 				name = $"{prefix}-{name}";
 			
 			if (Client == null)
-				Log.Warn(Owner.Default, "Graphite has not yet been initialized. Data cannot yet be tracked.", data: new
+				Log.Verbose(Owner.Default, "Graphite has not yet been initialized. Data cannot yet be tracked.", data: new
 				{
 					Name = name,
 					Endpoint = endpoint,

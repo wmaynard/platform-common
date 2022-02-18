@@ -83,7 +83,7 @@ namespace Rumble.Platform.Common.Utilities
 
 		public void Combine(GenericData other, bool prioritizeOther = false)
 		{
-			foreach (string key in other.Keys.Where(key => !ContainsKey(key) || prioritizeOther))
+			foreach (string key in other.Keys.Where(key => !ContainsKey(key) || prioritizeOther || string.IsNullOrWhiteSpace(this[key]?.ToString())))
 				this[key] = other[key];
 		}
 
