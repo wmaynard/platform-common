@@ -19,6 +19,7 @@ namespace Rumble.Platform.Common.Utilities
 		internal const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
 		internal const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
 		internal const string KEY_LOGGLY_URL = "LOGGLY_URL";
+		private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
 		internal const string KEY_COMPONENT = "RUMBLE_COMPONENT";
 		internal const string KEY_MONGODB_URI = "MONGODB_URI";
 		internal const string KEY_MONGODB_NAME = "MONGODB_NAME";
@@ -51,13 +52,21 @@ namespace Rumble.Platform.Common.Utilities
 		private static GenericData Variables { get; set; }
 		private static GenericData Initialize()
 		{
-			GenericData output = new GenericData();
+			Variables ??= new GenericData();
 			
-			output.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
-			output.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
-			output.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+			// Local secrets are stored in environment.json when developers are working locally.
+			// These are low priority, and will return an empty dataset when deployed.
+			Variables.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
 			
-			return output;
+			// The meat of environment variables on deployment.
+			Variables.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
+			
+			// Common variables are fallbacks.  Any other value will override them.
+			// In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
+			// we manage environment variables locally.
+			Variables.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+			
+			return Variables;
 		}
 
 		private static GenericData LoadCommonVariables()
@@ -72,6 +81,23 @@ namespace Rumble.Platform.Common.Utilities
 				foreach (string key in common.Keys)
 					output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment) 
 						?? common?.Optional<GenericData>(key)?.Optional<object>("*");
+				
+				// Format the LOGGLY_URL.
+				string root = output?.Optional<string>(KEY_LOGGLY_ROOT);
+				string component = ServiceName;
+				if (root != null && component != null)
+					output[KEY_LOGGLY_URL] = string.Format(root, component);
+				
+				// Parse out MONGODB_NAME from the MONGODB_URI.
+				try
+				{
+					string connection = Optional(KEY_MONGODB_URI);
+					connection = connection?[(connection.LastIndexOf('/') + 1)..];
+
+					output[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
+				}
+				catch { } // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
+
 				return output;
 			}
 			catch (Exception e)
@@ -122,12 +148,12 @@ namespace Rumble.Platform.Common.Utilities
 		}
 		public static T Require<T>(string key) => Fetch<T>(key, optional: false);
 		public static string Require(string key) => Require<string>(key);
-		public static void Require<T>(string key, out T value) => value = Require<T>(key);
-		public static void Require(string key, out string value) => value = Require(key);
+		public static T Require<T>(string key, out T value) => value = Require<T>(key);
+		public static string Require(string key, out string value) => value = Require(key);
 		public static T Optional<T>(string key) => Fetch<T>(key, optional: true);
 		public static string Optional(string key) => Optional<string>(key);
-		public static void Optional<T>(string key, out T value) => value = Optional<T>(key);
-		public static void Optional(string key, out string value) => value = Optional(key);
+		public static T Optional<T>(string key, out T value) => value = Optional<T>(key);
+		public static string Optional(string key, out string value) => value = Optional(key);
 
 		public static string Optional(string key, string fallbackValue) => Optional<string>(key, fallbackValue);
 		public static T Optional<T>(string key, T fallbackValue)
