@@ -87,7 +87,7 @@ namespace Rumble.Platform.Common.Utilities
 						?? common?.Optional<GenericData>(key)?.Optional<object>("*");
 				
 				// Format the LOGGLY_URL.
-				string root = output?.Optional<string>(KEY_LOGGLY_ROOT);
+				string root = output.Optional<string>(KEY_LOGGLY_ROOT);
 				string component = ServiceName;
 				if (root != null && component != null)
 					output[KEY_LOGGLY_URL] = string.Format(root, component);
@@ -106,7 +106,10 @@ namespace Rumble.Platform.Common.Utilities
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Will, "Could not read PLATFORM_COMMON variables.", exception: e);
+				Log.Warn(Owner.Will, "Could not read PLATFORM_COMMON variables.", data: new
+				{
+					StackTrace = e.StackTrace
+				}, exception: e);
 				return new GenericData();
 			}
 		}
