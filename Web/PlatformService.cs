@@ -21,7 +21,10 @@ namespace Rumble.Platform.Common.Web
 		[JsonIgnore]
 		public static long UnixTimeMS => Timestamp.UnixTimeMS;
 
-		protected PlatformService(IServiceProvider services = null) { }
+		protected PlatformService(IServiceProvider services = null)
+		{
+			Log.Local(Owner.Default, $"Creating {GetType().Name}");
+		}
 
 		// TODO: This is the same code as in PlatformController's service resolution.
 		public bool ResolveServices(IServiceProvider services = null)

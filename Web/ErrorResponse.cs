@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -13,11 +14,15 @@ namespace Rumble.Platform.Common.Web
 	{
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Message { get; set; }
+		
+		[JsonInclude, JsonPropertyName("errorCode"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public string Code { get; set; }
 
-		public ErrorResponse(string message, Exception data) : base(new { Exception = Clean(data) })
+		public ErrorResponse(string message, Exception data, ErrorCode code = ErrorCode.NotSpecified) : base(new { Exception = Clean(data) })
 		{
 			Success = false;
 			Message = message;
+			Code = $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}";
 		}
 
 		// Will | 2021.11.05

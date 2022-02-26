@@ -8,6 +8,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interfaces;
@@ -25,7 +26,7 @@ namespace Rumble.Platform.Common.Web
 		protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
 
 		private bool UseMongoTransaction => (bool)(HttpContext?.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
-		protected IClientSessionHandle MongoSession
+		public IClientSessionHandle MongoSession
 		{
 			get => (IClientSessionHandle)HttpContext?.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
 			set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
@@ -39,8 +40,6 @@ namespace Rumble.Platform.Common.Web
 
 		protected PlatformMongoService(string collection)
 		{
-			Log.Local(Owner.Default, $"Creating {GetType().Name}");
-
 			Connection = PlatformEnvironment.MongoConnectionString;
 			Database = PlatformEnvironment.MongoDatabaseName;
 			
@@ -94,6 +93,24 @@ namespace Rumble.Platform.Common.Web
 				return;
 			}
 			MongoSession = session;
+		}
+
+		public IClientSessionHandle StartTransaction()
+		{
+			// StartTransactionIfRequested(out IClientSessionHandle session);
+			IClientSessionHandle output = _client.StartSession();
+			output.StartTransaction();
+			return output;
+		}
+
+		public void CommitTransaction(IClientSessionHandle session = null)
+		{
+			session ??= MongoSession;
+			
+			if (session == null)
+				throw new PlatformException("Unable to commit transaction; session has not started yet.", code: ErrorCode.MongoSessionIsNull);
+			
+			session.CommitTransaction();
 		}
 
 		public Model Create(Model model)

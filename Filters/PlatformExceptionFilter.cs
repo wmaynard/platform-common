@@ -39,7 +39,7 @@ namespace Rumble.Platform.Common.Filters
 
 			Exception ex = context.Exception;
 
-			string code = ex switch
+			string message = ex switch
 			{
 				// JsonSerializationException => "Invalid JSON.",
 				JsonException => "Invalid JSON.",
@@ -48,6 +48,9 @@ namespace Rumble.Platform.Common.Filters
 				BadHttpRequestException => ex.Message,
 				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
+			ErrorCode code = ErrorCode.NotSpecified;
+			if (ex is PlatformException)
+				code = ((PlatformException)ex).Code;
 
 			// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
 			if (ex is MongoCommandException mce)
@@ -56,11 +59,12 @@ namespace Rumble.Platform.Common.Filters
 				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {code}", data: Converter.ContextToEndpointObject(context), exception: ex);
+				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: Converter.ContextToEndpointObject(context), exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
-				message: code,
-				data: ex
+				message: message,
+				data: ex,
+				code: code
 			));
 			context.ExceptionHandled = true;
 			Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);

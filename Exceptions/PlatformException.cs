@@ -4,15 +4,19 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions
 {
-	public abstract class PlatformException : Exception // TODO: Should probably be an abstract class
+	public class PlatformException : Exception // TODO: Should probably be an abstract class
 	{
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; private set; }
 		
+		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public ErrorCode Code { get; private set; }
+		
 		public PlatformException() : this("No message provided."){}
-		public PlatformException(string message, Exception inner = null) : base(message, inner)
+		public PlatformException(string message, Exception inner = null, ErrorCode code = ErrorCode.NotSpecified) : base(message, inner)
 		{
 			Endpoint = Diagnostics.FindEndpoint();
+			Code = code;
 		}
 
 		public string Detail
