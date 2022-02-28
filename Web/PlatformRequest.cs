@@ -101,6 +101,7 @@ namespace Rumble.Platform.Common.Web
 		{
 			code = HttpStatusCode.BadRequest;
 			GenericData output = null;
+			string fullResponse = null;
 			try
 			{
 				if (Request.Method == HttpMethod.Get)
@@ -121,10 +122,18 @@ namespace Rumble.Platform.Common.Web
 					s.CopyTo(ms);
 					return ms.ToArray();
 				}
-
+				
 				Task<string> task = content.ReadAsStringAsync();
 				task.Wait(30_000); // TODO: Test timeout failure
-				output = task.Result;
+				
+				Log.Verbose(Owner.Will, "PlatformRequest sent.", data: new
+				{
+					Payload = payload,
+					Response = Response,
+					Result = task.Result,
+					Url = Uri.ToString()
+				});
+				output = fullResponse = task.Result;
 			}
 			catch (HttpRequestException ex)
 			{
@@ -132,7 +141,13 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (JsonException ex)
 			{
-				Log.Warn(Owner.Default, "Unable to parse response.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload, Response = Response });
+				Log.Warn(Owner.Default, "Unable to parse response.", exception: ex, data: new
+				{
+					Url = Uri.ToString(), 
+					Payload = payload, 
+					Response = Response,
+					TextResponse = fullResponse
+				});
 			}
 
 			Reset();

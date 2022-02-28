@@ -285,7 +285,7 @@ namespace Rumble.Platform.Common.Utilities
 			// Attempt to grab the token if one was used using the current HttpContext.
 			TokenInfo token = null;
 
-			HttpContext context = new HttpContextAccessor()?.HttpContext;
+			HttpContext context = new HttpContextAccessor().HttpContext;
 			try
 			{
 				token = (TokenInfo)context?.Items[PlatformAuthorizationFilter.KEY_TOKEN];
