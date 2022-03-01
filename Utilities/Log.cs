@@ -25,7 +25,9 @@ namespace Rumble.Platform.Common.Utilities
 				_defaultOwner ??= OwnerInformation.Default = value;
 			}
 		}
-		private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode ? null : new LogglyClient();
+		private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
+			? null 
+			: new LogglyClient();
 
 		private static bool IsVerboseLoggingEnabled()
 		{

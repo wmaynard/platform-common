@@ -109,6 +109,7 @@ namespace Rumble.Platform.Common.Web
 					Payload = null;
 					Request.Content = null;
 				}
+
 				if (payload != null)
 					Payload = payload;
 				Response = CLIENT.Send(Request);
@@ -122,32 +123,42 @@ namespace Rumble.Platform.Common.Web
 					s.CopyTo(ms);
 					return ms.ToArray();
 				}
-				
+
 				Task<string> task = content.ReadAsStringAsync();
 				task.Wait(30_000); // TODO: Test timeout failure
-				
-				Log.Verbose(Owner.Will, "PlatformRequest sent.", data: new
-				{
-					Payload = payload,
-					Response = Response,
-					Result = task.Result,
-					Url = Uri.ToString()
-				});
+
 				output = fullResponse = task.Result;
 			}
 			catch (HttpRequestException ex)
 			{
-				Log.Warn(Owner.Default, "Unable to send web request.", exception: ex, data: new { Url = Uri.ToString(), Payload = payload, Response = Response });
+				Log.Warn(Owner.Default, "Unable to send web request.", exception: ex, data: new
+				{
+					Url = Uri.ToString(),
+					Payload = payload,
+					Response = Response,
+					TextResponse = fullResponse
+				});
 			}
 			catch (JsonException ex)
 			{
 				Log.Warn(Owner.Default, "Unable to parse response.", exception: ex, data: new
 				{
-					Url = Uri.ToString(), 
-					Payload = payload, 
+					Url = Uri.ToString(),
+					Payload = payload,
 					Response = Response,
 					TextResponse = fullResponse
 				});
+			}
+			catch (Exception ex)
+			{
+				Log.Error(Owner.Default, "Unhandled exception sending a web request.", exception: ex, data: new
+				{
+					Url = Uri.ToString(),
+					Payload = payload,
+					Response = Response,
+					TextResponse = fullResponse
+				});
+				throw;
 			}
 
 			Reset();
