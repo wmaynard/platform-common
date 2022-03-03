@@ -16,7 +16,8 @@ namespace Rumble.Platform.Common.Utilities
 
 		public static void ConfigureJsonOptions(JsonOptions options)
 		{
-			options.JsonSerializerOptions.IgnoreNullValues = JsonHelper.SerializerOptions.IgnoreNullValues;
+			// options.JsonSerializerOptions.IgnoreNullValues = JsonHelper.SerializerOptions.IgnoreNullValues;
+			options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 			options.JsonSerializerOptions.IncludeFields = JsonHelper.SerializerOptions.IncludeFields;
 			options.JsonSerializerOptions.IgnoreReadOnlyFields = JsonHelper.SerializerOptions.IgnoreReadOnlyFields;
 			options.JsonSerializerOptions.IgnoreReadOnlyProperties = JsonHelper.SerializerOptions.IgnoreReadOnlyProperties;

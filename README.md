@@ -220,9 +220,46 @@ Helpful resources for working with Slack:
 
 ## Services
 
-| Name                   | Description                                                                                                                                              |
-|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`. |
+| Name                   | Description                                                                                                                                                                                                         |
+|:-----------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ApiService`           | A service that handles JSON API calls.  Requests are built through object chaining and supports both synchronous and asynchronous requests.                                                                         |
+| `ConfigService`        | This service allows developers to easily store runtime configs for their services which persist between sessions.  This service requires a MongoDB connection, and stores values in the `serviceConfig` collection. |
+| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`.                                                            |
+
+### Using the `ApiService`
+
+A replacement for `PlatformRequest`, the `ApiService` provides clean wrappers for the built-in .NET HTTP requests and can help with self-documenting code.  Each available HTTP method is available as a C# method to end the chain, such as `.Post()` and `.PostAsync()`.
+
+While these methods return an `ApiResponse` object which can then be used to get the json output (in the form of `GenericData`) or the status code, you have the option to simplify this further with 0, 1, or 2 **out parameters** as shown below.
+
+```
+// This example comes from player-service-v2's token generation code:
+string token = "..." // Your JWT here
+GenericData payload = new GenericData() 
+{
+    { "aid", accountId },
+    { "screenname", screenname },
+    { "origin", "player-service-v2" },
+    { "email", email },
+    { "discriminator", discriminator },
+    { "ipAddress", geoData?.IPAddress },
+    { "countryCode", geoData?.CountryCode }
+}
+
+_apiService
+    .Request(url)
+    .AddAuthorization(token)
+    .SetPayload(payload)
+    .OnSuccess((sender, response) =>
+    {
+        Log.Local(Owner.Will, "Token generation successful.");
+    })
+    .OnFailure((sender, response) =>
+    {
+        Log.Error(Owner.Will, "Unable to generate token.");
+    })
+    .Post(out GenericData response, out int code);
+```
 
 ### Using the `DynamicConfigService`
 

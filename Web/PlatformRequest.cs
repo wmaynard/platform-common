@@ -15,6 +15,7 @@ using Method = System.Net.Http.HttpMethod;
 namespace Rumble.Platform.Common.Web
 {
 	[SuppressMessage("ReSharper", "PossibleNullReferenceException")]
+	[Obsolete("PlatformRequest will be removed from platform-csharp-common around 6/1/2022.  Use ApiService instead.")]
 	public class PlatformRequest
 	{
 		internal static readonly HttpClient CLIENT = new HttpClient(new HttpClientHandler()
