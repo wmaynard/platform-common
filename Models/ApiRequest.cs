@@ -105,14 +105,14 @@ public class ApiRequest
 		return output;
 	}
 	private async Task<ApiResponse> SendAsync(HttpMethod method) => await SetMethod(method)._apiService.SendAsync(this);
-	public ApiResponse Delete() => Delete(out GenericData unused1, out int unused2);
-	public ApiResponse Get() => Get(out GenericData unused1, out int unused2);
-	public ApiResponse Head() => Head(out GenericData unused1, out int unused2);
-	public ApiResponse Options() => Options(out GenericData unused1, out int unused2);
-	public ApiResponse Patch() => Patch(out GenericData unused1, out int unused2);
-	public ApiResponse Post() => Post(out GenericData unused1, out int unused2);
-	public ApiResponse Put() => Put(out GenericData unused1, out int unused2);
-	public ApiResponse Trace() => Trace(out GenericData unused1, out int unused2);
+	public ApiResponse Delete() => Delete(out GenericData unused);
+	public ApiResponse Get() => Get(out GenericData unused);
+	public ApiResponse Head() => Head(out GenericData unused);
+	public ApiResponse Options() => Options(out GenericData unused);
+	public ApiResponse Patch() => Patch(out GenericData unused);
+	public ApiResponse Post() => Post(out GenericData unused);
+	public ApiResponse Put() => Put(out GenericData unused);
+	public ApiResponse Trace() => Trace(out GenericData unused);
 
 	public ApiResponse Delete(out GenericData json) => Delete(out json, out int unused);
 	public ApiResponse Get(out GenericData json) => Get(out json, out int unused);

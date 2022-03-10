@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
@@ -7,6 +8,7 @@ using System.Xml.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
@@ -20,6 +22,11 @@ namespace Rumble.Platform.Common.Filters
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
 		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Optional("RUMBLE_TOKEN_VERIFICATION"); // TODO: Once everything has transitioned to token-service, remove this
 		public const string KEY_TOKEN = "PlatformToken";
+
+		// TODO: This is going to be best-served by a PlatformTimerService rather than a static Dictionary.
+		// Creating a service will make it easier to clear out tokens that are inactive for long periods of time.  Right now, this will result
+		// in an ever-increasing memory footprint, albeit a small one, until the service is restarted.
+		private static Dictionary<string, TokenInfoCache> Cache;
 
 		/// <summary>
 		/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
@@ -93,12 +100,15 @@ namespace Rumble.Platform.Common.Filters
 		[SuppressMessage("ReSharper", "PossibleNullReferenceException")]
 		public static TokenInfo ValidateToken(string token, FilterContext context = null)
 		{
+			if (ValidTokenInCache(token, out TokenInfo cached))
+				return AddToContext(ref context, cached);
+			
 			if (string.IsNullOrEmpty(TokenAuthEndpoint))
 				throw new AuthNotAvailableException(TokenAuthEndpoint);
 			if (token == null)
 				throw new InvalidTokenException(null, TokenAuthEndpoint);
+			
 			long timestamp = Diagnostics.Timestamp;
-			// JsonElement result = new JsonElement();
 			GenericData result = null;
 			bool success = false;
 
@@ -120,7 +130,7 @@ namespace Rumble.Platform.Common.Filters
 						EncryptedToken = token,
 						Result = result
 					}, exception: ex);
-					// result = WebRequest.Get(TokenAuthEndpoint_Legacy, token).RootElement; // fallback to player-service.  TODO: Remove this once everything is moved to token-service
+					
 					result = PlatformRequest.Get(TokenAuthEndpoint_Legacy, auth: token).Send(); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
 				}
 			}
@@ -129,7 +139,7 @@ namespace Rumble.Platform.Common.Filters
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
 			
-			// bool success = JsonHelper.Require<bool>(result, "success"); // This is something exclusive to player-service; when token-service is rewritten, this will change.
+			
 			success = result.Optional<bool>("success");
 			if (!success)
 				throw new InvalidTokenException(token, TokenAuthEndpoint, new Exception((string)result["error"]));
@@ -148,15 +158,59 @@ namespace Rumble.Platform.Common.Filters
 					IsAdmin = result.Optional<bool>(TokenInfo.FRIENDLY_KEY_IS_ADMIN)
 				};
 				
+				CacheToken(token, output);
+				
 				Log.Verbose(Owner.Will, $"Time taken to verify the token: {Diagnostics.TimeTaken(timestamp):N0}ms.", data: Converter.ContextToEndpointObject(context));
-				if (context != null)
-					context.HttpContext.Items[KEY_TOKEN] = output;
-				return output;
+				return AddToContext(ref context, output);
 			}
 			catch (Exception e)
 			{
 				throw new InvalidTokenException(token, TokenAuthEndpoint, e);
 			}
+		}
+
+		private static TokenInfo AddToContext(ref FilterContext context, TokenInfo info)
+		{
+			if (context != null)
+				context.HttpContext.Items[KEY_TOKEN] = info;
+			return info;
+		}
+
+		private static void CacheToken(string token, TokenInfo info)
+		{
+			Cache ??= new Dictionary<string, TokenInfoCache>();
+			Cache[token] = new TokenInfoCache()
+			{
+				Token = info,
+				LastValidated = Timestamp.UnixTimeUTCMS
+			};
+		}
+
+		/// <summary>
+		/// Checks to see if the token has already been evaluated.  If it has been seen recently, we don't need to validate it again,
+		/// so the stored token information is assigned to the out parameter.  Returns true if the cache is still valid.
+		/// </summary>
+		/// <param name="token">The full Authorization value, including "Bearer ".</param>
+		/// <param name="cached">The cached TokenInfo data.  Null if not previously evaluated, but is assigned even if the cache needs to be refreshed.</param>
+		/// <returns>True if the token has been seen and the cached information is recent.</returns>
+		private static bool ValidTokenInCache(string token, out TokenInfo cached)
+		{
+			Cache ??= new Dictionary<string, TokenInfoCache>();
+
+			Cache.TryGetValue(token, out TokenInfoCache stored);
+
+			cached = stored?.Token;
+			
+			return stored != null && !stored.NeedsRefresh;
+		}
+		
+		private class TokenInfoCache
+		{
+			private const int REFRESH_INTERVAL_MS = 300_000; // 5 minutes
+			public TokenInfo Token { get; set; }
+			public long LastValidated { get; set; }
+			public bool NeedsRefresh => Timestamp.UnixTimeUTCMS - LastValidated > REFRESH_INTERVAL_MS;
+			public int ValidMS => REFRESH_INTERVAL_MS - (int)(Timestamp.UnixTimeUTCMS - LastValidated);
 		}
 	}
 }
