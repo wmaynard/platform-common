@@ -96,7 +96,7 @@ namespace Rumble.Platform.Common.Web
 		private bool _filtersAdded;
 		private readonly List<Type> _bypassedFilters;
 		
-		protected PlatformStartup(IConfiguration configuration = null)
+		protected PlatformStartup(IConfiguration configuration = null, string serviceNameOverride = null)
 		{
 #if RELEASE
 			if (PlatformEnvironment.SwarmMode)
@@ -108,8 +108,8 @@ namespace Rumble.Platform.Common.Web
 			Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
 			if (MongoConnection == null)
 				Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
-
-			Graphite.Initialize(ServiceName);
+			
+			Graphite.Initialize(serviceNameOverride != null ? serviceNameOverride : ServiceName);
 			_bypassedFilters = new List<Type>();
 		}
 		
