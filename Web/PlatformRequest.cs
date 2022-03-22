@@ -132,9 +132,17 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (HttpRequestException ex)
 			{
-				Log.Warn(Owner.Default, "Unable to send web request.", exception: ex, data: new
+				string url = Uri.ToString();
+				Log.LogType logType = Log.LogType.WARNING;
+				
+				if (url.Contains("loggly.com"))
 				{
-					Url = Uri.ToString(),
+					logType = Log.LogType.LOCAL;
+				}
+				
+				Log.Write(logType, Owner.Default, "Unable to send web request.", exception: ex, data: new
+				{
+					Url = url,
 					Payload = payload,
 					Response = Response,
 					TextResponse = fullResponse
@@ -142,9 +150,17 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (JsonException ex)
 			{
-				Log.Warn(Owner.Default, "Unable to parse response.", exception: ex, data: new
+				string url = Uri.ToString();
+				Log.LogType logType = Log.LogType.WARNING;
+				
+				if (url.Contains("loggly.com"))
 				{
-					Url = Uri.ToString(),
+					logType = Log.LogType.LOCAL;
+				}
+				
+				Log.Write(logType, Owner.Default, "Unable to parse response.", exception: ex, data: new
+				{
+					Url = url,
 					Payload = payload,
 					Response = Response,
 					TextResponse = fullResponse
@@ -152,9 +168,17 @@ namespace Rumble.Platform.Common.Web
 			}
 			catch (Exception ex)
 			{
-				Log.Error(Owner.Default, "Unhandled exception sending a web request.", exception: ex, data: new
+				string url = Uri.ToString();
+				Log.LogType logType = Log.LogType.ERROR;
+				
+				if (url.Contains("loggly.com"))
 				{
-					Url = Uri.ToString(),
+					logType = Log.LogType.LOCAL;
+				}
+				
+				Log.Write(logType, Owner.Default, "Unhandled exception sending a web request.", exception: ex, data: new
+				{
+					Url = url,
 					Payload = payload,
 					Response = Response,
 					TextResponse = fullResponse

@@ -37,7 +37,7 @@ namespace Rumble.Platform.Common.Utilities
 				&& string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
 		}
 		
-		private enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
+		public enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
 
 		[JsonIgnore]
 		private readonly Owner _owner;
@@ -124,8 +124,9 @@ namespace Rumble.Platform.Common.Utilities
 			string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
 			string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
 			string msg = Message ?? "No Message";
+			string data = Data == null ? "" : "| " + Data.ToString();
 
-			return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg}";
+			return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg} {data}";
 		}
 
 		/// <summary>
@@ -278,7 +279,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="message">The message to log.</param>
 		/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 		/// <param name="exception">Any exception encountered, if available.</param>
-		private static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null)
+		public static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null)
 		{
 			Owner actual = owner == Utilities.Owner.Default
 				? DefaultOwner
