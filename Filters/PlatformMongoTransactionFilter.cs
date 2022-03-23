@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
@@ -30,7 +31,9 @@ namespace Rumble.Platform.Common.Filters
 
 		public void OnResourceExecuted(ResourceExecutedContext context) { }
 
-		public void OnException(ExceptionContext context)
+		public void OnException(ExceptionContext context) => Rollback(context);
+
+		private void Rollback(FilterContext context)
 		{
 			IClientSessionHandle session = GetMongoSession(context);
 			if (session == null)
@@ -38,7 +41,16 @@ namespace Rumble.Platform.Common.Filters
 			try
 			{
 				session.AbortTransaction();
-				Log.Error(Owner.Default, "Mongo transaction was aborted.", exception: context.Exception);
+
+				if (context is ExceptionContext eContext)
+					Log.Error(Owner.Default, "Mongo transaction was aborted.", exception: eContext.Exception);
+				else if (context is ResultExecutingContext reContext)
+					Log.Error(Owner.Default, "Mongo transaction was aborted.", data: new
+					{
+						Result = reContext.Result
+					});
+				else
+					Log.Error(Owner.Default, "Mongo transaction was aborted.");
 			}
 			catch (Exception e)
 			{
@@ -46,7 +58,7 @@ namespace Rumble.Platform.Common.Filters
 			}
 		}
 
-		public void OnResultExecuting(ResultExecutingContext context)
+		private void Commit(FilterContext context)
 		{
 			IClientSessionHandle session = GetMongoSession(context);
 			if (session == null)
@@ -61,6 +73,14 @@ namespace Rumble.Platform.Common.Filters
 				Log.Error(Owner.Default, "Mongo transaction failed.", exception: e);
 				throw;
 			}
+		}
+
+		public void OnResultExecuting(ResultExecutingContext context)
+		{
+			if (context.Result is OkObjectResult ok)
+				Commit(context);
+			else
+				Rollback(context);
 		}
 
 		public void OnResultExecuted(ResultExecutedContext context) { }

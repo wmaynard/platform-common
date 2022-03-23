@@ -31,8 +31,8 @@ namespace Rumble.Platform.Common.Utilities
 				MethodBase method = new StackTrace()
 					.GetFrames()
 					.Take(lookBehind)
-					.Select(frame => frame.GetMethod())
-					.Where(method => method.DeclaringType != null) // Required to circumnavigate a NotImplementedException in C# Core (in DynamicMethod.GetCustomAttributes).
+					.Select(frame => frame?.GetMethod())
+					.Where(method => method?.DeclaringType != null) // Required to circumnavigate a NotImplementedException in C# Core (in DynamicMethod.GetCustomAttributes).
 					.First(method => method.CustomAttributes
 						.Any(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME));
 
@@ -46,7 +46,10 @@ namespace Rumble.Platform.Common.Utilities
 						.Select(arg => arg.Value?.ToString())
 				);
 			}
-			catch { }
+			catch (Exception e)
+			{
+				
+			}
 
 			return endpoint;
 		}

@@ -26,10 +26,10 @@ namespace Rumble.Platform.Common.Web
 		protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
 
 		private bool UseMongoTransaction => (bool)(HttpContext?.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
-		public IClientSessionHandle MongoSession
+		protected IClientSessionHandle MongoSession
 		{
 			get => (IClientSessionHandle)HttpContext?.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
-			set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
+			private set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
 		}
 		private readonly HttpContextAccessor _httpContextAccessor; 
 		
@@ -69,12 +69,15 @@ namespace Rumble.Platform.Common.Web
 
 		public virtual IEnumerable<Model> List() => _collection.Find(filter: model => true).ToList();
 
-		protected void StartTransactionIfRequested(out IClientSessionHandle session)
+		protected void StartTransactionIfRequested(out IClientSessionHandle session) => StartTransaction(out session, attributeOverride: false);
+		protected void StartTransaction(out IClientSessionHandle session) => StartTransaction(out session, attributeOverride: true);
+
+		private void StartTransaction(out IClientSessionHandle session, bool attributeOverride)
 		{
 			session = MongoSession;
 
 			// Return if the session has already started or if we don't need to use one.
-			if (session != null || !UseMongoTransaction)
+			if (session != null || (!attributeOverride && !UseMongoTransaction))
 				return;
 			
 			Log.Verbose(Owner.Default, "Starting MongoDB transaction.");
@@ -93,6 +96,19 @@ namespace Rumble.Platform.Common.Web
 				return;
 			}
 			MongoSession = session;
+		}
+
+		public void CommitTransaction()
+		{
+			try
+			{
+				MongoSession?.CommitTransaction();
+				MongoSession = null;
+			}
+			catch (Exception e)
+			{
+				Log.Error(Owner.Will, "Could not commit transaction from PlatformMongoService.CommitTransaction().");
+			}
 		}
 
 		public IClientSessionHandle StartTransaction()
@@ -246,6 +262,10 @@ namespace Rumble.Platform.Common.Web
 			});
 #endif
 		}
+		
+		// TODO: We need a mongo wrapper to handle sessions in conjunction with _collection.{METHOD}.
+		// Mongo throws exceptions if you try to hand it a null session, which can happen if UseMongoTransaction isn't specified, and
+		// transactions don't work on local installs without special setup.  This results in duplicated commands everywhere sessions are optional.
 
 		private class MongoIndex
 		{

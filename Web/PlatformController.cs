@@ -54,9 +54,9 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformRequest TokenVerification { get; set; }
 
-		public ObjectResult Problem(string detail) => Problem(value: new { DebugText = detail });
+		public ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 
-		public OkObjectResult Problem(object value) => base.Ok(Merge(new { Success = false }, value));
+		public ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
 		public new OkObjectResult Ok() => base.Ok(null);
 		public OkObjectResult Ok(string message) => Ok( new { Message = message });

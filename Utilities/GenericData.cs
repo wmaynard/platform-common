@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Utilities
@@ -139,28 +141,17 @@ namespace Rumble.Platform.Common.Utilities
 		public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
 		public static bool operator !=(GenericData a, GenericData b) => !(a == b);
 
-		public T Require<T>(string key) => Translate<T>(Require(key));
+		public T Require<T>(string key) => Translate<T>(Require(key)) ?? throw new PlatformException(message: $"Unable to cast {GetType().Name} to {typeof(T).Name}.");
 
 		public T Optional<T>(string key) => Translate<T>(Optional(key));
 
-		public object Require(string key)
-		{
-			if (!ContainsKey(key))
-				throw new KeyNotFoundException($"GenericData key not found: '{key}'");
-			return this[key];
-		}
+		public object Require(string key) => ContainsKey(key)
+			? this[key]
+			: throw new PlatformException($"GenericData required key not found: '{key}'", code: ErrorCode.RequiredFieldMissing);
 
-		public object Optional(string key)
-		{
-			try
-			{
-				return Require(key);
-			}
-			catch
-			{
-				return null;
-			}
-		}
+		public object Optional(string key) => ContainsKey(key)
+			? this[key]
+			: null;
 		
 		/// <summary>
 		/// If the object to convert is a PlatformDataModel, this method will serialize the GenericData into JSON
@@ -171,8 +162,8 @@ namespace Rumble.Platform.Common.Utilities
 		/// <param name="obj">The object to try data conversion on.</param>
 		/// <param name="type">The type to convert the object to.</param>
 		private static dynamic TryConvertToModel(object obj, Type type) =>
-			type.IsAssignableTo(typeof(PlatformDataModel)) && obj is GenericData
-				? JsonSerializer.Deserialize(((GenericData)obj).JSON, type, JsonHelper.SerializerOptions)
+			type.IsAssignableTo(typeof(PlatformDataModel)) && obj is GenericData data
+				? JsonSerializer.Deserialize(data.JSON, type, JsonHelper.SerializerOptions)
 				: Convert.ChangeType(obj, type);
 
 		/// <summary>

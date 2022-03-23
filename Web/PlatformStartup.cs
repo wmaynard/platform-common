@@ -109,7 +109,7 @@ namespace Rumble.Platform.Common.Web
 			if (MongoConnection == null)
 				Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 			
-			Graphite.Initialize(serviceNameOverride != null ? serviceNameOverride : ServiceName);
+			Graphite.Initialize(serviceNameOverride ?? ServiceName);
 			_bypassedFilters = new List<Type>();
 		}
 		
