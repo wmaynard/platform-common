@@ -20,7 +20,6 @@ namespace Rumble.Platform.Common.Filters
 	public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter
 	{
 		private static readonly string TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
-		private static readonly string TokenAuthEndpoint_Legacy = PlatformEnvironment.Optional("RUMBLE_TOKEN_VERIFICATION"); // TODO: Once everything has transitioned to token-service, remove this
 		public const string KEY_TOKEN = "PlatformToken";
 
 		// TODO: This is going to be best-served by a PlatformTimerService rather than a static Dictionary.
@@ -35,8 +34,6 @@ namespace Rumble.Platform.Common.Filters
 		{
 			if (TokenAuthEndpoint == null)
 				Log.Error(Owner.Default, "Missing token auth environment variable for token-service (RUMBLE_TOKEN_VALIDATION).");
-			if (TokenAuthEndpoint_Legacy == null)
-				Log.Error(Owner.Default, "Missing token auth environment variable for legacy player-service (RUMBLE_TOKEN_VERIFICATION).");
 			
 			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
 				return;
@@ -91,7 +88,7 @@ namespace Rumble.Platform.Common.Filters
 		}
 
 		/// <summary>
-		/// Sends a GET request to a token service (currently player-service) to validate a token.
+		/// Sends a GET request to validate a token.
 		/// Stores the token in the HttpContext if provided, allowing for use in controllers.
 		/// </summary>
 		/// <param name="token">The JWT as it appears in the Authorization header, including "Bearer ".</param>
@@ -114,25 +111,11 @@ namespace Rumble.Platform.Common.Filters
 
 			try
 			{
-				try
-				{
-					// result = WebRequest.Get(TokenAuthEndpoint, token).RootElement;
-					result = PlatformRequest.Get(TokenAuthEndpoint, auth: token).Send();
-					success = result.Optional<bool>("success");
-					if (!success)
-						throw new FailedRequestException(TokenAuthEndpoint);
-				}
-				catch (FailedRequestException ex)
-				{
-					Log.Info(Owner.Will, "Could not authorize via token-service.  Authorizing instead with player-service.", data: new
-					{
-						TokenAuthEndpoint = TokenAuthEndpoint,
-						EncryptedToken = token,
-						Result = result
-					}, exception: ex);
-					
-					result = PlatformRequest.Get(TokenAuthEndpoint_Legacy, auth: token).Send(); // fallback to player-service.  TODO: Remove this once everything is moved to token-service
-				}
+				// result = WebRequest.Get(TokenAuthEndpoint, token).RootElement;
+				result = PlatformRequest.Get(TokenAuthEndpoint, auth: token).Send();
+				success = result.Optional<bool>("success");
+				if (!success)
+					throw new FailedRequestException(TokenAuthEndpoint);
 			}
 			catch (Exception e)
 			{
