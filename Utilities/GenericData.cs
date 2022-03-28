@@ -161,8 +161,7 @@ namespace Rumble.Platform.Common.Utilities
 		/// </summary>
 		/// <param name="obj">The object to try data conversion on.</param>
 		/// <param name="type">The type to convert the object to.</param>
-		private static dynamic TryConvertToModel(object obj, Type type) =>
-			type.IsAssignableTo(typeof(PlatformDataModel)) && obj is GenericData data
+		private static dynamic TryConvertToModel(object obj, Type type) => obj is GenericData data
 				? JsonSerializer.Deserialize(data.JSON, type, JsonHelper.SerializerOptions)
 				: Convert.ChangeType(obj, type);
 

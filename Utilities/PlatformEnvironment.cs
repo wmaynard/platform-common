@@ -69,6 +69,17 @@ namespace Rumble.Platform.Common.Utilities
 			// In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
 			// we manage environment variables locally.
 			Variables.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+
+			if (LogglyUrl != null)
+				return Variables;
+			
+			string loggly = Variables.Optional<string>(KEY_LOGGLY_ROOT);
+			string tag = Variables.Optional<string>(KEY_COMPONENT);
+
+			if (loggly == null || tag == null)
+				return Variables;
+
+			Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
 			
 			return Variables;
 		}
