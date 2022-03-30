@@ -6,13 +6,13 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -21,7 +21,6 @@ using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
-using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Web
 {
@@ -57,6 +56,7 @@ namespace Rumble.Platform.Common.Web
 				}
 			}
 		}
+		
 		[JsonInclude]
 		private string ServiceName
 		{
@@ -145,7 +145,7 @@ namespace Rumble.Platform.Common.Web
 			).AddJsonOptions(JsonHelper.ConfigureJsonOptions);
 			// As a side effect of dropping Newtonsoft and switching to System.Text.Json, nothing until this point can be reliably serialized to JSON.
 			// It throws errors when trying to serialize certain types and breaks the execution to do it.
-			
+
 			BsonSerializer.RegisterSerializer(new BsonGenericConverter());
 			Log.Local(Owner.Default, "BSON converters configured.");
 			
@@ -244,28 +244,50 @@ namespace Rumble.Platform.Common.Web
 					Log.Warn(Owner.Default, $"There was an issue in resolving dependent services for {type.Name}.", exception: e);
 				}
 
-			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
+			// Separate the two modes of startup - either services or a website with services.
+			// This is a necessary step to prevent microservices (the more common projects) from starting up a file server.
+			// Since order matters for several methods in these chains, it is safer to create one chain per purpose, with every necessary
+			// method call that purpose needs.
+			if (!WebServerEnabled)
+			{
+				Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
+				app.UseRouting()
+					.UseCors(CORS_SETTINGS_NAME)
+					.UseAuthorization()
+					.UseEndpoints(endpoints =>
+					{
+						endpoints.MapControllers();
+					})
+					.UseResponseCompression();
+				return;
+			}
+			
+			if (env.IsDevelopment())
+				app.UseDeveloperExceptionPage();
+			else
+				app.UseHsts();
+			
+			Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
 			app.UseRouting()
 				.UseCors(CORS_SETTINGS_NAME)
+				.UseAuthentication()
 				.UseAuthorization()
-				.UseEndpoints(endpoints =>
-				{
-					endpoints.MapControllers();
-				})
-				.UseResponseCompression();
-
-			if (!WebServerEnabled)
-				return;
-			Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
-			app.UseExceptionHandler("/Error") // TODO: this needs to be tested
+				.UseStaticFiles()
+				.UseExceptionHandler("/Error") // TODO: this needs to be tested
 				.UseHsts()
 				.UseHttpsRedirection()
 				.UseRewriter(new RewriteOptions()
 					.Add(new RemoveWwwRule())
 					.Add(new OmitExtensionsRule())
 					.Add(new RedirectExtensionlessRule())
-				).UseFileServer()
-				.UseEndpoints(ConfigureRoutes);
+				)
+				.UseFileServer()
+				.UseEndpoints(builder =>
+				{
+					builder.MapControllers();
+					ConfigureRoutes(builder);
+				})
+				.UseResponseCompression();
 		}
 
 		protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }

@@ -1,3 +1,201 @@
+# 1.0.115
+
+- Fixed some issues with `PlatformStartup` that prevented the use of Google OAuth authorizations in the tower-portal project.
+
+# 1.0.113 & 1.0.114
+
+- Fixed an issue where `GenericData` was able to deserialize a `List<PlatformDataModel>`, but not a `List<T>`.
+- Fixed an issue where `LogglyUrl` was sometimes null.
+- Fixed an issue where `DynamicConfigClient` was missing a slash in its request.
+
+# 1.0.112
+
+- Dropped player-service-v1 token validation now that v1 is no longer in use.  This reduces log spam coming from bad tokens.
+
+# 1.0.111
+
+- Improved Mongo transactions.  Prior to this update, transactions were only rolled back automatically if an uncaught exception passed through to the `PlatformExceptionFilter`.  Now, they are rolled back when the HTTP code is _not_ a 2xx.
+- `Problem()` returns a 400 with details.
+
+# 1.0.109 & 1.0.110
+
+- Service name can now be overridden.
+- Failed loggly messages no longer loop
+
+# 1.0.108
+
+- Initial pass on token caching.  Tokens prior to this update were validated on every request, resulting in very high traffic with few users to and from token-service.
+
+# 1.0.107
+
+- Added `ApiService` to better assist with making web calls.  The previous helper class (`PlatformRequest`) was hobbled together quickly and not the most intuitive to use.  Calls are made through method chaining:
+
+```
+_apiService
+    .Request(".../some/api/endpoint")
+    .AddAuthorization("...") // the admin JWT from dynamic config
+    .SetPayload(new GenericData()
+    {
+        { "aid", "deadbeefdeadbeefdeadbeef" },
+        { "screenname", "Corky Douglas" },
+        { "origin", "player-service-v2" }
+    })
+    .OnFailure((sender, response) =>
+    {
+        // Can add diagnostics here for when the code isn't 2xx
+        Log.Error(Owner.Will, "Unable to generate token."); 
+    })
+    .Post(out GenericData response, out int code); // all HTTP methods available
+```
+
+# 1.0.106
+
+- Project upgrade to .NET 6 / C# 10
+
+# 1.0.103 - 1.0.105
+
+- Added ability to manually start and commit transactions
+- Improvements made to web request logging
+- 
+
+# 1.0.102
+
+- Dynamic config kluge: `platformUrl` -> `platformUrl_C#`.  This was necessary to bring up player-service-v2 alongside v1.
+
+# 1.0.100
+
+- Minor fix for `GenericData.Combine()`
+  - Change is necessary for the `PLATFORM_COMMON` CI vars
+
+## About `PLATFORM_COMMON` CI Variables
+
+Gitlab locks certain features behind a paywall, charging a monthly fee per user.  One locked feature is the ability to have global environments defined.  This means that each project needs to define its own environments (dev, stage, prod, etc.).
+
+Before this update, it was up to each developer to manage all of their CI vars.  However, this gets complicated quickly when promoting services to new environments; it only takes one missed variable to cause a headache.  The `PLATFORM_COMMON` variables reduce the number of variables that need to be tracked.
+
+As an example, a variable that's used across all projects is the `GameSecret`, and at the time of this writing, we have 6 environments:
+* Dev
+* Stage-A / B / C
+* Prod A / B
+
+Each environment tends to command its own value for this
+
+# 1.0.99
+
+- `PlatformEnvironment` is now based on `GenericData`.
+  - Accessor methods added to mirror `GenericData` functionality with `Require` and `Optional`.
+  - Previous methods of `Variable` and `OptionalVariable` have been marked as obsolete and will be removed in a few months.
+
+# 1.0.98
+
+- Switched body reading method in `PlatformResourceFilter`.  This resolves issues with large requests coming from player-service-v2.
+
+# 1.0.96 & 1.0.97
+
+- Fixes for `SlackDiagnostics`
+- Temporary logging specifically for player-service (96), removed in 97.
+
+# 1.0.94
+
+- Added `SlackDiagnostics`, which allows developers to send log messages directly to Slack.
+  - Tag people or send direct messages with this class.
+  - Original intent was to provide a way to extract full, non-truncated logs since Loggly has a maximum payload limit.
+  - Only pings people at reasonable hours, and a maximum of once per message.
+  - Automatically sends a log to its owner for any `CRITICAL` level event in Loggly. 
+
+
+```
+SlackDiagnostics.Log("Test message", "Some message detail")
+    .Tag(Owner.Will)
+    .AddMessage("Another message")
+    .AddMessage("Yet another message")
+    .Attach("The Famous Lorem Ipsum.txt", "{dump text file contents here}")
+    .Attach("secondFilename.txt", "{dump text file contents here}")
+    .Send();
+```
+
+# 1.0.92 & 1.0.93
+
+- Added getter properties to `PlatformEnvironment` to simplify common variables.
+- Fixed `PlatformEnvironment` fallback values.
+
+# 1.0.90 - 1.0.91
+
+- Serialization fixes for `GenericData`.
+- Added a try/catch block to `PlatformTimerService`.
+
+# 1.0.89
+
+- Added `IgnorePerformance` attribute, valid on Controllers and Controller methods.
+
+# 1.0.88
+
+- Added `ConfigService`, which allows projects to easily store and retrieve values between runs.
+- Added automatic service dependency resolution to startup.
+
+# 1.0.87
+
+- `DynamicConfigClient` error handling improved.
+
+# 1.0.86
+
+- `PlatformController` instances will now automatically assign singletons to any member variable of `PlatformService`.
+  - Avoid dependency injection through the constructor this way.  This is one of the few features from Groovy that was a net positive for creating clean code.
+  - To remove Rider's complaints about instantiated variables, surround the Services with a `#pragma disable`:
+
+```
+    [ApiController, Route("foobar"), RequireAuth, UseMongoTransaction]
+    public class TopController : PlatformController
+    {
+#pragma warning disable CS0649
+        private DynamicConfigService _dynamicConfigService;
+        private ResetService _resetService;
+#pragma warning restore CS0649
+        ....
+    }
+```
+
+# 1.0.85
+
+- Performance monitoring via logs now supports opt-out; to ignore performance, pass a value less than 0 in Startup.
+
+# 1.0.82 - 1.0.84
+
+- `DynamicConfigClient` updated to include check for initialization.
+- `HttpContext` null chaining added for `MongoSession` and `UseMongoTransaction` to prevent null reference exceptions.
+
+# 1.0.81
+
+- Local log spam reduced
+- Namespace refactoring to remove unnecessary `CSharp` from namespaces.
+
+### Breaking changes: all projects will need to update their references to reflect the namespace changes.
+
+# 1.0.80
+
+- `PlatformMongoServices` create their collections on project startup.
+
+# 1.0.79
+
+- Initial load testing documentation and support
+
+# 1.0.77 & 1.0.78
+
+- `GenericData` special case handling for string translation.
+- `GenericData` null fixes
+
+# 1.0.71 - 1.0.76
+
+- Added MaxMind interop and GeoIP lookups; currently only used in player-service.
+- Added IP address to HttpContext Items
+- Added CountryCode to TokenInfo
+- Added `LOCAL_IP_OVERRIDE` to environment variables; use this if you need to spoof your location when working locally.
+- MaxMind-related bugfixes
+
+# 1.0.70
+
+- `TokenHelper` class added to manage admin tokens.
+
 # 1.0.69
 
 - Added body reader support for requests sent with `form-data` or `x-www-form-urlencoded`.
