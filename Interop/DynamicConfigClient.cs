@@ -114,7 +114,7 @@ namespace Rumble.Platform.Common.Interop
                 return false;
             }
 
-            string clientConfigUrl = _configServiceUrl + "clientConfig";
+            string clientConfigUrl = Path.Combine(_configServiceUrl, "clientConfig");
 
             WebRequest request = WebRequest.Create(new Uri(clientConfigUrl)) as HttpWebRequest;
             request.Method = "GET";
