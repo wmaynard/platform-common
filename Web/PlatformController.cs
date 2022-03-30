@@ -16,7 +16,7 @@ using Rumble.Platform.Common.Models;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class PlatformController : ControllerBase
+	public abstract class PlatformController : Controller
 	{
 		private readonly IConfiguration _config;
 		private readonly IServiceProvider _services;
