@@ -54,13 +54,17 @@ namespace Rumble.Platform.Common.Web
 		
 		protected PlatformRequest TokenVerification { get; set; }
 
-		public ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
+		protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 
-		public ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
+		protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
+		[NonAction]
 		public new OkObjectResult Ok() => base.Ok(null);
+		[NonAction]
 		public OkObjectResult Ok(string message) => Ok( new { Message = message });
+		[NonAction]
 		private new OkObjectResult Ok(object value) => base.Ok(Merge(new { Success = true }, value));
+		[NonAction]
 		public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
 
 		protected static object Merge(params object[] objects)
@@ -130,7 +134,7 @@ namespace Rumble.Platform.Common.Web
 				expando[JsonNamingPolicy.CamelCase.ConvertName(key)] = dict[key];
 		}
 
-		[HttpGet, Route(template: "/health")]
+		[HttpGet, Route(template: "health")]
 		public abstract ActionResult HealthCheck();
 
 		public static object CollectionResponseObject(IEnumerable<object> objects)
