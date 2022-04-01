@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Rewrite;
@@ -180,6 +181,13 @@ namespace Rumble.Platform.Common.Web
 					continue;
 				Services.AddSingleton(service);
 			}
+			
+			Log.Local(Owner.Default, "Adding forwarded headers");
+			services.Configure<ForwardedHeadersOptions>(options =>
+			{
+				options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+			});
+			
 				
 			Log.Local(Owner.Default, "Service configuration complete.");
 		}
@@ -281,6 +289,7 @@ namespace Rumble.Platform.Common.Web
 			app
 				.UseHttpsRedirection()
 				.UseCors(CORS_SETTINGS_NAME)
+				.UseForwardedHeaders()
 				.UseRewriter(new RewriteOptions()
 					// .Add(new BaseRouteRule(baseRoute))
 					// .Add(new RemoveWwwRule())
