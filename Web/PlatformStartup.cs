@@ -14,7 +14,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Bson.Serialization;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
@@ -205,6 +207,10 @@ namespace Rumble.Platform.Common.Web
 
 		public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 		{
+			string baseRoute = this.HasAttribute(out BaseRoute attribute)
+				? attribute.Route
+				: "";
+
 			// Iterate over every PlatformMongoService and create their collections if necessary.
 			// This is necessary for Controllers deployed with the UseMongoTransaction attribute;
 			// Collections cannot be created from within a transaction, which causes the operation to fail.
@@ -251,8 +257,11 @@ namespace Rumble.Platform.Common.Web
 			if (!WebServerEnabled)
 			{
 				Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
-				app.UseRouting()
+				app
 					.UseCors(CORS_SETTINGS_NAME)
+					.UseRewriter(new RewriteOptions()
+						.Add(new BaseRouteRule(baseRoute)))
+					.UseRouting()
 					.UseAuthorization()
 					.UseEndpoints(endpoints =>
 					{
@@ -268,20 +277,25 @@ namespace Rumble.Platform.Common.Web
 				app.UseHsts();
 			
 			Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
-			app.UseRouting()
+			
+			app
+				.UseHttpsRedirection()
 				.UseCors(CORS_SETTINGS_NAME)
+				.UseRewriter(new RewriteOptions()
+					.Add(new BaseRouteRule(baseRoute))
+					.Add(new RemoveWwwRule())
+					.Add(new OmitExtensionsRule())
+					.Add(new RedirectExtensionlessRule()))
+				.UseRouting()
 				.UseAuthentication()
 				.UseAuthorization()
 				.UseStaticFiles()
 				.UseExceptionHandler("/Error") // TODO: this needs to be tested
 				.UseHsts()
-				.UseHttpsRedirection()
-				.UseRewriter(new RewriteOptions()
-					.Add(new RemoveWwwRule())
-					.Add(new OmitExtensionsRule())
-					.Add(new RedirectExtensionlessRule())
-				)
-				.UseFileServer()
+				.UseFileServer(new FileServerOptions()
+				{
+					RequestPath = "/wwwroot"
+				})
 				.UseEndpoints(builder =>
 				{
 					builder.MapControllers();
