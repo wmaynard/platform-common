@@ -20,9 +20,11 @@ namespace Rumble.Platform.Common.Web.Routing
 
 			if (!host.Host.StartsWith(WWW, StringComparison.OrdinalIgnoreCase))
 				return default;
+			
 			string newPath = request.Scheme + "://" + host.Value.Replace(WWW, "") + request.PathBase + request.Path + request.QueryString;
 			response.StatusCode = (int) HttpStatusCode.MovedPermanently;
 			response.Headers[HeaderNames.Location] = newPath;
+			
 			return RuleResult.EndResponse;
 		}
 	}

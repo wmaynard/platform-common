@@ -279,10 +279,12 @@ namespace Rumble.Platform.Common.Web
 				return;
 			}
 			
-			if (env.IsDevelopment())
-				app.UseDeveloperExceptionPage();
-			else
-				app.UseHsts();
+			// if (env.IsDevelopment())
+			// 	app.UseDeveloperExceptionPage();
+			// else
+			// 	app.UseHsts();
+
+			app.UseDeveloperExceptionPage();
 			
 			Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
 			
@@ -291,10 +293,10 @@ namespace Rumble.Platform.Common.Web
 				.UseCors(CORS_SETTINGS_NAME)
 				.UseForwardedHeaders()
 				.UseRewriter(new RewriteOptions()
-					// .Add(new BaseRouteRule(baseRoute))
-					// .Add(new RemoveWwwRule())
-					// .Add(new OmitExtensionsRule())
-					// .Add(new RedirectExtensionlessRule())
+					.Add(new BaseRouteRule(baseRoute))
+					.Add(new RemoveWwwRule())
+					.Add(new OmitExtensionsRule())
+					.Add(new RedirectExtensionlessRule())
 				)
 				.UseRouting()
 				.UseAuthentication()
