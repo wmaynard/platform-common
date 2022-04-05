@@ -183,10 +183,10 @@ namespace Rumble.Platform.Common.Web
 			}
 			
 			Log.Local(Owner.Default, "Adding forwarded headers");
-			services.Configure<ForwardedHeadersOptions>(options =>
-			{
-				options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
-			});
+			// services.Configure<ForwardedHeadersOptions>(options =>
+			// {
+			// 	options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+			// });
 			
 				
 			Log.Local(Owner.Default, "Service configuration complete.");
