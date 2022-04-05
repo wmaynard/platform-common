@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Rumble.Platform.Common.Utilities;
@@ -66,7 +67,7 @@ namespace Rumble.Platform.Common.Services
 
 		private GenericData Fetch(string scope)
 		{
-			PlatformRequest request = PlatformRequest.Get(url: $"{Url}config/{scope}", headers: new Dictionary<string, string>()
+			PlatformRequest request = PlatformRequest.Get(url: Path.Combine(Url, "config", scope), headers: new Dictionary<string, string>()
 			{
 				{ "RumbleKey", RumbleKey }
 			});
