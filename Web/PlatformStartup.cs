@@ -291,7 +291,10 @@ namespace Rumble.Platform.Common.Web
 			app
 				.UseHttpsRedirection()
 				.UseCors(CORS_SETTINGS_NAME)
-				.UseForwardedHeaders()
+				.UseForwardedHeaders(new ForwardedHeadersOptions()
+				{
+					ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedProto
+				})
 				.UseRewriter(new RewriteOptions()
 					.Add(new BaseRouteRule(baseRoute))
 					.Add(new RemoveWwwRule())
