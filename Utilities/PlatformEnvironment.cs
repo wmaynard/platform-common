@@ -32,6 +32,8 @@ namespace Rumble.Platform.Common.Utilities
 		internal const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
 		internal const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
 		internal const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
+		internal const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
+		internal const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
 
 		// Helper getter properties
 		public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
@@ -46,6 +48,8 @@ namespace Rumble.Platform.Common.Utilities
 		public static string Graphite => Optional(KEY_GRAPHITE);
 		public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
 		public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
+		public static string Url => Optional(KEY_GITLAB_ENVIRONMENT_URL);
+		public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
 
 		private static Dictionary<string, string> FallbackValues { get; set; }
 

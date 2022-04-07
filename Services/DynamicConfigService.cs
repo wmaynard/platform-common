@@ -8,9 +8,6 @@ using Rumble.Platform.Common.Web;
 namespace Rumble.Platform.Common.Services
 {
 	// TODO: Subscribe to tower-portal's dynamic config service
-	/// <summary>
-	/// When we get to 
-	/// </summary>
 	public class DynamicConfigService : PlatformTimerService
 	{
 		private const int UPDATE_FREQUENCY_MS = 15_000;
@@ -43,7 +40,9 @@ namespace Rumble.Platform.Common.Services
 		}
 
 		public GenericData GameConfig => Values.Optional<GenericData>(GameScope);
-		public string PlatformUrl => GameConfig?.Optional<string>("platformUrl_C#") ?? GameConfig?.Optional<string>("platformUrl");
+		public string PlatformUrl => PlatformEnvironment.Url
+			?? GameConfig?.Optional<string>("platformUrl_C#") 
+			?? GameConfig?.Optional<string>("platformUrl");
 
 		public void Track(string scope, bool updateNow = true)
 		{
