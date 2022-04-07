@@ -178,13 +178,22 @@ namespace Rumble.Platform.Common.Filters
 		/// <returns>True if the token has been seen and the cached information is recent.</returns>
 		private static bool ValidTokenInCache(string token, out TokenInfo cached)
 		{
-			Cache ??= new Dictionary<string, TokenInfoCache>();
+			try
+			{
+				Cache ??= new Dictionary<string, TokenInfoCache>();
+				
+				Cache.TryGetValue(token, out TokenInfoCache stored);
 
-			Cache.TryGetValue(token, out TokenInfoCache stored);
-
-			cached = stored?.Token;
+				cached = stored?.Token;
 			
-			return stored != null && !stored.NeedsRefresh;
+				return stored != null && !stored.NeedsRefresh;
+			}
+			catch (ArgumentNullException e)
+			{
+				cached = null;
+				return false;
+			}
+			
 		}
 		
 		private class TokenInfoCache

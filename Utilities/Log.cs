@@ -61,7 +61,8 @@ namespace Rumble.Platform.Common.Utilities
 
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string Endpoint { get; set; }
-		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		
+		[JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public object Data { get; set; }
 		[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public Exception Exception { get; set; }
