@@ -15,7 +15,7 @@ namespace Rumble.Platform.Common.Utilities
 	/// environment variable serialization for common platform environment variables, allowing us to configure any number of services
 	/// from a group-level CI variable in gitlab.
 	/// </summary>
-	public static class PlatformEnvironment
+	public static class PlatformEnvironment // TODO: Add method to build a url out for service interop
 	{
 		private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
 		private const string LOCAL_SECRETS_JSON = "environment.json";
@@ -102,6 +102,7 @@ namespace Rumble.Platform.Common.Utilities
 				{
 					Log.Warn(Owner.Will, $"Parsing '{KEY_PLATFORM_COMMON}' returned a null value.", data: new
 					{
+						// The common variables include some sensitive values, so we should be careful about what we send to Loggly.
 						EnvVarsKeys = string.Join(',', Variables.Select(pair => pair.Key)),
 						CommonValueLength = Variables?.Optional<string>(KEY_PLATFORM_COMMON)?.Length
 					});
