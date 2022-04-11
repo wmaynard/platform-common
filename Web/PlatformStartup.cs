@@ -293,7 +293,7 @@ namespace Rumble.Platform.Common.Web
 				.UseCors(CORS_SETTINGS_NAME)
 				.UseForwardedHeaders(new ForwardedHeadersOptions()
 				{
-					ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+					ForwardedHeaders = ForwardedHeaders.XForwardedProto
 				})
 				.UseRewriter(new RewriteOptions()
 					.Add(new BaseRouteRule(baseRoute))
