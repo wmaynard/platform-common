@@ -40,7 +40,7 @@ namespace Rumble.Platform.Common.Services
 		}
 
 		public GenericData GameConfig => Values.Optional<GenericData>(GameScope);
-		public string PlatformUrl => PlatformEnvironment.Url
+		public string PlatformUrl => PlatformEnvironment.ClusterUrl
 			?? GameConfig?.Optional<string>("platformUrl_C#") 
 			?? GameConfig?.Optional<string>("platformUrl");
 

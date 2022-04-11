@@ -49,7 +49,7 @@ namespace Rumble.Platform.Common.Utilities
 		public static string Graphite => Optional(KEY_GRAPHITE);
 		public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
 		public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
-		public static string Url => Optional(KEY_GITLAB_ENVIRONMENT_URL);
+		public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
 		public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
 
 		private static Dictionary<string, string> FallbackValues { get; set; }
@@ -205,6 +205,27 @@ namespace Rumble.Platform.Common.Utilities
 
 		[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
 		public static string OptionalVariable(string key) => Optional(key);
+
+		public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
+		public static string Url(params string[] paths)
+		{
+			string[] segments = paths
+				.Where(path => !string.IsNullOrWhiteSpace(path))
+				.ToArray();
+			
+			if (!segments.Any())
+				return null;
+
+			string output = segments.First();
+
+			if (segments.Length == 1)
+				return output;
+
+			for (int i = 1; i < segments.Length; i++)
+				output = $"{output.TrimEnd('/')}/{segments[i].TrimStart('/')}";
+
+			return output;
+		}
 		
 		// TODO: Incorporate DynamicConfigService as fallback values?
 	}
