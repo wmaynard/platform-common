@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Rumble.Platform.Common.Utilities
 {
@@ -96,6 +97,16 @@ namespace Rumble.Platform.Common.Utilities
 				
 				string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
 				GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
+
+				if (common == null)
+				{
+					Log.Warn(Owner.Will, $"Parsing '{KEY_PLATFORM_COMMON}' returned a null value.", data: new
+					{
+						EnvVarsKeys = string.Join(',', Variables.Select(pair => pair.Key)),
+						CommonValueLength = Variables?.Optional<string>(KEY_PLATFORM_COMMON)?.Length
+					});
+					return output;
+				}
 
 				foreach (string key in common.Keys)
 					output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment) 
