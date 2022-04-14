@@ -206,7 +206,8 @@ namespace Rumble.Platform.Common.Web
 					Log.Info(Owner.Will, $"Creating index '{modelIndex.Name}' on '{name}'.");
 					_collection.Indexes.CreateOne(Builders<Model>.IndexKeys.Ascending(modelIndex.DatabaseKey), new CreateIndexOptions()
 					{
-						Name = modelIndex.Name
+						Name = modelIndex.Name,
+						Unique = modelIndex.Unique
 					});
 				}
 				else if (dbIndex.IndexName != modelIndex.Name)
