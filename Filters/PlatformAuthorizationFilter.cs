@@ -80,7 +80,7 @@ namespace Rumble.Platform.Common.Filters
 					.OnSuccess((sender, response) =>
 					{
 						tokenInfo = response.AsGenericData.Require<TokenInfo>("tokenInfo");
-						_cacheService?.Store(bearerToken, tokenInfo, expirationMS: 100_000); // 5 minutes
+						_cacheService?.Store(bearerToken, tokenInfo, expirationMS: 600_000); // 10 minutes
 						Graphite.Track(
 							name: Graphite.KEY_AUTHORIZATION_COUNT,
 							value: 1,
