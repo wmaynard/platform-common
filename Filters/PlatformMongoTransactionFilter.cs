@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters
@@ -20,7 +21,7 @@ namespace Rumble.Platform.Common.Filters
 			// The transaction will be started later by a PlatformMongoService.
 			try
 			{
-				if (GetAttributes<UseMongoTransaction>(context).Any())
+				if (context.ControllerHasAttribute<UseMongoTransaction>())
 					context.HttpContext.Items[KEY_USE_MONGO_TRANSACTION] = true;
 			}
 			catch (Exception e)

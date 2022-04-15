@@ -60,7 +60,7 @@ public class ApiService : PlatformService
 		}
 		catch (Exception e)
 		{
-			Log.Error(Owner.Default, $"Could not send request to {request.URL}.", data: new
+			Log.Error(Owner.Default, $"Could not send request to '{request.URL}'.", data: new
 			{
 				Request = request,
 				Response = response

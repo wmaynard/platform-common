@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Models;
 
@@ -104,7 +106,27 @@ public class ApiRequest
 		code = output.StatusCode;
 		return output;
 	}
-	private async Task<ApiResponse> SendAsync(HttpMethod method) => await SetMethod(method)._apiService.SendAsync(this);
+
+	private ApiResponse Send<T>(HttpMethod method, out T model, out int code) where T : PlatformDataModel
+	{
+		ApiResponse output = Send(method, out GenericData result, out code);
+		model = result?.ToModel<T>();
+		return output;
+	}
+
+	private async Task<ApiResponse> SendAsync(HttpMethod method)
+	{
+		try
+		{
+			return await SetMethod(method)._apiService.SendAsync(this);
+		}
+		catch (Exception e)
+		{
+			var foo = "bar";
+
+			return default;
+		}
+	}
 	public ApiResponse Delete() => Delete(out GenericData unused);
 	public ApiResponse Get() => Get(out GenericData unused);
 	public ApiResponse Head() => Head(out GenericData unused);
@@ -113,7 +135,7 @@ public class ApiRequest
 	public ApiResponse Post() => Post(out GenericData unused);
 	public ApiResponse Put() => Put(out GenericData unused);
 	public ApiResponse Trace() => Trace(out GenericData unused);
-
+	
 	public ApiResponse Delete(out GenericData json) => Delete(out json, out int unused);
 	public ApiResponse Get(out GenericData json) => Get(out json, out int unused);
 	public ApiResponse Head(out GenericData json) => Head(out json, out int unused);
@@ -123,6 +145,15 @@ public class ApiRequest
 	public ApiResponse Put(out GenericData json) => Put(out json, out int unused);
 	public ApiResponse Trace(out GenericData json) => Trace(out json, out int unused);
 	
+	public ApiResponse Delete<T>(out T model) where T : PlatformDataModel => Delete(out model, out int unused);
+	public ApiResponse Get<T>(out T model) where T : PlatformDataModel => Get(out model, out int unused);
+	public ApiResponse Head<T>(out T model) where T : PlatformDataModel => Head(out model, out int unused);
+	public ApiResponse Options<T>(out T model) where T : PlatformDataModel => Options(out model, out int unused);
+	public ApiResponse Patch<T>(out T model) where T : PlatformDataModel => Patch(out model, out int unused);
+	public ApiResponse Post<T>(out T model) where T : PlatformDataModel => Post(out model, out int unused);
+	public ApiResponse Put<T>(out T model) where T : PlatformDataModel => Put(out model, out int unused);
+	public ApiResponse Trace<T>(out T model) where T : PlatformDataModel => Trace(out model, out int unused);
+	
 	public ApiResponse Delete(out GenericData json, out int code) => Send(HttpMethod.Delete, out json, out code);
 	public ApiResponse Get(out GenericData json, out int code) => Send(HttpMethod.Get, out json, out code);
 	public ApiResponse Head(out GenericData json, out int code) => Send(HttpMethod.Head, out json, out code);
@@ -131,6 +162,15 @@ public class ApiRequest
 	public ApiResponse Post(out GenericData json, out int code) => Send(HttpMethod.Post, out json, out code);
 	public ApiResponse Put(out GenericData json, out int code) => Send(HttpMethod.Put, out json, out code);
 	public ApiResponse Trace(out GenericData json, out int code) => Send(HttpMethod.Trace, out json, out code);
+	
+	public ApiResponse Delete<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Delete, out model, out code);
+	public ApiResponse Get<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Get, out model, out code);
+	public ApiResponse Head<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Head, out model, out code);
+	public ApiResponse Options<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Options, out model, out code);
+	public ApiResponse Patch<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Patch, out model, out code);
+	public ApiResponse Post<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Post, out model, out code);
+	public ApiResponse Put<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Put, out model, out code);
+	public ApiResponse Trace<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Trace, out model, out code);
 
 	public async Task<ApiResponse> DeleteAsync() => await SendAsync(HttpMethod.Delete);
 	public async Task<ApiResponse> GetAsync() => await SendAsync(HttpMethod.Get);

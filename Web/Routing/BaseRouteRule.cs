@@ -13,7 +13,7 @@ public class BaseRouteRule : PlatformRewriteRule
 	protected override RuleResult Apply(HttpRequest request, HttpResponse response)
 	{
 		// Route is unspecified; keep processing rules.
-		if (string.IsNullOrWhiteSpace(Route) || !request.Path.Value.StartsWith(Route))
+		if (string.IsNullOrWhiteSpace(Route) || !request.Path.Value.StartsWith(Route) || Route == "/")
 			return RuleResult.ContinueRules;
 
 		// The base route set in Startup.cs does not actually correlate to Controller or static file routing.

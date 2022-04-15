@@ -6,11 +6,8 @@ namespace Rumble.Platform.Common.Attributes
 	[AttributeUsage(validOn: AttributeTargets.Method | AttributeTargets.Class)]
 	public class RequireAuth : Attribute
 	{
-		public TokenType Type;
+		public readonly AuthType Type;
 
-		public RequireAuth(TokenType type = TokenType.STANDARD)
-		{
-			Type = type;
-		}
+		public RequireAuth(AuthType type = AuthType.STANDARD_TOKEN) => Type = type;
 	}
 }

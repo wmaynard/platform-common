@@ -16,7 +16,9 @@ public class ApiResponse
 	public ApiResponse(HttpResponseMessage message)
 	{
 		Response = message;
-		StatusCode = (int)Response.StatusCode;
+		StatusCode = Response != null
+			? (int)Response.StatusCode
+			: 500;
 	}
 	
 	private static T Await<T>(Task<T> asyncCall)

@@ -7,10 +7,12 @@ namespace Rumble.Platform.Common.Web
 	public abstract class PlatformTimerService : PlatformService
 	{
 		private readonly Timer _timer;
+		protected readonly double IntervalMS;
 		
 		protected PlatformTimerService(double intervalMS, bool startImmediately = true)
 		{
-			_timer = new Timer(intervalMS);
+			IntervalMS = intervalMS;
+			_timer = new Timer(IntervalMS);
 			_timer.Elapsed += (sender, args) =>
 			{
 				Pause();

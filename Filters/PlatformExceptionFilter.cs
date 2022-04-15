@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
@@ -56,10 +57,10 @@ namespace Rumble.Platform.Common.Filters
 			if (ex is MongoCommandException mce)
 			{
 				ex = new PlatformMongoException(mce);
-				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: Converter.ContextToEndpointObject(context), exception: mce);
+				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: context.GetEndpointAsObject(), exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: Converter.ContextToEndpointObject(context), exception: ex);
+				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: context.GetEndpointAsObject(), exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: message,
@@ -67,7 +68,7 @@ namespace Rumble.Platform.Common.Filters
 				code: code
 			));
 			context.ExceptionHandled = true;
-			Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, Converter.ContextToEndpoint(context), Graphite.Metrics.Type.FLAT);
+			Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, context.GetEndpoint(), Graphite.Metrics.Type.FLAT);
 		}
 	}
 }

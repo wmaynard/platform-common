@@ -9,19 +9,12 @@ namespace Rumble.Platform.Common.Filters
 {
 	public abstract class PlatformBaseFilter : IFilterMetadata
 	{
-		protected PlatformBaseFilter() : base() => Log.Info(Owner.Default, $"{GetType().Name} initialized.");
-
-		protected static T[] GetAttributes<T>(FilterContext context) where T : Attribute
+		protected string TokenAuthEndpoint { get; init; }
+		protected PlatformBaseFilter()
 		{
-			if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
-				return null;
-			return descriptor.ControllerTypeInfo				// class-level attributes
-					.GetCustomAttributes(inherit: true)			// method-level attributes
-					.Concat(descriptor.MethodInfo.GetCustomAttributes(inherit: true))
-					.OfType<T>()
-					.ToArray(); // TODO: Use this in AuthFilter
-		}
+			Log.Info(Owner.Default, $"{GetType().Name} initialized.");
 
-		protected bool HasAttribute<T>(FilterContext context) where T : Attribute => GetAttributes<T>(context).Any();
+			TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
+		}
 	}
 }

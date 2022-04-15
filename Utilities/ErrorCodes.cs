@@ -7,7 +7,8 @@ namespace Rumble.Platform.Common.Utilities
 		// platform-common errors
 		[Display(Name = "0000")] NotSpecified,
 		[Display(Name = "0001")] MongoSessionIsNull,
-		[Display(Name = "0002")] RequiredFieldMissing
+		[Display(Name = "0002")] RequiredFieldMissing,
+		[Display(Name = "0003")] TokenValidationFailed
 		
 		// player-service errors
 	}

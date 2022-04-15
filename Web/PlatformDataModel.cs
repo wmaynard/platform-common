@@ -29,7 +29,7 @@ namespace Rumble.Platform.Common.Web
 		/// </summary>
 		[BsonIgnore]
 		[JsonIgnore] // Required to avoid circular references during serialization
-		public virtual object ResponseObject
+		public virtual object ResponseObject  // TODO: This really needs a refactor.  With the transition to GenericData, this expando nonsense can be replaced.
 		{
 			get
 			{
