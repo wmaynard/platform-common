@@ -91,7 +91,10 @@ namespace Rumble.Platform.Common.Filters
 					.Get();
 			#endregion TokenValidation
 
-			context.HttpContext.Items[KEY_TOKEN] = tokenInfo; // TODO: Add to context()
+			context.HttpContext.Items[KEY_TOKEN] = tokenInfo;
+
+			if (authOptional)
+				return;
 
 			bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && tokenInfo == null;
 			bool requiredAdminTokenIsNotAdmin = adminTokenRequired && tokenInfo != null && tokenInfo.IsNotAdmin;
