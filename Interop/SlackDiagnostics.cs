@@ -54,9 +54,9 @@ namespace Rumble.Platform.Common.Interop
 			AdditionalChannels = new List<string>();
 		}
 
-		private bool CanSend => CachedLogs.ContainsKey(Title) 
-			&& (CachedLogs[Title].LastTimestampSent == 0 
-			|| CachedLogs[Title].LastTimestampSent < Timestamp.UnixTimeUTCMS - COOLDOWN_MS);
+		private bool CanSend => !CachedLogs.ContainsKey(Title) 
+			|| (CachedLogs[Title].LastTimestampSent == 0 
+				|| CachedLogs[Title].LastTimestampSent < Timestamp.UnixTimeUTCMS - COOLDOWN_MS);
 		
 #pragma warning disable CS4014
 		/// <summary>
@@ -77,7 +77,7 @@ namespace Rumble.Platform.Common.Interop
 			{
 				info.Count++;
 				CachedLogs[Title] = info;
-				Utilities.Log.Dev(Owner.Will, "It's too recent for the SlackDiagnostics to send another log for the given message.");
+				Utilities.Log.Dev(Owner.Will, $"It's too recent for the SlackDiagnostics to send another log for the given message. ({Title})");
 				return;
 			}
 
@@ -91,7 +91,7 @@ namespace Rumble.Platform.Common.Interop
 			content.Add($"*Environment:* {PlatformEnvironment.Deployment}");
 			if (now.Hour >= 16 && now.Hour <= 23 && UsersToTag.Any())
 				content.Add("*Owners:* " + string.Join(", ", UsersToTag.Values.Select(user => user.Tag)));
-			else
+			else if (UsersToTag.Any())
 			{
 				content.Add("*Owners:* " 
 					+ string.Join(", ", UsersToTag.Values.Select(user => $"`{user.DisplayName ?? user.FirstName ?? user.Name}`"))
@@ -153,7 +153,7 @@ namespace Rumble.Platform.Common.Interop
 		public SlackDiagnostics Attach(string name, string content)
 		{
 			CheckSentStatus();
-			if (!CanSend)
+			if (!CanSend || string.IsNullOrWhiteSpace(content))
 				return this;	// A Slack log was requested, but can't send yet.  No file will be created.
 			Attachments ??= new List<string>();
 			UploadDirectory = Path.Combine(Environment.CurrentDirectory, FILE_DIRECTORY, ID);

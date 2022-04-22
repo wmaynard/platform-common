@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rumble.Platform.Common.Web
 {
+	[BsonIgnoreExtraElements]
 	public class TokenInfo : PlatformDataModel
 	{
 		public const string DB_KEY_ACCOUNT_ID = "aid";
@@ -13,6 +14,7 @@ namespace Rumble.Platform.Common.Web
 		public const string DB_KEY_EMAIL_ADDRESS = "@";
 		public const string DB_KEY_EXPIRATION = "exp";
 		public const string DB_KEY_IS_ADMIN = "su";
+		public const string DB_KEY_ISSUED_AT = "iat";
 		public const string DB_KEY_ISSUER = "iss";
 		public const string DB_KEY_SCREENNAME = "sn";
 		public const string DB_KEY_IP_ADDRESS = "ip";
@@ -24,14 +26,16 @@ namespace Rumble.Platform.Common.Web
 		public const string FRIENDLY_KEY_EXPIRATION = "expiration";
 		public const string FRIENDLY_KEY_IP_ADDRESS = "ip";
 		public const string FRIENDLY_KEY_IS_ADMIN = "isAdmin";
+		public const string FRIENDLY_KEY_ISSUED_AT = "issuedAt";
 		public const string FRIENDLY_KEY_ISSUER = "issuer";
 		public const string FRIENDLY_KEY_SCREENNAME = "screenname";
 		public const string FRIENDLY_KEY_SECONDS_REMAINING = "secondsRemaining";
 		public const string FRIENDLY_KEY_USERNAME = "username";
+		// TODO: RequestComponent?  Something to track who requested the token?
 		
 		[BsonIgnore]
 		[JsonIgnore]
-		public string Authorization { get; private set; }
+		public string Authorization { get; set; }
 		
 		[BsonElement(DB_KEY_ACCOUNT_ID)]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -56,6 +60,10 @@ namespace Rumble.Platform.Common.Web
 		[BsonElement(DB_KEY_COUNTRY_CODE), BsonIgnoreIfNull]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_COUNTRY_CODE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string CountryCode { get; set; }
+		
+		[BsonElement(DB_KEY_ISSUED_AT)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ISSUED_AT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		public long IssuedAt { get; set; }
 		
 		[BsonElement(DB_KEY_ISSUER)]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ISSUER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

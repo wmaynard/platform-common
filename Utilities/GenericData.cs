@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Web;
 
@@ -165,7 +166,9 @@ namespace Rumble.Platform.Common.Utilities
 				? JsonSerializer.Deserialize(data.JSON, type, JsonHelper.SerializerOptions)
 				: Convert.ChangeType(obj, type);
 
-		internal T ToModel<T>() where T : PlatformDataModel => JsonSerializer.Deserialize<T>(JSON, JsonHelper.SerializerOptions);
+		public T ToModel<T>(bool fromDbKeys = false) where T : PlatformDataModel => fromDbKeys 
+			? BsonSerializer.Deserialize<T>(JSON)
+			: JsonSerializer.Deserialize<T>(JSON, JsonHelper.SerializerOptions);
 
 		/// <summary>
 		/// This is a wrapper for an improved System.Convert.  Without this, several casts fail when converting,

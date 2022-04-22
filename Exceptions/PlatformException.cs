@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Utilities;
 
@@ -35,6 +37,17 @@ namespace Rumble.Platform.Common.Exceptions
 				} while ((inner = inner.InnerException) != null);
 				
 				output = output[..^separator.Length];
+				return output;
+			}
+		}
+
+		internal new GenericData Data
+		{
+			get
+			{
+				GenericData output = new GenericData();
+				foreach (PropertyInfo info in GetType().GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+					output[JsonNamingPolicy.CamelCase.ConvertName(info.Name)] = info.GetValue(this);
 				return output;
 			}
 		}

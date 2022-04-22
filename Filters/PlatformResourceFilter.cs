@@ -23,6 +23,7 @@ namespace Rumble.Platform.Common.Filters
 	{
 		public const string KEY_AUTHORIZATION = "EncryptedToken";
 		public const string KEY_BODY = "RequestBody";
+		public const string KEY_REQUEST_ORIGIN = "RequestOrigin"; // Used to identify which service made the request in situations where one service relies on another
 		public const string KEY_IP_ADDRESS = "IpAddress";
 		public const string KEY_GEO_IP_DATA = "GeoIpData";
 		private static readonly string[] NO_BODY = { "HEAD", "GET", "DELETE" }; // These HTTP methods ignore the body reader code.
@@ -63,28 +64,14 @@ namespace Rumble.Platform.Common.Filters
 						using StreamReader reader = new StreamReader(stream);
 						
 						body = json = reader.ReadToEnd();
-						
-						// if (!context.HttpContext.Request.BodyReader.TryRead(out ReadResult result))
-						// 	throw new Exception("reader.TryRead() failed when parsing the request body.");
-						//
-						// SequenceReader<byte> rdr = new SequenceReader<byte>(result.Buffer);
-						// while (!rdr.End)
-						// {
-						// 	json += Encoding.UTF8.GetString(rdr.CurrentSpan);
-						// 	rdr.Advance(rdr.CurrentSpan.Length);
-						// }
-						//
-						// body = json;
-						//
-						// context.HttpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
-						// context.HttpContext.Request.BodyReader.Complete();
 					}
 				}
 
 				body?.Combine(query); // If both the body and query have the same key, the values in the body have priority.
 				body ??= query;
-				
+
 				context.HttpContext.Items[KEY_BODY] = body;
+				context.HttpContext.Items[KEY_REQUEST_ORIGIN] = body?.Optional<string>("origin");
 			}
 			catch (Exception e)
 			{

@@ -11,10 +11,9 @@ namespace Rumble.Platform.Common.Utilities
 		public string Encrypted { get; private set; }
 		public string Decoded => Crypto.Decode(Encrypted);
 
-		public EncryptedString(string input)
-		{
-			Encrypted = Crypto.Encode(input);
-		}
+		public EncryptedString(string input) => Encrypted = Crypto.Encode(input);
+
+		public static string Decode(string input) => Crypto.Decode(input);
 
 		public static implicit operator EncryptedString(string s) => new EncryptedString(s);
 		public static implicit operator string(EncryptedString enc) => enc.Decoded;

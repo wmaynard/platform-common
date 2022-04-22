@@ -55,7 +55,7 @@ namespace Rumble.Platform.Common.Filters
 			// If a token is provided and does not exist in the cache, we should validate it.
 			if (!cached && !string.IsNullOrWhiteSpace(bearerToken))
 				_apiService
-					.Request(PlatformEnvironment.TokenValidation)
+					.Request(PlatformEnvironment.TokenValidation + $"?origin={context.GetEndpoint()}")
 					.AddAuthorization(bearerToken)
 					.OnFailure((sender, response) =>
 					{

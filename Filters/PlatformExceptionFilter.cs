@@ -39,6 +39,8 @@ namespace Rumble.Platform.Common.Filters
 				return;
 
 			Exception ex = context.Exception;
+			GenericData data = new GenericData();
+			string origin = (string)context.HttpContext.Items[PlatformResourceFilter.KEY_REQUEST_ORIGIN];
 
 			string message = ex switch
 			{
@@ -50,17 +52,23 @@ namespace Rumble.Platform.Common.Filters
 				_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 			};
 			ErrorCode code = ErrorCode.NotSpecified;
-			if (ex is PlatformException)
-				code = ((PlatformException)ex).Code;
+			if (ex is PlatformException platEx)
+			{
+				code = platEx.Code;
+				data = platEx.Data;
+			}
+
+			data["endpoint"] = context.GetEndpoint();
+			data["origin"] = origin;
 
 			// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
 			if (ex is MongoCommandException mce)
 			{
 				ex = new PlatformMongoException(mce);
-				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: context.GetEndpointAsObject(), exception: mce);
+				Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: data, exception: mce);
 			}
 			else
-				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: context.GetEndpointAsObject(), exception: ex);
+				Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
 
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: message,
