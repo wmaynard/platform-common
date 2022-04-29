@@ -159,6 +159,9 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 					case bool asBool:
 						writer.WriteBoolean(key, asBool);
 						break;
+					case Enum asEnum:
+						writer.WriteString(key, asEnum.ToString());
+						break;
 					case string asString:
 						writer.WriteString(key, asString);
 						break;
@@ -241,6 +244,9 @@ namespace Rumble.Platform.Common.Utilities.Serializers
 						break;
 					case IEnumerable<object> asArray:
 						WriteJsonArray(ref writer, ref asArray, options);
+						break;
+					case Enum asEnum:
+						writer.WriteStringValue(asEnum.ToString());
 						break;
 					case GenericData asGeneric:
 						Write(writer, asGeneric, options);
