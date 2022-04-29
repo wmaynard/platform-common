@@ -12,9 +12,11 @@ public class ApiResponse
 	public readonly int StatusCode;
 	internal HttpResponseMessage Response;
 	internal GenericData OriginalResponse => Await(Response.Content.ReadAsStringAsync());
+	public string RequestUrl { get; init; }
 
-	public ApiResponse(HttpResponseMessage message)
+	public ApiResponse(HttpResponseMessage message, string requestUrl)
 	{
+		RequestUrl = requestUrl;
 		Response = message;
 		StatusCode = Response != null
 			? (int)Response.StatusCode

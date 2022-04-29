@@ -8,6 +8,8 @@ namespace Rumble.Platform.Common.Web
 	{
 		private readonly Timer _timer;
 		protected readonly double IntervalMS;
+		public bool IsRunning => _timer.Enabled;
+		public string Status => IsRunning ? "running" : "stopped";
 		
 		protected PlatformTimerService(double intervalMS, bool startImmediately = true)
 		{

@@ -53,7 +53,7 @@ public class ApiService : PlatformService
 		{
 			do
 			{
-				Log.Local(Owner.Will, $"Sleeping for {request.ExponentialBackoffMS}ms");
+				Log.Verbose(Owner.Will, $"Sleeping for {request.ExponentialBackoffMS}ms");
 				Thread.Sleep(request.ExponentialBackoffMS);
 				response = await HttpClient.SendAsync(request);
 			} while (!((int)response.StatusCode).ToString().StartsWith("2") && --request.Retries > 0);
@@ -67,9 +67,9 @@ public class ApiService : PlatformService
 			}, exception: e);
 		}
 
-		ApiResponse output = new ApiResponse(response);
+		ApiResponse output = new ApiResponse(response, request.URL);
 		request.Complete(output);
-		return new ApiResponse(response);
+		return output;
 	}
 
 

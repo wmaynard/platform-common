@@ -55,6 +55,7 @@ namespace Rumble.Platform.Common.Utilities
 		private static Dictionary<string, string> FallbackValues { get; set; }
 
 		public static readonly bool IsLocal = Deployment?.Contains("local") ?? false;
+		public static bool IsProd => int.TryParse(Deployment, out int result) && result >= 300;
 		public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
 		private static bool Initialized => Variables != null;

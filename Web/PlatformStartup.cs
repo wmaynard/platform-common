@@ -135,6 +135,8 @@ namespace Rumble.Platform.Common.Web
 					config.Filters.Add(new PlatformResourceFilter());
 				if (!_bypassedFilters.Contains(typeof(PlatformExceptionFilter)))
 					config.Filters.Add(new PlatformExceptionFilter());
+				if (!_bypassedFilters.Contains(typeof(PlatformHealthFilter)))
+					config.Filters.Add(new PlatformHealthFilter());
 				if (!_bypassedFilters.Contains(typeof(PlatformPerformanceFilter)))
 					config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
 				if (!_bypassedFilters.Contains(typeof(PlatformMongoTransactionFilter)))

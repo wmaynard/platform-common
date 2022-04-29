@@ -33,7 +33,7 @@ namespace Rumble.Platform.Common.Web
 		}
 		private readonly HttpContextAccessor _httpContextAccessor; 
 		
-		protected bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
+		public bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
 		public bool IsHealthy => IsConnected || Open();
 
 		public override object HealthCheckResponseObject => new GenericData() { [GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected" };

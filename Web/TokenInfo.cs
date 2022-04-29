@@ -32,6 +32,7 @@ namespace Rumble.Platform.Common.Web
 		public const string FRIENDLY_KEY_SECONDS_REMAINING = "secondsRemaining";
 		public const string FRIENDLY_KEY_USERNAME = "username";
 		// TODO: RequestComponent?  Something to track who requested the token?
+		// TODO: HasAccessTo(component) method, based on "aud"
 		
 		[BsonIgnore]
 		[JsonIgnore]

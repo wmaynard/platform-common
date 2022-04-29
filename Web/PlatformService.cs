@@ -9,9 +9,10 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web
 {
-	public abstract class PlatformService : IService
+	public abstract class PlatformService : IService, IPlatformService
 	{
 		private IServiceProvider _services;
+		public string Name => GetType().Name;
 		public virtual object HealthCheckResponseObject => GenerateHealthCheck("ready");
 
 		[BsonIgnore]

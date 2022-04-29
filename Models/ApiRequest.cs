@@ -72,6 +72,10 @@ public class ApiRequest
 		Retries = _originalRetries = retries;
 		return this;
 	}
+	/// <summary>
+	/// Invokes the OnSuccess / OnFailure events based on the HTTP status code returned.
+	/// </summary>
+	/// <param name="args"></param>
 	internal void Complete(ApiResponse args)
 	{
 		if (args.Success)

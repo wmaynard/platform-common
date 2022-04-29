@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Threading.Tasks;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -17,9 +14,14 @@ namespace Rumble.Platform.Common.Services
 		public GenericData Values { get; private set; }
 		private bool IsUpdating { get; set; }
 		private string GameScope => $"game:{GameId}";
+		private readonly ApiService _apiService;
+		private readonly HealthService _healthService;
 		
-		public DynamicConfigService() : base(UPDATE_FREQUENCY_MS, startImmediately: false)
+		public DynamicConfigService(ApiService apiService, HealthService healthService) : base(UPDATE_FREQUENCY_MS, startImmediately: false)
 		{
+			_apiService = apiService;
+			_healthService = healthService;
+				
 			RumbleKey = PlatformEnvironment.RumbleSecret;
 			Url = PlatformEnvironment.ConfigServiceUrl;
 			GameId = PlatformEnvironment.GameSecret;
@@ -64,22 +66,18 @@ namespace Rumble.Platform.Common.Services
 
 		private Task UpdateAsync() => IsUpdating ? null : Task.Run(Update);
 
-		private GenericData Fetch(string scope)
-		{
-			PlatformRequest request = PlatformRequest.Get(url: Path.Combine(Url, "config", scope), headers: new Dictionary<string, string>()
+		private GenericData Fetch(string scope) => _apiService
+			.Request(PlatformEnvironment.Url(PlatformEnvironment.ConfigServiceUrl, $"/config/{scope}"))
+			.AddHeader("RumbleKey", RumbleKey)
+			.OnFailure((sender, response) =>
 			{
-				{ "RumbleKey", RumbleKey }
-			});
-			GenericData output = request.Send(out HttpStatusCode code);
-			if (code == HttpStatusCode.OK)
-				return output;
-			
-			Log.Error(Owner.Default, "Failed to fetch dynamic config.", data: new
-			{
-				Url = request.Url
-			});
-			return null;
-		}
+				_healthService.Degrade(amount: 10);
+				Log.Error(Owner.Default, "Failed to fetch dynamic config.", data: new
+				{
+					Url = response.RequestUrl
+				});
+			})
+			.Get();
 
 		private GenericData Fetch(string scope, out GenericData output) => output = Fetch(scope);
 	}
