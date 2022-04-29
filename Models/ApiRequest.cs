@@ -11,7 +11,6 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Models;
 
-
 public class ApiRequest
 {
 	public const int DEFAULT_RETRIES = 6;

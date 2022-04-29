@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 

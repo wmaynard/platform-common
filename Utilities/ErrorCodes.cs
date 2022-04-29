@@ -1,15 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Rumble.Platform.Common.Utilities
+namespace Rumble.Platform.Common.Utilities;
+
+public enum ErrorCode
 {
-	public enum ErrorCode
-	{
-		// platform-common errors
-		[Display(Name = "0000")] NotSpecified,
-		[Display(Name = "0001")] MongoSessionIsNull,
-		[Display(Name = "0002")] RequiredFieldMissing,
-		[Display(Name = "0003")] TokenValidationFailed
-		
-		// player-service errors
-	}
+	// platform-common errors
+	[Display(Name = "0000")] NotSpecified,
+	[Display(Name = "0001")] MongoSessionIsNull,
+	[Display(Name = "0002")] RequiredFieldMissing,
+	[Display(Name = "0003")] TokenValidationFailed
+	
+	// player-service errors
 }

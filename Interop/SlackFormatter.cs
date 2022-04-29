@@ -1,10 +1,9 @@
-namespace Rumble.Platform.Common.Interop
+namespace Rumble.Platform.Common.Interop;
+
+public static class SlackFormatter
 {
-	public static class SlackFormatter
+	public static string Link(string url, string text)
 	{
-		public static string Link(string url, string text)
-		{
-			return $"<{url}|{text}>";
-		}
+		return $"<{url}|{text}>";
 	}
 }

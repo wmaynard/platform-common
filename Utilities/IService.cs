@@ -1,7 +1,6 @@
-namespace Rumble.Platform.Common.Utilities
+namespace Rumble.Platform.Common.Utilities;
+
+public interface IService
 {
-    public interface IService
-    {
-		void OnDestroy();
-    }
+	void OnDestroy();
 }
