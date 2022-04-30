@@ -269,10 +269,10 @@ public abstract class PlatformStartup
 		{
 			Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
 			app
-				.UseCors(CORS_SETTINGS_NAME)
 				.UseRewriter(new RewriteOptions()
 					.Add(new BaseRouteRule(baseRoute)))
 				.UseRouting()
+				.UseCors(CORS_SETTINGS_NAME) // Must go between UseRouting() and UseEndpoints()
 				.UseAuthorization()
 				.UseEndpoints(endpoints =>
 				{
@@ -293,7 +293,6 @@ public abstract class PlatformStartup
 		
 		app
 			.UseHttpsRedirection()
-			.UseCors(CORS_SETTINGS_NAME)
 			.UseForwardedHeaders(new ForwardedHeadersOptions()
 			{
 				ForwardedHeaders = ForwardedHeaders.XForwardedProto
@@ -305,6 +304,7 @@ public abstract class PlatformStartup
 				.Add(new RedirectExtensionlessRule())
 			)
 			.UseRouting()
+			.UseCors(CORS_SETTINGS_NAME) // Must go between UseRouting() and UseEndpoints()
 			.UseAuthentication()
 			.UseAuthorization()
 			.UseStaticFiles()
