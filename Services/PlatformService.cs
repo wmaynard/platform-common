@@ -13,7 +13,6 @@ public abstract class PlatformService : IService, IPlatformService
 {
 	private IServiceProvider _services;
 	public string Name => GetType().Name;
-	// public virtual object HealthCheckResponseObject => GenerateHealthCheck("ready");
 
 	[BsonIgnore]
 	[JsonIgnore]
@@ -56,11 +55,6 @@ public abstract class PlatformService : IService, IPlatformService
 					Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.", exception: e);
 				}
 		return true;
-	}
-
-	protected GenericData GenerateHealthCheck(object data)
-	{
-		return new GenericData() { [GetType().Name] = data };
 	}
 
 	public void OnDestroy() {}

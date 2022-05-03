@@ -21,7 +21,6 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 {
 	private string Connection { get; init; }
 	private string Database { get; init; }
-	// protected abstract string CollectionName { get; }
 	private readonly MongoClient _client;
 	protected readonly IMongoDatabase _database;
 	protected readonly IMongoCollection<Model> _collection;
@@ -37,8 +36,6 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 	
 	public bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
 	public bool IsHealthy => IsConnected || Open();
-
-	// public override object HealthCheckResponseObject => new GenericData() { [GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected" };
 
 	protected PlatformMongoService(string collection)
 	{

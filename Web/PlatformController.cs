@@ -59,19 +59,21 @@ public abstract class PlatformController : Controller
 
 	protected T Require<T>() where T : PlatformService => _services.GetRequiredService<T>();
 
-	protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 	protected ObjectResult Problem(GenericData data) => base.BadRequest(data);
+	protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 
 	protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
+	// TODO: Fix the serialization such that we are consistent to lowerCamelCase keys
+	// TODO: Remove all other Ok() / Problem() methods to force Platform over to a standard on GenericData
+	[NonAction]
+	public OkObjectResult Ok(GenericData data) => base.Ok(data); 
+	
 	[NonAction]
 	public new OkObjectResult Ok() => base.Ok(null);
 
 	[NonAction]
 	public OkObjectResult Ok(string message) => Ok(new { Message = message });
-
-	[NonAction]
-	public OkObjectResult Ok(GenericData data) => base.Ok(data);
 
 	[NonAction]
 	private new OkObjectResult Ok(object value) => base.Ok(Merge(new { Success = true }, value));
@@ -182,9 +184,7 @@ public abstract class PlatformController : Controller
 			: default;
 	}
 
-	// protected object Require(string key, GenericData json = null) => (json ?? Body).Require<object>(key);
 	protected object Require(string key, GenericData json = null) => Require<object>(key);
-	// protected T Require<T>(string key, GenericData json = null) => (json ?? Body).Require<T>(key);
 
 	protected T Require<T>(string key, GenericData json = null)
 	{

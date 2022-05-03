@@ -137,19 +137,6 @@ public abstract class MasterService : PlatformTimerService
 		_config.Update(LastActiveKey, UnixTimeMS);
 	}
 
-	// public override object HealthCheckResponseObject => new GenericData
-	// {
-	// 	{ 
-	// 		Name, new GenericData()
-	// 		{
-	// 			{ "ServiceId", ID},
-	// 			{ $"{Name}_isMasterNode", IsPrimary },
-	// 			{ $"{LastActiveKey}", $"{UnixTimeMS - LastActivity}ms ago" },
-	// 			{ "ConfigService",  _config.HealthCheckResponseObject }
-	// 		}
-	// 	}
-	// };
-
 	public override GenericData HealthStatus => new GenericData
 	{
 		{ 
