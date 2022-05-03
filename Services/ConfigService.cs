@@ -13,9 +13,7 @@ namespace Rumble.Platform.Common.Services;
 public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceConfig>
 {
 	private ServiceConfig _config;
-	private ServiceConfig Config => _config				// The config has been loaded before this session.
-		??= Find(config => true).FirstOrDefault()	// The config has not yet been loaded.  Find it.
-		?? Create(new ServiceConfig());			// No config has been created yet.  Do so now.
+	private ServiceConfig Config => _config ?? Refresh();
 
 	public T Value<T>(string key) => Config.Data.Optional<T>(key);
 	private object Value(string key) => Config.Data.Optional(key);
@@ -27,8 +25,11 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
 		if (changed)
 			Update(Config); // TODO: UpdateAsync fire and forget
 	}
-	
-	public ConfigService() : base("serviceConfig") { }
+	public ServiceConfig Refresh() => _config = 
+		Find(config => true).FirstOrDefault() 
+		?? Create(new ServiceConfig());
+
+	public ConfigService() : base("serviceConfig") => Refresh();
 
 	public class ServiceConfig : PlatformCollectionDocument
 	{

@@ -153,6 +153,8 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 	public void Update(Model model, bool createIfNotFound = false)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
+		if (!createIfNotFound && model.Id == null)
+			throw new PlatformException(message: "Model.Id is null; update will be unsuccessful without upsert.");
 		ReplaceOptions options = new ReplaceOptions() { IsUpsert = createIfNotFound };
 		if (session != null)
 			_collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model, options: options);
