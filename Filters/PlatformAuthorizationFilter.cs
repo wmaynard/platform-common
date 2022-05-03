@@ -63,7 +63,7 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 					string message = response.OriginalResponse.Optional<string>("message") ?? "no message provided";
 					string eventId = response.OriginalResponse.Optional<string>("eventId");
 					
-					errorMessage = $"Token encryptedToken failure: {message}";
+					errorMessage = $"Token failure: {message}";
 					Log.Error(Owner.Default, errorMessage, data: new
 					{
 						ValidationUrl = PlatformEnvironment.TokenValidation,
