@@ -1,4 +1,5 @@
 using System;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Interfaces;
 
@@ -10,7 +11,3 @@ public interface IPlatformMongoService : IPlatformService
 	public void CreateIndexes();
 }
 
-public interface IPlatformService
-{
-	public string Name { get; }
-}

@@ -137,23 +137,21 @@ public class HealthService : PlatformTimerService
 		
 		Log.Local(Owner.Will, $"Health: {Health} %");
 
+		// TODO: Grab ALL services for health - include them in a separate health object as non-controller services.
 		PlatformService[] services = controller?.MemberServices ?? Array.Empty<PlatformService>();
 
 		foreach (IPlatformMongoService mongo in services.OfType<IPlatformMongoService>())
 		{
-			if (mongo.IsHealthy)
-				output[mongo.Name] = "connected";
-			else
-			{
-				output[mongo.Name] = "disconnected";
+			output.Combine(mongo.HealthStatus);
+			if (!mongo.IsHealthy)
 				Degrade(amount: 5);
-			}
 		}
 
 		foreach (PlatformTimerService timer in services.OfType<PlatformTimerService>())
 		{
-			output[timer.Name] = timer.Status;
-			if (!timer.IsRunning)
+			output.Combine(timer.HealthStatus);
+			
+			if ((timer is not MasterService master || master.IsPrimary) && !timer.IsRunning)
 				Degrade(amount: 5);
 		}
 

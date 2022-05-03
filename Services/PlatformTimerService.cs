@@ -37,4 +37,9 @@ public abstract class PlatformTimerService : PlatformService
 	protected void Resume() => _timer.Start();
 
 	protected abstract void OnElapsed();
+
+	public override GenericData HealthStatus => new GenericData
+	{
+		{ Name, Status }
+	};
 }

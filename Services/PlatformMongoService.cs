@@ -38,7 +38,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 	public bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
 	public bool IsHealthy => IsConnected || Open();
 
-	public override object HealthCheckResponseObject => new GenericData() { [GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected" };
+	// public override object HealthCheckResponseObject => new GenericData() { [GetType().Name] = $"{(IsHealthy ? "" : "dis")}connected" };
 
 	protected PlatformMongoService(string collection)
 	{
@@ -277,4 +277,9 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 		internal string IndexName { get; set; }
 		internal string DatabaseKey { get; set; }
 	}
+
+	public override GenericData HealthStatus => new GenericData
+	{
+		{ Name, IsHealthy ? "connected" : "disconnected" }
+	};
 }

@@ -13,7 +13,7 @@ public abstract class PlatformService : IService, IPlatformService
 {
 	private IServiceProvider _services;
 	public string Name => GetType().Name;
-	public virtual object HealthCheckResponseObject => GenerateHealthCheck("ready");
+	// public virtual object HealthCheckResponseObject => GenerateHealthCheck("ready");
 
 	[BsonIgnore]
 	[JsonIgnore]
@@ -63,8 +63,10 @@ public abstract class PlatformService : IService, IPlatformService
 		return new GenericData() { [GetType().Name] = data };
 	}
 
-	public void OnDestroy()
+	public void OnDestroy() {}
+
+	public virtual GenericData HealthStatus => new GenericData
 	{
-		
-	}
+		{ Name, "unimplemented" }
+	};
 }

@@ -7,10 +7,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -62,6 +60,7 @@ public abstract class PlatformController : Controller
 	protected T Require<T>() where T : PlatformService => _services.GetRequiredService<T>();
 
 	protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
+	protected ObjectResult Problem(GenericData data) => base.BadRequest(data);
 
 	protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
@@ -70,6 +69,9 @@ public abstract class PlatformController : Controller
 
 	[NonAction]
 	public OkObjectResult Ok(string message) => Ok(new { Message = message });
+
+	[NonAction]
+	public OkObjectResult Ok(GenericData data) => base.Ok(data);
 
 	[NonAction]
 	private new OkObjectResult Ok(object value) => base.Ok(Merge(new { Success = true }, value));

@@ -17,6 +17,8 @@ public class ApiService : PlatformService
 	private HttpClient HttpClient { get; init; } // Used for making HTTP requests
 	private WebClient WebClient { get; init; } // Used for downloading files
 	internal GenericData DefaultHeaders { get; init; }
+	
+	private Dictionary<long, long> StatusCodes { get; init; }
 
 	// TODO: Add origin (calling class), and do not honor requests coming from self
 	public ApiService()
@@ -34,6 +36,7 @@ public class ApiService : PlatformService
 			{ "Accept", "*/*" },
 			{ "Accept-Encoding", "gzip, deflate, br" }
 		};
+		StatusCodes = new Dictionary<long, long>();
 	}
 
 	public ApiRequest Request(string url, int retries = ApiRequest.DEFAULT_RETRIES) => new ApiRequest(this, url, retries);
@@ -69,8 +72,37 @@ public class ApiService : PlatformService
 
 		ApiResponse output = new ApiResponse(response, request.URL);
 		request.Complete(output);
+		Record(output.StatusCode);
 		return output;
 	}
 
+	private void Record(int code)
+	{
+		if (!StatusCodes.ContainsKey(code))
+			StatusCodes[code] = 1;
+		else
+			StatusCodes[code]++;
+	}
 
+	private float SuccessPercentage
+	{
+		get
+		{
+			float total = StatusCodes.Sum(pair => pair.Value);
+			float success = StatusCodes
+				.Where(pair => pair.Key >= 200 && pair.Key < 300)
+				.Sum(pair => pair.Value);
+			return 100f * success / total;
+		}
+	}
+
+	public override GenericData HealthStatus => new GenericData()
+	{
+		{ Name, new GenericData()
+			{
+				{ "health", $"{SuccessPercentage} %" },
+				{ "responses", StatusCodes.OrderBy(pair => pair.Value) }
+			} 
+		}
+	};
 }
