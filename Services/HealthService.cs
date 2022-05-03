@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
@@ -115,8 +117,9 @@ public class HealthService : PlatformTimerService
 		
 		if (removed > 0)
 			Log.Local(Owner.Will, $"Removed {removed} health data points.");
-		
-		// Log.Local(Owner.Will, $"Health: {Health} %");
+
+		// One of the things we need to catch is a situation in which the load balancer is unable to hit the /health endpoints.
+		// Check every 12 ticks (approximately one minute) and evaluate the health of the service autonomously.
 		_elapsedCount++;
 		if ((_elapsedCount %= 12) == 0)
 			Evaluate().Wait();
@@ -131,11 +134,11 @@ public class HealthService : PlatformTimerService
 		output["healthDatapoints"] = Data.Count;
 		
 		if (Warning)
-			UpdateWarning(isBadState: health < OK_THRESHOLD); // Check to see if we recovered
+			UpdateWarning(isBadState: health < OK_THRESHOLD);		// Check to see if we recovered
 		else
-			UpdateWarning(isBadState: health < WARNING_THRESHOLD); // Check to see if we fell over
+			UpdateWarning(isBadState: health < WARNING_THRESHOLD);	// Check to see if we fell over
 		
-		Log.Local(Owner.Will, $"Health: {Health} %");
+		Log.Local(Owner.Default, $"Health: {Health} %");
 
 		// TODO: Grab ALL services for health - include them in a separate health object as non-controller services.
 		PlatformService[] services = controller?.MemberServices ?? Array.Empty<PlatformService>();
@@ -207,7 +210,6 @@ public class HealthService : PlatformTimerService
 
 	private class Datapoint : PlatformDataModel
 	{
-
 		private const int LIFETIME_SECONDS = 900; // 15 minutes
 		public string Id { get; init; }
 		public long Expiration { get; init; }

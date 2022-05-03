@@ -99,7 +99,6 @@ public abstract class MasterService : PlatformTimerService
 			// We want the config to be updated regardless of whether or not our worker threads are processing.
 			// If we don't update it and our service takes too long to work, another container will try to take over and
 			// duplicate the work.
-			Log.Local(Owner.Default, $"Is working? {IsWorking}");
 			if (IsWorking)
 				return;
 			BeginTask();

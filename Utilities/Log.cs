@@ -126,7 +126,12 @@ public class Log : PlatformDataModel
 		string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
 		string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
 		string msg = Message ?? "No Message";
-		string data = Data == null ? "" : "| " + Data.ToString();
+		
+#if DEBUG
+		string data = $"| {Data}";
+#elif RELEASE
+		string data = "";
+#endif
 
 		return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg} {data}";
 	}
