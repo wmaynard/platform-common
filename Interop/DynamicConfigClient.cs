@@ -9,6 +9,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using RCL.Services;
 using Rumble.Platform.Common.Utilities;
 using StackExchange.Redis;
 using WebRequest = System.Net.WebRequest;
