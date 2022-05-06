@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 using Method = System.Net.Http.HttpMethod;
 

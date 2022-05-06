@@ -1,21 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using RCL.Logging;
 
 namespace Rumble.Platform.Common.Utilities;
-
-public enum Owner
-{
-	Austin,
-	Chris,
-	Default,
-	Eitan,
-	Eric,
-	Ernesto,
-	Nathan,
-	Platform,
-	Sean,
-	Will
-}
 
 public class OwnerInformation
 {

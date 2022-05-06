@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Extensions;

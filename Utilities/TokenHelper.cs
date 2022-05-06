@@ -1,3 +1,4 @@
+using RCL.Logging;
 using RCL.Services;
 using Rumble.Platform.Common.Interop;
 

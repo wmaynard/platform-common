@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
@@ -18,7 +19,7 @@ public class Log : PlatformDataModel
 	private static Owner? _defaultOwner;
 	public static Owner DefaultOwner
 	{
-		get => _defaultOwner ?? Utilities.Owner.Platform;
+		get => _defaultOwner ?? RCL.Logging.Owner.Default;
 		set
 		{
 			if (_defaultOwner != null)
@@ -288,7 +289,7 @@ public class Log : PlatformDataModel
 	/// <param name="exception">Any exception encountered, if available.</param>
 	public static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null)
 	{
-		Owner actual = owner == Utilities.Owner.Default
+		Owner actual = owner == RCL.Logging.Owner.Default
 			? DefaultOwner
 			: owner;
 

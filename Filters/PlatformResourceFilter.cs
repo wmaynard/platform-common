@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
+using RCL.Logging;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 

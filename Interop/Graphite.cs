@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver.Core.Authentication;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Interop;

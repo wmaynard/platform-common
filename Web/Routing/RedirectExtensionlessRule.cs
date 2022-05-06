@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Rewrite;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Web.Routing;

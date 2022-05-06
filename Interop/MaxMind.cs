@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using MaxMind.Db;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Models;
@@ -23,7 +24,7 @@ public static class MaxMind
 		}
 		catch (Exception e)
 		{
-			Log.Warn(Owner.Default, "Unable to retrieve GeoIP data.", data: new
+			Log.Warn(Owner.Will, "Unable to retrieve GeoIP data.", data: new
 			{
 				IpAddress = ipAddress
 			}, exception: e);

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
+using RCL.Logging;
 using Timer = System.Timers.Timer; // TODO: Probably use System.Threading.Timer instead
 
 namespace Rumble.Platform.Common.Utilities;

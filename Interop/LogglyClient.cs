@@ -1,4 +1,5 @@
 using System;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -26,8 +27,8 @@ public class LogglyClient
 		catch (Exception e)
 		{
 			if (URL == null)
-				Log.Local(Owner.Default, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
-			Log.Local(Owner.Default, e.Message);
+				Log.Local(Owner.Sean, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
+			Log.Local(Owner.Sean, e.Message);
 		}
 	}
 }

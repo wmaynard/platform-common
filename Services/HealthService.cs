@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;

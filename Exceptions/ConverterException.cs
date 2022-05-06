@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
+using RCL.Logging;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Exceptions;
