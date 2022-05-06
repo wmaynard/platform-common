@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using RCL.Services;
 
@@ -41,6 +42,11 @@ public class HttpClientService : IService
     public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage)
     {
         return await _httpClient.SendAsync(requestMessage);
+    }
+    
+    public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage, CancellationToken cancellationToken)
+    {
+        return await _httpClient.SendAsync(requestMessage, cancellationToken);
     }
     
     public async Task<HttpResponseMessage> GetAsync(string url)
