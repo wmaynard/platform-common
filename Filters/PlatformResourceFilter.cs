@@ -1,21 +1,12 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Filters;
 
@@ -45,7 +36,6 @@ public class PlatformResourceFilter : PlatformBaseFilter, IResourceFilter
 		{
 			GenericData query = new GenericData();
 			GenericData body = null;
-			
 			foreach (KeyValuePair<string, StringValues> pair in context.HttpContext.Request.Query)
 				query[pair.Key] = pair.Value.ToString();
 			

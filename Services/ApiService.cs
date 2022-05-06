@@ -23,14 +23,14 @@ public class ApiService : PlatformService
 	// TODO: Add origin (calling class), and do not honor requests coming from self
 	public ApiService()
 	{
-		HttpClient = new HttpClient(new HttpClientHandler()
+		HttpClient = new HttpClient(new HttpClientHandler
 		{
 			AutomaticDecompression = DecompressionMethods.All
 		});
 		WebClient = new WebClient();
 
 		AssemblyName exe = Assembly.GetExecutingAssembly().GetName();
-		DefaultHeaders = new GenericData()
+		DefaultHeaders = new GenericData
 		{
 			{ "User-Agent", $"{exe.Name}/{exe.Version}" },
 			{ "Accept", "*/*" },

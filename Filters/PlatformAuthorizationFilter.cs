@@ -14,7 +14,7 @@ using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter
+public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter, IActionFilter
 {
 	private const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
 	public const string KEY_TOKEN = "PlatformToken";
@@ -127,7 +127,7 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 			return output;
 
 		// If a token is provided and does not exist in the cache, we should validate it.
-		// TODO: This is mostly copyapasta from the event, so it's a little WET.
+		// TODO: This is mostly copypasta from the event, so it's a little WET.
 		if (!string.IsNullOrWhiteSpace(encryptedToken))
 			api
 				.Request(PlatformEnvironment.TokenValidation)
@@ -166,4 +166,45 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 			context.HttpContext.Items[KEY_TOKEN] = info;
 		return info;
 	}
+
+	/// <summary>
+	/// One additional protection added to the Authorization filter is to request an accountId with any important update.
+	/// This helps prevent a scenario where the game server or any other client uses a different token than intended with
+	/// a request body.  If the provided accountId does not match the provided token's, the operation fails and the work is
+	/// not performed.  To add this protection, add the attribute [RequireAccountId] to a controller or method.
+	///
+	/// Note that if a token or body is not provided this attribute does nothing.
+	/// </summary>
+	public void OnActionExecuting(ActionExecutingContext context)
+	{
+		if (!context.HttpContext.Items.ContainsKey(PlatformResourceFilter.KEY_BODY) 
+			|| !context.HttpContext.Items.ContainsKey(KEY_TOKEN)
+			|| !context.ControllerHasAttribute<RequireAccountId>()
+		)
+			return;
+		
+		GenericData body = (GenericData)context.HttpContext.Items[PlatformResourceFilter.KEY_BODY];
+		TokenInfo token = (TokenInfo)context.HttpContext.Items[KEY_TOKEN];
+		
+		// TODO: After an initial adoption period, this needs to be Require<T> rather than Optional<T>.
+		// See PLATF-5947.
+		string accountId = body?.Optional<string>(key: "accountId");
+
+		if (string.IsNullOrWhiteSpace(accountId) || token == null || accountId == token.AccountId)
+			return;
+		
+		Log.Error(Owner.Default, "Account ID mismatch!  The update accountId differs from the token used!", data: new
+		{
+			ProvidedId = accountId,
+			Token = token
+		});
+		
+		context.HttpContext.Response.StatusCode = 400;
+		context.Result = new BadRequestObjectResult(new ErrorResponse(
+			message: "unauthorized",
+			data: new PlatformException("Account ID mismatch!", code: ErrorCode.AccountIdMismatch)
+		));
+	}
+
+	public void OnActionExecuted(ActionExecutedContext context) { }
 }
