@@ -160,11 +160,14 @@ public abstract class PlatformController : Controller
 			});
 		
 		GenericData health = await _health.Evaluate(this);
+		health.Combine(AdditionalHealthData);
 
 		return _health.IsFailing
 			? Problem(health)
 			: Ok(health);
 	}
+	
+	protected virtual GenericData AdditionalHealthData { get; }
 
 	public static object CollectionResponseObject(IEnumerable<object> objects)
 	{

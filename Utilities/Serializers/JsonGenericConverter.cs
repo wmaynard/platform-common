@@ -58,6 +58,9 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 		GenericData output = new GenericData();
 		string key = null;
 		while (reader.Read())
+		{
+			if (key == "foobar")
+				Console.WriteLine("here I am");
 			switch (reader.TokenType)
 			{
 				case JsonTokenType.PropertyName:
@@ -86,12 +89,15 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 				case JsonTokenType.Number:
 					if (!reader.TryGetDecimal(out decimal asDecimal))
 						throw new ConverterException("Couldn't parse number.", typeof(GenericData), onDeserialize: true);
+					if (key == null)
+						throw new Exception();
 					output[key] = asDecimal;
 					break;
 				case JsonTokenType.EndArray:
 				default:
 					throw new ConverterException("Operation should be impossible.", typeof(GenericData), onDeserialize: true);
 			}
+		}
 
 		return null;
 	}
@@ -185,13 +191,14 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 				case decimal asDecimal:
 					writer.WriteNumber(key, asDecimal);
 					break;
-				case IEnumerable<object> asEnumerable:
-					writer.WritePropertyName(key);
-					WriteJsonArray(ref writer, ref asEnumerable, options);
-					break;
+				
 				case GenericData asGeneric:
 					writer.WritePropertyName(key);
 					Write(writer, asGeneric, options);
+					break;
+				case IEnumerable asEnumerable:
+					writer.WritePropertyName(key);
+					WriteJsonArray(ref writer, ref asEnumerable, options);
 					break;
 				case null:
 					writer.WriteNull(key);
@@ -217,7 +224,7 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 	/// <summary>
 	/// Writes an array from a GenericData object.  Arrays require special handling since they do not have field names.
 	/// </summary>
-	private void WriteJsonArray(ref Utf8JsonWriter writer, ref IEnumerable<object> value, JsonSerializerOptions options)
+	private void WriteJsonArray(ref Utf8JsonWriter writer, ref IEnumerable value, JsonSerializerOptions options)
 	{
 		writer.WriteStartArray();
 		foreach (object obj in value)
@@ -244,14 +251,14 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 					else
 						writer.WriteNumberValue((long)asDecimal);
 					break;
-				case IEnumerable<object> asArray:
+				case GenericData asGeneric:
+					Write(writer, asGeneric, options);
+					break;
+				case IEnumerable asArray:
 					WriteJsonArray(ref writer, ref asArray, options);
 					break;
 				case Enum asEnum:
 					writer.WriteStringValue(asEnum.ToString());
-					break;
-				case GenericData asGeneric:
-					Write(writer, asGeneric, options);
 					break;
 				case PlatformDataModel asModel:
 					Write(writer, asModel.JSON, options);

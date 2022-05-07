@@ -88,6 +88,8 @@ public class GenericData : Dictionary<string, object>
 
 	public void Combine(GenericData other, bool prioritizeOther = false)
 	{
+		if (other == null)
+			return;
 		foreach (string key in other.Keys.Where(key => !ContainsKey(key) || prioritizeOther || string.IsNullOrWhiteSpace(this[key]?.ToString())))
 			this[key] = other[key];
 	}
