@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Drawing;
@@ -72,12 +73,12 @@ public class HealthService : PlatformTimerService
 		? 100
 		: 100f * Data.Sum(point => point.PointsAwarded) / (float)Data.Sum(point => point.MaxValue);
 	
-	private List<Datapoint> Data { get; init; }
+	private ConcurrentQueue<Datapoint> Data { get; init; }
 	private readonly HttpContextAccessor _accessor;
 
 	public HealthService() : base(intervalMS: 5000, startImmediately: true)
 	{
-		Data = new List<Datapoint>();
+		Data = new ConcurrentQueue<Datapoint>();
 		_accessor = new HttpContextAccessor();
 		Warning = false;
 		WarningTime = -1;
@@ -85,21 +86,21 @@ public class HealthService : PlatformTimerService
 
 	public void Add(int possible = 1)
 	{
+		Log.Local(Owner.Will, $"Adding {possible} max HP");
 		Datapoint point = new Datapoint(possible);
 		
 		_accessor.TrySetItem(KEY_ID, point.Id);
 		
-		Data.Add(point);
+		Data.Enqueue(point);
 	}
 
 	// This effectively adds a failure amount to our total health.
 	public void Degrade([Range(1, int.MaxValue, ErrorMessage = "Amount must be positive.")] int amount) => 
-		Data.Add(Datapoint.ScoreOnly(-1 * amount));
+		Data.Enqueue(Datapoint.ScoreOnly(-1 * amount));
 
 	public void Score(int points)
 	{
-		// Log.Local(Owner.Will, $"Scored {points} health points.");
-		
+		Log.Local(Owner.Will, $"Scoring {points} HP");
 		string id = _accessor.TryGetItem<string>(KEY_ID);
 		
 		if (id != null)
@@ -109,15 +110,19 @@ public class HealthService : PlatformTimerService
 			}
 			catch { }
 		else
-			Data.Add(Datapoint.ScoreOnly(points));
+			Data.Enqueue(Datapoint.ScoreOnly(points));
 	}
 
 	protected override void OnElapsed()
 	{
-		int removed = Data.RemoveAll(point => point.Expiration <= Timestamp.UnixTime);
-		
-		if (removed > 0)
-			Log.Local(Owner.Will, $"Removed {removed} health data points.");
+		int hp = 0;
+		while (Data.Any() && Data.First().Expiration <= Timestamp.UnixTime && Data.TryDequeue(out Datapoint result))
+		{
+			hp += result.PointsAwarded;
+		}
+
+		if (hp > 0)
+			Log.Local(Owner.Will, $"Removed {hp} HP.");
 
 		// One of the things we need to catch is a situation in which the load balancer is unable to hit the /health endpoints.
 		// Check every 12 ticks (approximately one minute) and evaluate the health of the service autonomously.

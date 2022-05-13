@@ -17,7 +17,6 @@ public class PlatformHealthFilter : PlatformBaseFilter, IActionFilter, IResultFi
 
 		if (monitor == null)
 			return;
-		Log.Local(Owner.Will, $"Adding {monitor.Weight} HP");
 		context.GetService<HealthService>().Add(monitor.Weight);
 	}
 
