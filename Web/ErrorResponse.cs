@@ -36,6 +36,8 @@ public class ErrorResponse : StandardResponse
 			return null;
 		
 		Dictionary<string, object> output = new Dictionary<string, object>();
+		if (!PlatformEnvironment.IsProd && ex is PlatformException platEx)
+			output["data"] = platEx.Data;
 		output["message"] = ex.Message;
 		output["type"] = ex.GetType().Name;
 		output["stackTrace"] = ex.StackTrace;
