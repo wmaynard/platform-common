@@ -54,8 +54,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
 
 	private static Dictionary<string, string> FallbackValues { get; set; }
-
-	public static readonly bool IsLocal = Deployment?.Contains("local") ?? false;
+	
+	public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || int.TryParse(Deployment, out int result) && result < 100;
 	public static bool IsProd => int.TryParse(Deployment, out int result) && result >= 300;
 	public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
