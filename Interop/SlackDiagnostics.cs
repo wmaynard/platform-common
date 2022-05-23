@@ -57,7 +57,7 @@ public class SlackDiagnostics
 
 	private bool CanSend => !CachedLogs.ContainsKey(Title) 
 		|| (CachedLogs[Title].LastTimestampSent == 0 
-			|| CachedLogs[Title].LastTimestampSent < Timestamp.UnixTimeUTCMS - COOLDOWN_MS);
+		|| CachedLogs[Title].LastTimestampSent < Timestamp.UnixTimeUTCMS - COOLDOWN_MS);
 	
 #pragma warning disable CS4014
 	/// <summary>

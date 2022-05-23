@@ -11,7 +11,9 @@ public enum ErrorCode
 	[Display(Name = "0003")] TokenValidationFailed,
 	[Display(Name = "0004")] AccountIdMismatch,
 	[Display(Name = "0005")] MalformedRequest,
-	[Display(Name = "0006")] InvalidRequestData
+	[Display(Name = "0006")] InvalidRequestData,
+	[Display(Name = "0007")] ModelFailedValidation,
+	[Display(Name = "0008")] GenericDataConversion
 	
 	// player-service errors
 }

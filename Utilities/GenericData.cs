@@ -202,13 +202,17 @@ public class GenericData : Dictionary<string, object>
 					Type e = type.GetElementType() ?? type.GetGenericArguments().First();
 
 					dynamic list = Activator.CreateInstance(typeof(List<>).MakeGenericType(e));
-					// There has to be a better way to do this with LINQ, but have been struggling to get it to work correctly.
-					// Without the for loop, typing gets messed up.
-					// TryConvertToModel will automatically try to cast the data to the appropriate PlatformDataModel type if possible.
-					// Otherwise, it uses System.Convert to attempt a data conversion.
-					IEnumerable<dynamic> values = ((IEnumerable<dynamic>)value).Select(element => TryConvertToModel(element, e));
-					foreach (dynamic x in values)
-						list.Add(x);
+
+					if (value != null)
+					{
+						// There has to be a better way to do this with LINQ, but have been struggling to get it to work correctly.
+						// Without the for loop, typing gets messed up.
+						// TryConvertToModel will automatically try to cast the data to the appropriate PlatformDataModel type if possible.
+						// Otherwise, it uses System.Convert to attempt a data conversion.
+						IEnumerable<dynamic> values = ((IEnumerable<dynamic>)value).Select(element => TryConvertToModel(element, e));
+						foreach (dynamic x in values)
+							list.Add(x);
+					}
 
 					// foreach (dynamic foo in ((IEnumerable<dynamic>) value).Select(element => Convert.ChangeType(element, e)))
 					// 	instance.Add(foo);

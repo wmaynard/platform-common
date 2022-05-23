@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.Serializers;
 
@@ -62,4 +64,17 @@ public abstract class PlatformDataModel
 			}
 		}
 	}
+
+	public void Validate()
+	{
+		string[] errors;
+		
+		Validate(out errors);
+
+		if (errors.Any())
+			throw new ModelValidationException(this, errors);
+	}
+
+	// TODO: Use an interface or make this abstract to force its adoption?
+	protected virtual void Validate(out string[] errors) => errors = Array.Empty<string>();
 }
