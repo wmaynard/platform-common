@@ -170,6 +170,16 @@ public class Graphite
 
 	public static void Track(string name, double value, string endpoint = null, Metrics.Type type = Metrics.Type.FLAT)
 	{
+		if (Client == null)
+		{
+			Log.Local(Owner.Default, "Graphite has not yet been initialized. Data cannot yet be tracked.", data: new
+			{
+				Name = name,
+				Endpoint = endpoint,
+				Value = value
+			});
+			return;
+		}
 		if (PlatformEnvironment.SwarmMode)
 			return;
 		if (string.IsNullOrWhiteSpace(name))
@@ -195,16 +205,8 @@ public class Graphite
 
 		if (!name.StartsWith(prefix))
 			name = $"{prefix}-{name}";
-		
-		if (Client == null)
-			Log.Verbose(Owner.Default, "Graphite has not yet been initialized. Data cannot yet be tracked.", data: new
-			{
-				Name = name,
-				Endpoint = endpoint,
-				Value = value
-			});
-		
-		Client?.Add(name, value, endpoint, type);
+
+		Client.Add(name, value, endpoint, type);
 	}
 	
 	public class Metrics
