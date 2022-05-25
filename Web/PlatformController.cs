@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -150,7 +151,7 @@ public abstract class PlatformController : Controller
 			expando[JsonNamingPolicy.CamelCase.ConvertName(key)] = dict[key];
 	}
 
-	[HttpGet, Route(template: "health"), NoAuth, HealthMonitor(weight: 1)]
+	[HttpGet, Route(template: "health"), AllowAnonymous, NoAuth, HealthMonitor(weight: 1)]
 	public async Task<ActionResult> HealthCheck()
 	{
 		if (_health == null)

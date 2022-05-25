@@ -67,28 +67,21 @@ public abstract class PlatformStartup
 	{
 		get
 		{
-			try
-			{
-				string name = GetType().FullName;
-				// ReSharper disable once PossibleNullReferenceException
-				int index = name.LastIndexOf("service", StringComparison.CurrentCultureIgnoreCase);
-				if (index < 0)
-					throw new Exception();
+			string name = GetType().FullName;
 
-				// Extract the partial namespace containing "Service".
-				int end = name.IndexOf('.', index);
-				int start = name[..end].LastIndexOf('.') + 1;
+			name = name
+				?.ToLower()
+				.Replace(oldValue: ".startup", newValue: "")
+				.Replace(oldValue: "service", newValue: "-service");
 
-				string partial = name[start..end];
-				partial = partial[..1].ToLower() + partial[1..]; // lowerCamelCase
+			if (!string.IsNullOrEmpty(name))
+				return name.Contains('.')
+					? name[(name.IndexOf('.') + 1)..]
+					: name;
+			
+			Log.Warn(Owner.Default, "Could not identify a service name.  Graphite reporting will show as 'unknown-service'.");
+			return "unknown-service";
 
-				return Regex.Replace(partial, @"(?<!_)([A-Z])", "-$1").ToLower();
-			}
-			catch
-			{
-				Log.Warn(Owner.Default, "Could not identify a service name.  Graphite reporting will show as 'unknown-service'.");
-				return "unknown-service";
-			}
 		}
 	}
 
