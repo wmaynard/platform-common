@@ -124,10 +124,8 @@ public class ApiRequest
 		{
 			return await SetMethod(method)._apiService.SendAsync(this);
 		}
-		catch (Exception e)
+		catch
 		{
-			var foo = "bar";
-
 			return default;
 		}
 	}
@@ -194,7 +192,7 @@ public class ApiRequest
 			output.Method = request.Method;
 
 			string parameters = request.Parameters.Any()
-				? "?" + string.Join('&', request.Parameters.SelectMany(pair => $"${pair.Key}={pair.Value}"))
+				? "?" + string.Join('&', request.Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
 				: "";
 			string url = request.URL + parameters;
 			output.RequestUri = new Uri(url);
