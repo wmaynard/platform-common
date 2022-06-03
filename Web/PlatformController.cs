@@ -27,6 +27,7 @@ public abstract class PlatformController : Controller
 
 #pragma warning disable
 	protected readonly HealthService _health;
+	protected readonly CacheService _cacheService;
 #pragma warning restore
 	protected PlatformController(IConfiguration config = null, IServiceProvider services = null)
 	{
@@ -69,8 +70,8 @@ public abstract class PlatformController : Controller
 	// TODO: Fix the serialization such that we are consistent to lowerCamelCase keys
 	// TODO: Remove all other Ok() / Problem() methods to force Platform over to a standard on GenericData
 	[NonAction]
-	public OkObjectResult Ok(GenericData data) => base.Ok(data); 
-	
+	public OkObjectResult Ok(GenericData data) => base.Ok(data);
+
 	[NonAction]
 	public new OkObjectResult Ok() => base.Ok(null);
 
@@ -159,7 +160,7 @@ public abstract class PlatformController : Controller
 			{
 				Warning = "HealthService unavailable."
 			});
-		
+
 		GenericData health = await _health.Evaluate(this);
 		health.Combine(AdditionalHealthData);
 
@@ -167,7 +168,18 @@ public abstract class PlatformController : Controller
 			? Problem(health)
 			: Ok(health);
 	}
-	
+
+	[HttpDelete, Route(template: "cachedToken"), RequireAuth(AuthType.ADMIN_TOKEN)]
+	public async Task<ActionResult> DeleteCachedToken()
+	{
+		string accountId = Require<string>("accountId");
+		
+		return Ok(new GenericData()
+		{
+			{ "tokensRemoved", _cacheService.ClearToken(accountId) }
+		});
+	}
+
 	protected virtual GenericData AdditionalHealthData { get; }
 
 	public static object CollectionResponseObject(IEnumerable<object> objects)

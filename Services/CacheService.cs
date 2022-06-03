@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RCL.Logging;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -41,6 +42,28 @@ public class CacheService : PlatformTimerService
 		}
 		Values[key] = value;
 		Expirations[key] = Timestamp.UnixTimeMS + expirationMS;
+	}
+
+	public bool Clear(string key = null)
+	{
+		if (key != null)
+			return Expirations.Remove(key) & Values.Remove(key);
+
+		Expirations.Clear();
+		Values.Clear();
+		Log.Info(Owner.Will, "All cached data cleared.");
+		return true;
+	}
+
+	public int ClearToken(string accountId)
+	{
+		string[] keys = Values
+			.Where(pair => pair.Value is TokenInfo info && info.AccountId == accountId)
+			.Select(pair => pair.Key)
+			.ToArray();
+		foreach (string key in keys)
+			Clear(key);
+		return keys.Length;
 	}
 
 	/// <summary>

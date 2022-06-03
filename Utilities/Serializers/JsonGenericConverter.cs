@@ -207,7 +207,7 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 					writer.WritePropertyName(key);
 					Write(writer, asModel.JSON, options);
 					break;
-				default:
+				default: // TODO: Anonymous type throws an error on this
 					Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
 					{
 						Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",

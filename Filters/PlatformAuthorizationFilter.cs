@@ -199,12 +199,20 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 			ProvidedId = accountId,
 			Token = token
 		});
-		
-		context.HttpContext.Response.StatusCode = 400;
-		context.Result = new BadRequestObjectResult(new ErrorResponse(
-			message: "unauthorized",
-			data: new PlatformException("Account ID mismatch!", code: ErrorCode.AccountIdMismatch)
-		));
+
+		if (PlatformEnvironment.IsProd)
+		{
+			context.HttpContext.Response.StatusCode = 404;
+			context.Result = new NotFoundResult();
+		}
+		else
+		{
+			context.HttpContext.Response.StatusCode = 400;
+			context.Result = new BadRequestObjectResult(new ErrorResponse(
+				message: "unauthorized",
+				data: new PlatformException("Account ID mismatch!", code: ErrorCode.AccountIdMismatch)
+			));
+		}
 	}
 
 	public void OnActionExecuted(ActionExecutedContext context) { }
