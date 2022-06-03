@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -92,6 +93,30 @@ public class GenericData : Dictionary<string, object>
 			return;
 		foreach (string key in other.Keys.Where(key => !ContainsKey(key) || prioritizeOther || string.IsNullOrWhiteSpace(this[key]?.ToString())))
 			this[key] = other[key];
+	}
+
+	/// <summary>
+	/// Removes a key from all levels of the data object.
+	/// </summary>
+	/// <param name="key">The key to remove.</param>
+	/// <param name="fuzzy">If true, ignores case and removes anything with a partial match.</param>
+	/// <returns>The modified GenericData object for method chaining.</returns>
+	public GenericData RemoveRecursive(string key, bool fuzzy = false)
+	{
+		if (fuzzy)
+		{
+			key = key.ToLower();
+			foreach (string _key in Keys.Where(k => k.ToLower().Contains(key)))
+				RemoveRecursive(_key);
+			foreach (GenericData value in Values.OfType<GenericData>())
+				value.RemoveRecursive(key, true);
+			return this;
+		}
+		
+		Remove(key);
+		foreach (IDictionary foo in Values.OfType<IDictionary>())
+			foo.Remove(key);
+		return this;
 	}
 
 	public static GenericData Combine(GenericData preferred, GenericData other)

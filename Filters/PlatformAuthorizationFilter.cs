@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Primitives;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
@@ -19,6 +20,8 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 {
 	private const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
 	public const string KEY_TOKEN = "PlatformToken";
+	public const string KEY_GAME_SECRET = "game";
+	public const string KEY_RUMBLE_SECRET = "secret";
 	
 	/// <summary>
 	/// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
@@ -98,12 +101,23 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 		if (authOptional)
 			return;
 
+		//PlatformEnvironment.RumbleSecret;
+		bool keyMismatch = false;
+
+		if (keysRequired)
+		{
+			context.HttpContext.Request.Query.TryGetValue(KEY_GAME_SECRET, out StringValues gameValues);
+			context.HttpContext.Request.Query.TryGetValue(KEY_RUMBLE_SECRET, out StringValues secretValues);
+
+			keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault()
+				|| PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
+		}
 		bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && tokenInfo == null;
 		bool requiredAdminTokenIsNotAdmin = adminTokenRequired && tokenInfo != null && tokenInfo.IsNotAdmin;
 		
 		// Verify that the token has the appropriate privileges.  If it doesn't, change the result so that we don't 
 		// continue to the endpoint and instead exit out early.
-		if (requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
+		if (keyMismatch || requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: "unauthorized",
 				data: new PlatformException(errorMessage, code: ErrorCode.TokenValidationFailed)

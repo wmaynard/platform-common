@@ -20,7 +20,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 {
 	private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
 	private const string LOCAL_SECRETS_JSON = "environment.json";
-	
+
 	internal const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
 	internal const string KEY_GAME_ID = "GAME_GUKEY";
 	internal const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
@@ -38,6 +38,9 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	internal const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
 
 	// Helper getter properties
+	internal static GenericData VarDump => !IsProd			// Useful for diagnosing issues with config.  Should never be used in production.
+		? new GenericData { { "Environment", Variables } }
+		: new GenericData();
 	public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
 	public static string GameSecret => Optional(KEY_GAME_ID);
 	public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
@@ -54,24 +57,25 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
 
 	private static Dictionary<string, string> FallbackValues { get; set; }
-	
+
 	public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || int.TryParse(Deployment, out int result) && result < 100;
 	public static bool IsProd => int.TryParse(Deployment, out int result) && result >= 300;
 	public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
 	private static bool Initialized => Variables != null;
 	private static GenericData Variables { get; set; }
+
 	private static GenericData Initialize()
 	{
 		Variables ??= new GenericData();
-		
+
 		// Local secrets are stored in environment.json when developers are working locally.
 		// These are low priority, and will return an empty dataset when deployed.
 		Variables.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
-		
+
 		// The meat of environment variables on deployment.
 		Variables.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
-		
+
 		// Common variables are fallbacks.  Any other value will override them.
 		// In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
 		// we manage environment variables locally.
@@ -79,7 +83,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 		if (LogglyUrl != null)
 			return Variables;
-		
+
 		string loggly = Variables.Optional<string>(KEY_LOGGLY_ROOT);
 		string tag = Variables.Optional<string>(KEY_COMPONENT);
 
@@ -87,7 +91,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			return Variables;
 
 		Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
-		
+
 		return Variables;
 	}
 
@@ -96,7 +100,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 		try
 		{
 			GenericData output = new GenericData();
-			
+
 			string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
 			GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
 
@@ -112,15 +116,15 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			}
 
 			foreach (string key in common.Keys)
-				output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment) 
-					?? common?.Optional<GenericData>(key)?.Optional<object>("*");
-			
+				output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment)
+				              ?? common?.Optional<GenericData>(key)?.Optional<object>("*");
+
 			// Format the LOGGLY_URL.
 			string root = output.Optional<string>(KEY_LOGGLY_ROOT);
 			string component = ServiceName;
 			if (root != null && component != null)
 				output[KEY_LOGGLY_URL] = string.Format(root, component);
-			
+
 			// Parse out MONGODB_NAME from the MONGODB_URI.
 			try
 			{
@@ -129,7 +133,9 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 				output[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
 			}
-			catch { } // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
+			catch
+			{
+			} // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
 
 			return output;
 		}
@@ -142,6 +148,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			return new GenericData();
 		}
 	}
+
 	private static GenericData LoadEnvironmentVariables()
 	{
 		try
@@ -158,6 +165,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			return new GenericData();
 		}
 	}
+
 	private static GenericData LoadLocalSecrets()
 	{
 		try
@@ -181,6 +189,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			? Variables.Optional<T>(key)
 			: Variables.Require<T>(key);
 	}
+
 	public static T Require<T>(string key) => Fetch<T>(key, optional: false);
 	public static string Require(string key) => Require<string>(key);
 	public static T Require<T>(string key, out T value) => value = Require<T>(key);
@@ -191,6 +200,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static string Optional(string key, out string value) => value = Optional(key);
 
 	public static string Optional(string key, string fallbackValue) => Optional<string>(key, fallbackValue);
+
 	public static T Optional<T>(string key, T fallbackValue)
 	{
 		T output = Fetch<T>(key, optional: true);
@@ -209,12 +219,13 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static string OptionalVariable(string key) => Optional(key);
 
 	public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
+
 	public static string Url(params string[] paths)
 	{
 		string[] segments = paths
 			.Where(path => !string.IsNullOrWhiteSpace(path))
 			.ToArray();
-		
+
 		if (!segments.Any())
 			return null;
 
@@ -228,6 +239,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 		return output;
 	}
-	
-	// TODO: Incorporate DynamicConfigService as fallback values?
-}
+};
+
+// TODO: Incorporate DynamicConfigService as fallback values?

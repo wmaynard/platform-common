@@ -180,6 +180,25 @@ public abstract class PlatformController : Controller
 		});
 	}
 
+	[HttpGet, Route(template: "environment"), RequireAuth(AuthType.RUMBLE_KEYS)]
+	public async Task<ActionResult> GetEnvironmentVariables()
+	{
+		if (PlatformEnvironment.IsProd)
+			Log.Warn(Owner.Will, "A request for an environment dump was made on prod.");
+
+		GenericData output = PlatformEnvironment.VarDump
+			.RemoveRecursive(key: "gukey", fuzzy: true)		// remove game gukeys
+			.RemoveRecursive(key: "secret", fuzzy: true)	// remove any secrets 
+			.RemoveRecursive(key: "pem_", fuzzy: true)		// remove crypto keys
+			.RemoveRecursive(key: "_key", fuzzy: true)		// remove any other possibly sensitive keys
+			.RemoveRecursive(key: PlatformEnvironment.KEY_SLACK_LOG_BOT_TOKEN)
+			.RemoveRecursive(key: PlatformEnvironment.KEY_MONGODB_URI)
+			.RemoveRecursive(key: PlatformEnvironment.KEY_GAME_ID)
+			.RemoveRecursive(key: PlatformEnvironment.KEY_RUMBLE_SECRET);
+		
+		return Ok(output);
+	}
+
 	protected virtual GenericData AdditionalHealthData { get; }
 
 	public static object CollectionResponseObject(IEnumerable<object> objects)

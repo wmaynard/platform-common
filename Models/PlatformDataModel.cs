@@ -67,14 +67,12 @@ public abstract class PlatformDataModel
 
 	public void Validate()
 	{
-		string[] errors;
-		
-		Validate(out errors);
+		Validate(out List<string> errors);
 
 		if (errors.Any())
 			throw new ModelValidationException(this, errors);
 	}
 
 	// TODO: Use an interface or make this abstract to force its adoption?
-	protected virtual void Validate(out string[] errors) => errors = Array.Empty<string>();
+	protected virtual void Validate(out List<string> errors) => errors = new List<string>();
 }
