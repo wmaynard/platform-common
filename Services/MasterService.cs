@@ -33,7 +33,7 @@ public abstract class MasterService : PlatformTimerService
 	private Task _runningTask;
 	private CancellationTokenSource _tokenSource;
 	
-	private string ID { get; init; }
+	protected string ID { get; init; }
 
 	protected MasterService(ConfigService configService) : base(intervalMS: MS_INTERVAL, startImmediately: true)
 	{
@@ -135,6 +135,7 @@ public abstract class MasterService : PlatformTimerService
 	{
 		_config.Update(Name, ID);
 		_config.Update(LastActiveKey, UnixTimeMS);
+		Log.Info(Owner.Will, "Confiscating work as the master node");
 	}
 
 	public override GenericData HealthStatus => new GenericData

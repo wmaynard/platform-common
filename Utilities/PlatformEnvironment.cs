@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using RCL.Logging;
 
 namespace Rumble.Platform.Common.Utilities;
@@ -64,9 +65,13 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 	private static bool Initialized => Variables != null;
 	private static GenericData Variables { get; set; }
+	
+	public static string Version { get; private set; }
 
 	private static GenericData Initialize()
 	{
+		Version = ReadVersion();
+		
 		Variables ??= new GenericData();
 
 		// Local secrets are stored in environment.json when developers are working locally.
@@ -238,6 +243,15 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			output = $"{output.TrimEnd('/')}/{segments[i].TrimStart('/')}";
 
 		return output;
+	}
+	private static string ReadVersion()
+	{
+		string version = "Unknown";
+		string location = Assembly.GetEntryAssembly()?.Location;
+				
+		if (location != null)
+			version = AssemblyName.GetAssemblyName(location)?.Version?.ToString() ?? version;
+		return version;
 	}
 };
 

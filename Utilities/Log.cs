@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -13,7 +14,7 @@ using Rumble.Platform.Common.Models;
 
 namespace Rumble.Platform.Common.Utilities;
 
-	
+
 public class Log : PlatformDataModel
 {
 	private static Owner? _defaultOwner;
@@ -94,6 +95,9 @@ public class Log : PlatformDataModel
 
 	[JsonIgnore]
 	private string Caller { get; set; }
+	
+	[JsonInclude, JsonPropertyName("serviceVersion")]
+	public string Version { get; init; }
 
 	private Log(LogType type, Owner owner, Exception exception = null)
 	{
@@ -111,7 +115,7 @@ public class Log : PlatformDataModel
 		
 		MethodBase method = new StackFrame(3).GetMethod();
 		Caller = $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
-
+		Version = PlatformEnvironment.Version;
 		try // Particularly with Mongo, some Exceptions don't like being serialized.  There's probably a better way around this, but this works for now.
 		{
 			string json = JSON;
