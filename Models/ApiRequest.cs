@@ -49,7 +49,10 @@ public class ApiRequest
 		return this;
 	}
 
-	public ApiRequest AddAuthorization(string token) => AddHeader("Authorization", $"Bearer {token}");
+	public ApiRequest AddAuthorization(string token) => AddHeader("Authorization", token.StartsWith("Bearer ") 
+		? token 
+		: $"Bearer {token}"
+	);
 	public ApiRequest AddHeader(string key, string value) => AddHeaders(new GenericData() { { key, value } });
 	public ApiRequest AddHeaders(GenericData headers)
 	{

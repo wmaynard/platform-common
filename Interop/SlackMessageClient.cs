@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -65,7 +66,12 @@ public class SlackMessageClient
 	private async Task LoadUsers()
 	{
 		Log.Info(Owner.Will, "Loading workplace Slack user data.");
-		GenericData result = PlatformRequest.Get(GET_USER_LIST, auth: Token).Send();
+
+		ApiService.Instance
+			.Request(GET_USER_LIST)
+			.AddAuthorization(Token)
+			.Get(out GenericData result);
+		
 		foreach (GenericData memberData in result.Require<GenericData[]>("members"))
 			Users.Add(memberData);
 	}
@@ -78,7 +84,12 @@ public class SlackMessageClient
 		{
 			message.Compress();
 			message.Channel = channel;
-			response = PlatformRequest.Post(POST_MESSAGE, auth: Token, payload: message.JSON).Send(out HttpStatusCode code);
+
+			ApiService.Instance
+				.Request(POST_MESSAGE)
+				.AddAuthorization(Token)
+				.SetPayload(message.JSON)
+				.Post(out response, out int code);
 			if (!response.Require<bool>("ok"))
 				throw new FailedRequestException(POST_MESSAGE, message.JSON);
 		}
@@ -126,10 +137,9 @@ public class SlackMessageClient
 				multiForm.Add(new StringContent(channel), name: "channels");
 				multiForm.Add(new StreamContent(File.OpenRead(path)), name: "file", Path.GetFileName(path));
 
-				HttpResponseMessage httpResponse = await PlatformRequest.CLIENT.PostAsync(POST_UPLOAD, multiForm);
+				HttpResponseMessage httpResponse = await ApiService.Instance.MultipartFormPost(POST_UPLOAD, multiForm);
 				response = await httpResponse.Content.ReadAsStringAsync();
-			
-				// response = PlatformRequest.Post(url: POST_UPLOAD, auth: Token, payload: null).Send(out HttpStatusCode code);
+				
 				if (!response.Require<bool>("ok"))
 					throw new FailedRequestException(POST_UPLOAD, responseData: response);
 			}

@@ -15,8 +15,8 @@ using Rumble.Platform.Common.Web;
 namespace Rumble.Platform.Common.Services;
 public class ApiService : PlatformService
 {
-	private HttpClient HttpClient { get; init; } // Used for making HTTP requests
-	private WebClient WebClient { get; init; } // Used for downloading files
+	public static ApiService Instance;
+	private HttpClient HttpClient { get; init; }
 	internal GenericData DefaultHeaders { get; init; }
 	
 	private Dictionary<long, long> StatusCodes { get; init; }
@@ -24,11 +24,11 @@ public class ApiService : PlatformService
 	// TODO: Add origin (calling class), and do not honor requests coming from self
 	public ApiService()
 	{
+		Instance = this;
 		HttpClient = new HttpClient(new HttpClientHandler
 		{
 			AutomaticDecompression = DecompressionMethods.All
 		});
-		WebClient = new WebClient();
 
 		AssemblyName exe = Assembly.GetExecutingAssembly().GetName();
 		DefaultHeaders = new GenericData
@@ -39,6 +39,8 @@ public class ApiService : PlatformService
 		};
 		StatusCodes = new Dictionary<long, long>();
 	}
+
+	internal async Task<HttpResponseMessage> MultipartFormPost(string url, MultipartFormDataContent content) => await HttpClient.PostAsync(url, content); 
 
 	public ApiRequest Request(string url, int retries = ApiRequest.DEFAULT_RETRIES) => new ApiRequest(this, url, retries);
 

@@ -1,5 +1,7 @@
 using System;
+using Microsoft.Extensions.Configuration;
 using RCL.Logging;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -9,6 +11,8 @@ public class LogglyClient
 {
 	public string URL { get; init; }
 
+	private readonly ApiService _apiService;
+	private LogglyClient(ApiService apiService) => _apiService = apiService; 
 	public LogglyClient() => URL = PlatformEnvironment.LogglyUrl;
 	
 	// ReSharper disable once MemberCanBeMadeStatic.Global
@@ -17,12 +21,23 @@ public class LogglyClient
 		try
 		{
 			string json = log.JSON;
-			
+
 			if (json != null)
-				PlatformRequest.Post(URL).SendAsync(
-					payload: json, 
-					onComplete: () => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT)
-				);
+				ApiService.Instance
+					.Request(URL)
+					.SetPayload(json)
+					.OnSuccess((_, _) =>
+					{
+						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
+					})
+					.PostAsync();
+
+
+			// if (json != null)
+			// 	PlatformRequest.Post(URL).SendAsync(
+			// 		payload: json, 
+			// 		onComplete: () => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT)
+			// 	);
 		}
 		catch (Exception e)
 		{
