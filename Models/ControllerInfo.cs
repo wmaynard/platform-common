@@ -43,6 +43,8 @@ public class ControllerInfo : PlatformDataModel
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_NAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string Name { get; init; }
 
+	[JsonConstructor]
+	public ControllerInfo(){ }
 	private ControllerInfo(Type type)
 	{
 		if (!type.IsAssignableTo(typeof(PlatformController)))

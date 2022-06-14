@@ -218,9 +218,6 @@ public abstract class PlatformStartup
 
 	public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 	{
-		// Try to register this service with dynamic config.
-		RegisterService(provider.GetService<ApiService>());
-
 		string baseRoute = this.HasAttribute(out BaseRoute attribute)
 			? attribute.Route
 			: "";
@@ -279,6 +276,10 @@ public abstract class PlatformStartup
 				.UseAuthorization()
 				.UseEndpoints(endpoints => { endpoints.MapControllers(); })
 				.UseResponseCompression();
+			
+			
+			// Try to register this service with dynamic config.
+			RegisterService(provider.GetService<ApiService>());
 			return;
 		}
 
@@ -320,6 +321,10 @@ public abstract class PlatformStartup
 				ConfigureRoutes(builder);
 			})
 			.UseResponseCompression();
+		
+		
+		// Try to register this service with dynamic config.
+		RegisterService(provider.GetService<ApiService>());
 	}
 
 	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder)
@@ -343,7 +348,6 @@ public abstract class PlatformStartup
 				.OrderBy(_ => _)
 				.ToArray();
 
-			int code = -1;
 			apiService
 				?.Request(PlatformEnvironment.Url("/config/register"))
 				.AddParameters(new GenericData
@@ -355,10 +359,12 @@ public abstract class PlatformStartup
 				{
 					{ PlatformEnvironment.KEY_DEPLOYMENT, PlatformEnvironment.Deployment },
 					{ PlatformEnvironment.KEY_COMPONENT, PlatformEnvironment.ServiceName },
+					{ PlatformEnvironment.KEY_REGISTRATION_NAME, PlatformEnvironment.RegistrationName },
 					{ "version", PlatformEnvironment.Version },
 					{ "commonVersion", PlatformEnvironment.CommonVersion },
 					{ "endpoints", endpoints },
-					{ "controllers", controllerInfo }
+					{ "controllers", controllerInfo },
+					{ "owner", Log.DefaultOwner }
 				})
 				.OnFailure((_, response) =>
 				{
@@ -367,7 +373,7 @@ public abstract class PlatformStartup
 					else
 						Log.Error(Owner.Will, "Unable to register service with dynamic config.");
 				})
-				.Post(out GenericData result, out code);
+				.Post(out GenericData _, out int code);
 		}
 		catch (Exception e)
 		{

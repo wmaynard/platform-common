@@ -258,6 +258,13 @@ public class GenericData : Dictionary<string, object>
 						: list;
 				}
 			}
+			catch (NotSupportedException e)
+			{
+				Log.Warn(Owner.Will, "GenericData cast failed from lack of JsonConstructor.", data: new
+				{
+					OutputType = typeof(T).FullName
+				}, exception: e);
+			}
 			catch (Exception e)
 			{
 				Log.Warn(Owner.Will, "Unable to cast GenericData to an Enumerable as requested.", data: new

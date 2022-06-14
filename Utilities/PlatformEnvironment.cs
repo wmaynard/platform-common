@@ -20,24 +20,25 @@ namespace Rumble.Platform.Common.Utilities;
 /// </summary>
 public static class PlatformEnvironment // TODO: Add method to build a url out for service interop
 {
-	private const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
+	public const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
 	private const string LOCAL_SECRETS_JSON = "environment.json";
 
-	internal const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
-	internal const string KEY_GAME_ID = "GAME_GUKEY";
-	internal const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
-	internal const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
-	internal const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
-	internal const string KEY_LOGGLY_URL = "LOGGLY_URL";
-	internal const string KEY_COMPONENT = "RUMBLE_COMPONENT";
-	internal const string KEY_MONGODB_URI = "MONGODB_URI";
-	internal const string KEY_MONGODB_NAME = "MONGODB_NAME";
-	internal const string KEY_GRAPHITE = "GRAPHITE";
-	internal const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
-	internal const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
-	internal const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
-	internal const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
-	internal const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
+	public const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
+	public const string KEY_GAME_ID = "GAME_GUKEY";
+	public const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
+	public const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
+	public const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
+	public const string KEY_LOGGLY_URL = "LOGGLY_URL";
+	public const string KEY_COMPONENT = "RUMBLE_COMPONENT";
+	public const string KEY_MONGODB_URI = "MONGODB_URI";
+	public const string KEY_MONGODB_NAME = "MONGODB_NAME";
+	public const string KEY_GRAPHITE = "GRAPHITE";
+	public const string KEY_REGISTRATION_NAME = "RUMBLE_REGISTRATION_NAME";
+	public const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
+	public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
+	public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
+	public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
+	public const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
 
 	// Helper getter properties
 	internal static GenericData VarDump => !IsProd			// Useful for diagnosing issues with config.  Should never be used in production.
@@ -50,6 +51,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
 	public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
 	public static string ServiceName => Optional(KEY_COMPONENT);
+	public static string RegistrationName => Optional(KEY_REGISTRATION_NAME);
 	public static string MongoConnectionString => Optional(KEY_MONGODB_URI);
 	public static string MongoDatabaseName => Optional(KEY_MONGODB_NAME);
 	public static string Graphite => Optional(KEY_GRAPHITE);

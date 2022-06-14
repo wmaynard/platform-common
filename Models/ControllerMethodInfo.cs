@@ -54,6 +54,8 @@ public class ControllerMethodInfo : PlatformDataModel
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROUTES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string[] Routes { get; init; }
 	
+	[JsonConstructor]
+	public ControllerMethodInfo() { }
 	private ControllerMethodInfo(Type type, MethodInfo methodInfo, string[] baseRoutes = null)
 	{
 		if (!type.IsAssignableTo(typeof(PlatformController)))
