@@ -213,19 +213,20 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 	public static T Optional<T>(string key, T fallbackValue)
 	{
 		T output = Fetch<T>(key, optional: true);
-		return output.Equals(default)
+
+		bool useFallback = output == null || output.Equals(default);
+		
+		if (useFallback)
+			Log.Warn(Owner.Default, "Environment fallback value is being used", data: new
+			{
+				missingKey = key,
+				fallbackValue = fallbackValue
+			});
+
+		return useFallback
 			? fallbackValue
 			: output;
 	}
-
-	[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
-	internal static string Variable(string key, string fallbackValue) => Optional(key, fallbackValue);
-
-	[Obsolete("Use PlatformEnvironment's Require() or Require<T>() methods instead.")]
-	public static string Variable(string key) => Require(key);
-
-	[Obsolete("Use PlatformEnvironment's Optional() or Optional<T>() methods instead.")]
-	public static string OptionalVariable(string key) => Optional(key);
 
 	public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
 
