@@ -111,13 +111,22 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 
 			keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault()
 				|| PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
+			if (keyMismatch && PlatformEnvironment.IsDev)
+			{
+				
+			}
 		}
 		bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && tokenInfo == null;
 		bool requiredAdminTokenIsNotAdmin = adminTokenRequired && tokenInfo != null && tokenInfo.IsNotAdmin;
 		
 		// Verify that the token has the appropriate privileges.  If it doesn't, change the result so that we don't 
 		// continue to the endpoint and instead exit out early.
-		if (keyMismatch || requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
+		if (keyMismatch)
+			context.Result = new BadRequestObjectResult(new ErrorResponse(
+				message: "unauthorized",
+				data: new PlatformException(errorMessage, code: ErrorCode.KeyValidationFailed)
+			));
+		else if (requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: "unauthorized",
 				data: new PlatformException(errorMessage, code: ErrorCode.TokenValidationFailed)

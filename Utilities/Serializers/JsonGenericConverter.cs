@@ -59,8 +59,6 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 		string key = null;
 		while (reader.Read())
 		{
-			if (key == "foobar")
-				Console.WriteLine("here I am");
 			switch (reader.TokenType)
 			{
 				case JsonTokenType.PropertyName:
@@ -147,10 +145,7 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 	#endregion READ
 
 	#region WRITE
-	public override void Write(Utf8JsonWriter writer, GenericData value, JsonSerializerOptions options)
-	{
-		WriteJson(ref writer, options, ref value);
-	}
+	public override void Write(Utf8JsonWriter writer, GenericData value, JsonSerializerOptions options) => WriteJson(ref writer, options, ref value);
 
 	/// <summary>
 	/// Writes a GenericData object to JSON for a response body.

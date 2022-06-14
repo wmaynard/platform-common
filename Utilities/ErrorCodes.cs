@@ -13,7 +13,8 @@ public enum ErrorCode
 	[Display(Name = "0005")] MalformedRequest,
 	[Display(Name = "0006")] InvalidRequestData,
 	[Display(Name = "0007")] ModelFailedValidation,
-	[Display(Name = "0008")] GenericDataConversion
-	
+	[Display(Name = "0008")] GenericDataConversion,
+	[Display(Name = "0009")] KeyValidationFailed
+
 	// player-service errors
 }

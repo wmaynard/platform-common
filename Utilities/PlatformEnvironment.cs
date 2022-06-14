@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using RCL.Logging;
+using Rumble.Platform.Common.Extensions;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -40,7 +41,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 	// Helper getter properties
 	internal static GenericData VarDump => !IsProd			// Useful for diagnosing issues with config.  Should never be used in production.
-		? new GenericData { { "Environment", Variables } }
+		? new GenericData { { "environment", Variables.Copy() } }
 		: new GenericData();
 	public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
 	public static string GameSecret => Optional(KEY_GAME_ID);
@@ -59,8 +60,11 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 	private static Dictionary<string, string> FallbackValues { get; set; }
 
-	public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || int.TryParse(Deployment, out int result) && result < 100;
-	public static bool IsProd => int.TryParse(Deployment, out int result) && result >= 300;
+	public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || (Deployment?.NumericBetween(min: 0, max: 99) ?? false);
+	public static readonly bool IsDev = Deployment?.NumericBetween(min: 100, max: 199) ?? false;
+	public static readonly bool IsStaging = Deployment?.NumericBetween(min: 200, max: 299) ?? false;
+	public static readonly bool IsProd = Deployment?.NumericBetween(min: 300, max: 399) ?? false;
+	
 	public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
 	private static bool Initialized => Variables != null;

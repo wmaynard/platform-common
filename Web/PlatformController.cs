@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -8,11 +9,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Models;
@@ -191,12 +194,13 @@ public abstract class PlatformController : Controller
 			.RemoveRecursive(key: "secret", fuzzy: true)	// remove any secrets 
 			.RemoveRecursive(key: "pem_", fuzzy: true)		// remove crypto keys
 			.RemoveRecursive(key: "_key", fuzzy: true)		// remove any other possibly sensitive keys
+			.RemoveRecursive(key: PlatformEnvironment.KEY_PLATFORM_COMMON)
 			.RemoveRecursive(key: PlatformEnvironment.KEY_SLACK_LOG_BOT_TOKEN)
 			.RemoveRecursive(key: PlatformEnvironment.KEY_MONGODB_URI)
 			.RemoveRecursive(key: PlatformEnvironment.KEY_GAME_ID)
 			.RemoveRecursive(key: PlatformEnvironment.KEY_RUMBLE_SECRET);
-		
-		return Ok(output);
+
+		return Ok(output.Sort());
 	}
 
 	protected virtual GenericData AdditionalHealthData { get; }
@@ -276,4 +280,26 @@ public abstract class PlatformController : Controller
 		.Select(info => info.GetValue(this))
 		.OfType<PlatformService>()
 		.ToArray();
+
+	internal List<string> Endpoints
+	{
+		get
+		{
+			var output = this
+				.GetType()
+				.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+				.Select(info => info.GetCustomAttributes())
+				.OfType<RouteAttribute>();
+			return null;
+		}
+	}
+
+	[HttpGet, Route("controllerDetails"), NoAuth]
+	public ActionResult TestAttributes()
+	{
+		return Ok(new GenericData
+		{
+			{ "info", new ControllerInfo(this) }
+		});
+	}
 }

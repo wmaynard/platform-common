@@ -31,13 +31,6 @@ public class LogglyClient
 						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
 					})
 					.PostAsync();
-
-
-			// if (json != null)
-			// 	PlatformRequest.Post(URL).SendAsync(
-			// 		payload: json, 
-			// 		onComplete: () => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT)
-			// 	);
 		}
 		catch (Exception e)
 		{

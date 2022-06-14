@@ -18,6 +18,7 @@ using Rumble.Platform.Common.Utilities.Serializers;
 
 namespace Rumble.Platform.Common.Models;
 
+[BsonIgnoreExtraElements]
 public abstract class PlatformDataModel
 {
 	/// <summary>
@@ -75,4 +76,11 @@ public abstract class PlatformDataModel
 
 	// TODO: Use an interface or make this abstract to force its adoption?
 	protected virtual void Validate(out List<string> errors) => errors = new List<string>();
+
+	protected void Test(bool condition, string error, ref List<string> errors)
+	{
+		errors ??= new List<string>();
+		if (!condition)
+			errors.Add(error);
+	}
 }

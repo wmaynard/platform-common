@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Data;
 using System.Linq;
 using System.Text.Json;
@@ -85,6 +86,16 @@ public class GenericData : Dictionary<string, object>
 			}, exception: ex);
 			return null;
 		}
+	}
+
+	public GenericData Sort()
+	{
+		GenericData output = new GenericData();
+		foreach (string key in Keys.OrderBy(k => k))
+			output[key] = this[key] is GenericData nested
+				? nested.Sort()
+				: this[key];
+		return output;
 	}
 
 	public void Combine(GenericData other, bool prioritizeOther = false)
