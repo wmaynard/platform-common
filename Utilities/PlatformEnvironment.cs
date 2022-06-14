@@ -220,7 +220,9 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			Log.Warn(Owner.Default, "Environment fallback value is being used", data: new
 			{
 				missingKey = key,
-				fallbackValue = fallbackValue
+				fallbackValue = fallbackValue,
+				allKeys = Variables?.Select(pair => pair.Key).OrderBy(_ => _),
+				initialized = Initialized
 			});
 
 		return useFallback
