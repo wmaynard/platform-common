@@ -4,12 +4,14 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Models;
 
-internal class ControllerInfo : PlatformDataModel
+public class ControllerInfo : PlatformDataModel
 {
 	internal const string DB_KEY_ENDPOINTS = "endpoints";
 	internal const string DB_KEY_METHODS = "methods";
@@ -27,7 +29,7 @@ internal class ControllerInfo : PlatformDataModel
 	
 	[BsonElement(DB_KEY_ROUTES), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROUTES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public string[] BaseRoutes { get; init; }	
+	public string[] BaseRoutes { get; init; }
 	
 	[BsonElement(DB_KEY_ENDPOINTS), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ENDPOINTS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -40,22 +42,28 @@ internal class ControllerInfo : PlatformDataModel
 	[BsonElement(DB_KEY_NAME), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_NAME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string Name { get; init; }
-	
-	public ControllerInfo(PlatformController controller)
+
+	private ControllerInfo(Type type)
 	{
-		BaseRoutes = controller.HasAttributes(out RouteAttribute[] baseRoutes)
+		if (!type.IsAssignableTo(typeof(PlatformController)))
+			throw new PlatformException("Provided type is not a PlatformController.", code: ErrorCode.InvalidDataType);
+		
+		BaseRoutes = type.HasAttributes(out RouteAttribute[] baseRoutes)
 			? baseRoutes.Select(route => route.Template).ToArray()
 			: Array.Empty<string>();
 
-		RoutingMethods = controller
-			.GetType()
+		RoutingMethods = type
 			.GetMethods(bindingAttr: BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
 			.Where(info => info.HasAttribute(out RouteAttribute _))
 			.ToArray();
 		MethodDetails = RoutingMethods
-			.Select(info => new ControllerMethodInfo(controller, info, BaseRoutes))
+			.Select(info => ControllerMethodInfo.CreateFrom(type, info, BaseRoutes))
 			.OrderBy(info => info.Path)
 			.ToArray();
-		Name = controller.GetType().Name;
+		Name = type.Name;
 	}
+
+	public static ControllerInfo CreateFrom(Type type) => type.IsAssignableTo(typeof(PlatformController))
+		? new ControllerInfo(type)
+		: null;
 }

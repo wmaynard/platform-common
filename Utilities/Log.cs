@@ -98,6 +98,9 @@ public class Log : PlatformDataModel
 	
 	[JsonInclude, JsonPropertyName("serviceVersion")]
 	public string Version { get; init; }
+	
+	[JsonInclude, JsonPropertyName("commonVersion")]
+	public string CommonVersion { get; init; }
 
 	private Log(LogType type, Owner owner, Exception exception = null)
 	{
@@ -116,6 +119,7 @@ public class Log : PlatformDataModel
 		MethodBase method = new StackFrame(3).GetMethod();
 		Caller = $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
 		Version = PlatformEnvironment.Version;
+		CommonVersion = PlatformEnvironment.CommonVersion;
 		try // Particularly with Mongo, some Exceptions don't like being serialized.  There's probably a better way around this, but this works for now.
 		{
 			string json = JSON;

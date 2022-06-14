@@ -69,13 +69,27 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 	private static bool Initialized => Variables != null;
 	private static GenericData Variables { get; set; }
-	
-	public static string Version { get; private set; }
+
+	public static readonly string Version = Assembly
+		.GetEntryAssembly()
+		?.GetName()
+		.Version
+		?.ToString()
+		?? "Unknown";
+
+	public static readonly string CommonVersion = ReadCommonVersion();
+
+	private static string ReadCommonVersion()
+	{
+		Version v = Assembly.GetExecutingAssembly().GetName().Version;
+
+		return v != null
+			? $"{v.Major}.{v.Minor}.{v.Build}"
+			: "Unknown";
+	}
 
 	private static GenericData Initialize()
 	{
-		Version = ReadVersion();
-		
 		Variables ??= new GenericData();
 
 		// Local secrets are stored in environment.json when developers are working locally.
@@ -219,6 +233,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 		if (useFallback)
 			Log.Warn(Owner.Default, "Environment fallback value is being used", data: new
 			{
+				tips = "Double-check the .yml and CI/CD variables.  Something may be missing.",
 				missingKey = key,
 				fallbackValue = fallbackValue,
 				allKeys = Variables?.Select(pair => pair.Key).OrderBy(_ => _),
@@ -250,15 +265,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			output = $"{output.TrimEnd('/')}/{segments[i].TrimStart('/')}";
 
 		return output;
-	}
-	private static string ReadVersion()
-	{
-		string version = "Unknown";
-		string location = Assembly.GetEntryAssembly()?.Location;
-				
-		if (location != null)
-			version = AssemblyName.GetAssemblyName(location)?.Version?.ToString() ?? version;
-		return version;
 	}
 };
 

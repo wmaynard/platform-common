@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using RCL.Logging;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -38,8 +39,25 @@ public class ApiRequest
 		Payload = new GenericData();
 		Parameters = new GenericData();
 		SetRetries(retries);
-		_onSuccess += (sender, args) => { };
-		_onFailure += (sender, args) => { };
+		_onSuccess += (_, response) => { };
+		_onFailure += (_, response) =>
+		{
+			int code = (int)response;
+			object data = new
+			{
+				url = url,
+				code = code
+			};
+			
+			if (code.Between(300, 399))
+				Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
+			else if (code == 404)
+				Log.Error(Owner.Default, "ApiRequest resource not found.", data: data);
+			else if (code.Between(500, 599))
+				Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
+			else
+				Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+		};
 		URL = url;
 	}
 

@@ -32,6 +32,9 @@ public abstract class PlatformController : Controller
 	protected readonly HealthService _health;
 	protected readonly CacheService _cacheService;
 #pragma warning restore
+
+	// internal ControllerInfo RegistrationDetails => new ControllerInfo(GetType());
+	
 	protected PlatformController(IConfiguration config = null, IServiceProvider services = null)
 	{
 		_services = services ?? new HttpContextAccessor().HttpContext?.RequestServices;
@@ -292,14 +295,5 @@ public abstract class PlatformController : Controller
 				.OfType<RouteAttribute>();
 			return null;
 		}
-	}
-
-	[HttpGet, Route("controllerDetails"), NoAuth]
-	public ActionResult TestAttributes()
-	{
-		return Ok(new GenericData
-		{
-			{ "info", new ControllerInfo(this) }
-		});
 	}
 }

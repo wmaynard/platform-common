@@ -26,6 +26,7 @@ using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Web;
@@ -62,7 +63,7 @@ public abstract class PlatformStartup
 			}
 		}
 	}
-	
+
 	[JsonInclude]
 	private string ServiceName
 	{
@@ -79,7 +80,7 @@ public abstract class PlatformStartup
 				return name.Contains('.')
 					? name[(name.IndexOf('.') + 1)..]
 					: name;
-			
+
 			Log.Warn(Owner.Default, "Could not identify a service name.  Graphite reporting will show as 'unknown-service'.");
 			return "unknown-service";
 
@@ -89,12 +90,13 @@ public abstract class PlatformStartup
 	[JsonIgnore]
 	// ReSharper disable once UnusedAutoPropertyAccessor.Global
 	protected IConfiguration Configuration { get; }
+
 	[JsonIgnore]
 	protected IServiceCollection Services { get; set; }
-	
+
 	private bool _filtersAdded;
 	private readonly List<Type> _bypassedFilters;
-	
+
 	protected PlatformStartup(IConfiguration configuration = null, string serviceNameOverride = null)
 	{
 #if RELEASE
@@ -103,15 +105,15 @@ public abstract class PlatformStartup
 #endif
 		Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 		Configuration = configuration;
-		
+
 		Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
 		if (MongoConnection == null)
 			Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
-		
+
 		Graphite.Initialize(serviceNameOverride ?? ServiceName);
 		_bypassedFilters = new List<Type>();
 	}
-	
+
 	protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
 	{
 		WebServerEnabled = webServerEnabled;
@@ -149,7 +151,7 @@ public abstract class PlatformStartup
 
 		BsonSerializer.RegisterSerializer(new BsonGenericConverter());
 		Log.Local(Owner.Default, "BSON converters configured.");
-		
+
 		Log.Verbose(Owner.Default, "Adding CORS to services");
 		services.AddCors(options =>
 		{
@@ -166,12 +168,12 @@ public abstract class PlatformStartup
 		services.AddResponseCompression(options =>
 		{
 			options.Providers.Add<GzipCompressionProvider>();
-			options.MimeTypes = new[] {"application/json"};
+			options.MimeTypes = new[] { "application/json" };
 		});
 		Services = services;
 
-		Services.AddHttpContextAccessor();	// Required for classes in common (e.g. Log) to be able to access the HttpContext.
-		
+		Services.AddHttpContextAccessor(); // Required for classes in common (e.g. Log) to be able to access the HttpContext.
+
 		Log.Verbose(Owner.Default, "Creating service singletons");
 		foreach (Type service in PlatformServices)
 		{
@@ -179,26 +181,29 @@ public abstract class PlatformStartup
 				continue;
 			Services.AddSingleton(service);
 		}
-		
+
 		Log.Local(Owner.Default, "Adding forwarded headers");
-		services.Configure<ForwardedHeadersOptions>(options =>
-		{
-			options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
-		});
-		
-			
+		services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor; });
+
+
 		Log.Local(Owner.Default, "Service configuration complete.");
 	}
-	
+
 	// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
 	// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
 	// so this removes an otherwise manual step for every service creation.
 	protected static IEnumerable<Type> PlatformServices => Assembly
-		.GetEntryAssembly()?.GetExportedTypes()									// Add the project's types 
-		.Concat(Assembly.GetExecutingAssembly().GetExportedTypes())				// Add platform-common's types
+		.GetEntryAssembly()
+		?.GetExportedTypes() // Add the project's types 
+		.Concat(Assembly.GetExecutingAssembly().GetExportedTypes()) // Add platform-common's types
 		.Where(type => !type.IsAbstract)
 		.Where(type => type.IsAssignableTo(typeof(PlatformService)))
 		?? Array.Empty<Type>();
+
+	protected static IEnumerable<PlatformController> PlatformControllers => Assembly
+		.GetEntryAssembly()
+		?.GetExportedTypes()
+		.OfType<PlatformController>();
 
 	protected void BypassFilter<T>() where T : PlatformBaseFilter
 	{
@@ -213,6 +218,9 @@ public abstract class PlatformStartup
 
 	public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 	{
+		// Try to register this service with dynamic config.
+		RegisterService(provider.GetService<ApiService>());
+
 		string baseRoute = this.HasAttribute(out BaseRoute attribute)
 			? attribute.Route
 			: "";
@@ -269,23 +277,20 @@ public abstract class PlatformStartup
 				.UseRouting()
 				.UseCors(CORS_SETTINGS_NAME) // Must go between UseRouting() and UseEndpoints()
 				.UseAuthorization()
-				.UseEndpoints(endpoints =>
-				{
-					endpoints.MapControllers();
-				})
+				.UseEndpoints(endpoints => { endpoints.MapControllers(); })
 				.UseResponseCompression();
 			return;
 		}
-		
+
 		// if (env.IsDevelopment())
 		// 	app.UseDeveloperExceptionPage();
 		// else
 		// 	app.UseHsts();
 
 		app.UseDeveloperExceptionPage();
-		
+
 		Log.Local(Owner.Default, "Configuring web file server to use wwwroot");
-		
+
 		app
 			.UseHttpsRedirection()
 			.UseForwardedHeaders(new ForwardedHeadersOptions()
@@ -317,5 +322,56 @@ public abstract class PlatformStartup
 			.UseResponseCompression();
 	}
 
-	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }
+	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder)
+	{
+	}
+
+	private void RegisterService(ApiService apiService)
+	{
+		try
+		{
+			ControllerInfo[] controllerInfo = Assembly
+				.GetEntryAssembly()
+				?.GetExportedTypes()
+				.Where(type => type.IsAssignableTo(typeof(PlatformController)))
+				.Select(ControllerInfo.CreateFrom)
+				.ToArray();
+
+			string[] endpoints = controllerInfo
+				?.SelectMany(info => info.Endpoints)
+				.Distinct()
+				.OrderBy(_ => _)
+				.ToArray();
+
+			int code = -1;
+			apiService
+				?.Request(PlatformEnvironment.Url("/config/register"))
+				.AddParameters(new GenericData
+				{
+					{ "game", PlatformEnvironment.GameSecret },
+					{ "secret", PlatformEnvironment.RumbleSecret }
+				})
+				.SetPayload(new GenericData
+				{
+					{ PlatformEnvironment.KEY_DEPLOYMENT, PlatformEnvironment.Deployment },
+					{ PlatformEnvironment.KEY_COMPONENT, PlatformEnvironment.ServiceName },
+					{ "version", PlatformEnvironment.Version },
+					{ "commonVersion", PlatformEnvironment.CommonVersion },
+					{ "endpoints", endpoints },
+					{ "controllers", controllerInfo }
+				})
+				.OnFailure((_, response) =>
+				{
+					if ((int)response == 404)
+						Log.Warn(Owner.Will, "Dynamic Config V2 not found.");
+					else
+						Log.Error(Owner.Will, "Unable to register service with dynamic config.");
+				})
+				.Post(out GenericData result, out code);
+		}
+		catch (Exception e)
+		{
+			Log.Error(Owner.Default, "Unable to register service.", exception: e);
+		}
+	}
 }

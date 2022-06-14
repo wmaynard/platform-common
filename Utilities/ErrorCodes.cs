@@ -14,7 +14,8 @@ public enum ErrorCode
 	[Display(Name = "0006")] InvalidRequestData,
 	[Display(Name = "0007")] ModelFailedValidation,
 	[Display(Name = "0008")] GenericDataConversion,
-	[Display(Name = "0009")] KeyValidationFailed
+	[Display(Name = "0009")] KeyValidationFailed,
+	[Display(Name = "0010")] InvalidDataType
 
 	// player-service errors
 }

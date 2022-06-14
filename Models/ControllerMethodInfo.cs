@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -14,7 +16,7 @@ using Rumble.Platform.Common.Web;
 namespace Rumble.Platform.Common.Models;
 
 // TODO: Investigate reflection libraries to see if possible to catch Require() / Optional() calls inside methods
-internal class ControllerMethodInfo : PlatformDataModel
+public class ControllerMethodInfo : PlatformDataModel
 {
 	internal const string DB_KEY_AUTHORIZATION = "auth";
 	internal const string DB_KEY_METHODS = "methods";
@@ -52,8 +54,11 @@ internal class ControllerMethodInfo : PlatformDataModel
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROUTES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string[] Routes { get; init; }
 	
-	public ControllerMethodInfo(PlatformController controller, MethodInfo methodInfo, string[] baseRoutes = null)
+	private ControllerMethodInfo(Type type, MethodInfo methodInfo, string[] baseRoutes = null)
 	{
+		if (!type.IsAssignableTo(typeof(PlatformController)))
+			throw new PlatformException("Provided type is not a PlatformController.", code: ErrorCode.InvalidDataType);
+		
 		Name = methodInfo.Name;
 		
 		// Combine all the possible routes
@@ -80,11 +85,11 @@ internal class ControllerMethodInfo : PlatformDataModel
 			.OrderBy(_ => _)
 			.ToArray();
 
-		bool noAuth = controller
+		bool noAuth = type
 			.GetAttributes<NoAuth>()
 			.Concat(methodInfo.GetAttributes<NoAuth>())
 			.Any();
-		AuthType[] auth = controller
+		AuthType[] auth = type
 			.GetAttributes<RequireAuth>()
 			.Concat(methodInfo.GetAttributes<RequireAuth>())
 			.Select(auth => auth.Type)
@@ -110,4 +115,8 @@ internal class ControllerMethodInfo : PlatformDataModel
 	}
 
 	public override string ToString() => Path;
+	
+	public static ControllerMethodInfo CreateFrom(Type type, MethodInfo methodInfo, string[] baseRoutes = null) => type.IsAssignableTo(typeof(PlatformController))
+		? new ControllerMethodInfo(type, methodInfo, baseRoutes)
+		: null;
 }

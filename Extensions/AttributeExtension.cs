@@ -22,8 +22,10 @@ public static class AttributeExtension
 		.OfType<T>()
 		.ToArray();
 
-	public static T GetAttribute<T>(this MethodInfo info) where T : Attribute => info.GetAttributes<T>().FirstOrDefault();
-	public static T[] GetAttributes<T>(this MethodInfo info) where T : Attribute => info
+	// public static T[] GetAttributes<T>(this Type type) where T : Attribute => type.GetCustomAttributes().OfType<T>().ToArray();
+
+	public static T GetAttribute<T>(this MemberInfo info) where T : Attribute => info.GetAttributes<T>().FirstOrDefault();
+	public static T[] GetAttributes<T>(this MemberInfo info) where T : Attribute => info
 		.GetCustomAttributes()
 		.OfType<T>()
 		.ToArray();
@@ -43,7 +45,7 @@ public static class AttributeExtension
 		return attribute != default;
 	}
 
-	public static bool HasAttribute<T>(this MethodInfo info, out T attribute) where T : Attribute
+	public static bool HasAttribute<T>(this MemberInfo info, out T attribute) where T : Attribute
 	{
 		attribute = default;
 		try
@@ -58,7 +60,7 @@ public static class AttributeExtension
 		return attribute != default;
 	}
 
-	public static bool HasAttributes<T>(this MethodInfo info, out T[] attributes) where T : Attribute
+	public static bool HasAttributes<T>(this MemberInfo info, out T[] attributes) where T : Attribute
 	{
 		attributes = Array.Empty<T>();
 		try
