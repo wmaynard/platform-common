@@ -26,7 +26,8 @@ public class OwnerInformation
 		{ Owner.Ernesto, new OwnerInformation("Ernesto", "Rojo") },
 		{ Owner.Nathan, new OwnerInformation("Nathan", "Mac") },
 		{ Owner.Sean, new OwnerInformation("Sean", "Chapel") },
-		{ Owner.Will, new OwnerInformation("Will", "Maynard") }
+		{ Owner.Will, new OwnerInformation("Will", "Maynard") },
+		{ Owner.Ryan, new OwnerInformation("Ryan", "Shackelford") }
 	};
 
 	internal static OwnerInformation Lookup(Owner owner) => owner == Owner.Default
