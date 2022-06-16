@@ -220,11 +220,13 @@ Helpful resources for working with Slack:
 
 ## Services
 
-| Name                   | Description                                                                                                                                                                                                         |
-|:-----------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ApiService`           | A service that handles JSON API calls.  Requests are built through object chaining and supports both synchronous and asynchronous requests.                                                                         |
-| `ConfigService`        | This service allows developers to easily store runtime configs for their services which persist between sessions.  This service requires a MongoDB connection, and stores values in the `serviceConfig` collection. |
-| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`.                                                            |
+| Name                   | Description                                                                                                                                                                                                                                                                                   |
+|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ApiService`           | A service that handles JSON API calls.  Requests are built through object chaining and supports both synchronous and asynchronous requests.                                                                                                                                                   |
+| `ConfigService`        | This service allows developers to easily store runtime configs for their services which persist between sessions.  This service requires a MongoDB connection, and stores values in the `serviceConfig` collection.                                                                           |
+| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`.                                                                                                                                      |
+| `HealthService`        | This service makes continuous checks to act as a safeguard against downtime.  Health is monitored by a percentage; if health drops too low, the project owner will be sent a direct message in Slack.  If the problem remains unresolved, a public message is posted in #platform-log-notifs. |
+| `MasterService`        | This abstract service enables developers to guarantee that only one node in a cluster performs a specific task.  In the future, this will also provide a message queue to allow other nodes to perform work.                                                                                  |
 
 ### Using the `ApiService`
 

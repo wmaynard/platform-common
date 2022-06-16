@@ -14,6 +14,7 @@ using Rumble.Platform.Common.Models;
 
 namespace Rumble.Platform.Common.Utilities;
 
+// TODO: Create a LogService; add suppression to anything spammy
 
 public class Log : PlatformDataModel
 {
@@ -40,7 +41,7 @@ public class Log : PlatformDataModel
 			&& string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
 	}
 	
-	public enum LogType { VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL }
+	public enum LogType { VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL }
 
 	[JsonIgnore]
 	private readonly Owner _owner;
@@ -251,7 +252,7 @@ public class Log : PlatformDataModel
 	/// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
 	/// <param name="exception">Any exception encountered, if available.</param>
 	public static void Warn(Owner owner, string message, object data = null, Exception exception = null)
-		=> Write(LogType.WARNING, owner, message, data, exception);
+		=> Write(LogType.WARN, owner, message, data, exception);
 	/// <summary>
 	/// Logs an ERROR-level event.  These should be uncommon; something is broken and needs to be fixed.
 	/// </summary>

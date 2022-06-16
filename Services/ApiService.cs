@@ -15,7 +15,7 @@ using Rumble.Platform.Common.Web;
 namespace Rumble.Platform.Common.Services;
 public class ApiService : PlatformService
 {
-	public static ApiService Instance;
+	internal new static ApiService Instance { get; private set; }
 	private HttpClient HttpClient { get; init; }
 	internal GenericData DefaultHeaders { get; init; }
 	

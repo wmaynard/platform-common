@@ -35,7 +35,7 @@ public class ApiRequest
 	public ApiRequest(ApiService spawner, string url, int retries = DEFAULT_RETRIES)
 	{
 		_apiService = spawner;
-		Headers = spawner.DefaultHeaders;
+		Headers = spawner.DefaultHeaders.Copy();
 		Payload = new GenericData();
 		Parameters = new GenericData();
 		SetRetries(retries);
@@ -67,10 +67,18 @@ public class ApiRequest
 		return this;
 	}
 
-	public ApiRequest AddAuthorization(string token) => AddHeader("Authorization", token.StartsWith("Bearer ") 
-		? token 
-		: $"Bearer {token}"
-	);
+	public ApiRequest AddAuthorization(string token)
+	{
+		if (token == null)
+		{
+			Log.Error(Owner.Default, "Null token added as authorization for an ApiRequest.");
+			return this;
+		}
+		return AddHeader("Authorization", token.StartsWith("Bearer ") 
+			? token 
+			: $"Bearer {token}"
+		);
+	}
 	public ApiRequest AddHeader(string key, string value) => AddHeaders(new GenericData() { { key, value } });
 	public ApiRequest AddHeaders(GenericData headers)
 	{

@@ -276,10 +276,6 @@ public abstract class PlatformStartup
 				.UseAuthorization()
 				.UseEndpoints(endpoints => { endpoints.MapControllers(); })
 				.UseResponseCompression();
-			
-			
-			// Try to register this service with dynamic config.
-			RegisterService(provider.GetService<ApiService>());
 			return;
 		}
 
@@ -321,63 +317,9 @@ public abstract class PlatformStartup
 				ConfigureRoutes(builder);
 			})
 			.UseResponseCompression();
-		
-		
-		// Try to register this service with dynamic config.
-		RegisterService(provider.GetService<ApiService>());
 	}
 
 	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder)
 	{
-	}
-
-	private void RegisterService(ApiService apiService)
-	{
-		try
-		{
-			ControllerInfo[] controllerInfo = Assembly
-				.GetEntryAssembly()
-				?.GetExportedTypes()
-				.Where(type => type.IsAssignableTo(typeof(PlatformController)))
-				.Select(ControllerInfo.CreateFrom)
-				.ToArray();
-
-			string[] endpoints = controllerInfo
-				?.SelectMany(info => info.Endpoints)
-				.Distinct()
-				.OrderBy(_ => _)
-				.ToArray();
-
-			apiService
-				?.Request(PlatformEnvironment.Url("/config/register"))
-				.AddParameters(new GenericData
-				{
-					{ "game", PlatformEnvironment.GameSecret },
-					{ "secret", PlatformEnvironment.RumbleSecret }
-				})
-				.SetPayload(new GenericData
-				{
-					{ PlatformEnvironment.KEY_DEPLOYMENT, PlatformEnvironment.Deployment },
-					{ PlatformEnvironment.KEY_COMPONENT, PlatformEnvironment.ServiceName },
-					{ PlatformEnvironment.KEY_REGISTRATION_NAME, PlatformEnvironment.RegistrationName },
-					{ "version", PlatformEnvironment.Version },
-					{ "commonVersion", PlatformEnvironment.CommonVersion },
-					{ "endpoints", endpoints },
-					{ "controllers", controllerInfo },
-					{ "owner", Log.DefaultOwner }
-				})
-				.OnFailure((_, response) =>
-				{
-					if ((int)response == 404)
-						Log.Warn(Owner.Will, "Dynamic Config V2 not found.");
-					else
-						Log.Error(Owner.Will, "Unable to register service with dynamic config.");
-				})
-				.Post(out GenericData _, out int code);
-		}
-		catch (Exception e)
-		{
-			Log.Error(Owner.Default, "Unable to register service.", exception: e);
-		}
 	}
 }

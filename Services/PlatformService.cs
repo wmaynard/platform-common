@@ -13,6 +13,7 @@ namespace Rumble.Platform.Common.Services;
 public abstract class PlatformService : IService, IPlatformService
 {
 	private IServiceProvider _services;
+	internal static PlatformService Instance { get; private set; }
 	public string Name => GetType().Name;
 
 	[BsonIgnore]
@@ -25,6 +26,7 @@ public abstract class PlatformService : IService, IPlatformService
 	protected PlatformService(IServiceProvider services = null)
 	{
 		Log.Local(Owner.Default, $"Creating {GetType().Name}");
+		Instance = this;
 	}
 
 	// TODO: This is the same code as in PlatformController's service resolution.

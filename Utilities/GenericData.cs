@@ -10,6 +10,7 @@ using MongoDB.Bson.Serialization;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Utilities;
@@ -216,6 +217,17 @@ public class GenericData : Dictionary<string, object>
 	/// </summary>
 	private dynamic Translate<T>(object value)
 	{
+		if (typeof(T).IsAssignableTo(typeof(PlatformDataModel)) && value is string json)
+		{
+			try
+			{
+				return JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Will, "Unable to deserialize PlatformDataModel from JSON.");
+			}
+		}
 		Type type = typeof(T);
 		Type underlying = Nullable.GetUnderlyingType(type);
 		bool isNull = value == null;

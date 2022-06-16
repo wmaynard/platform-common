@@ -83,4 +83,14 @@ public abstract class PlatformDataModel
 		if (!condition)
 			errors.Add(error);
 	}
+
+	public static T FromJSON<T>(string json) where T : PlatformDataModel
+	{
+		return JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
+	}
+
+	public static implicit operator PlatformDataModel(string json)
+	{
+		return FromJSON<PlatformDataModel>(json);
+	}
 }

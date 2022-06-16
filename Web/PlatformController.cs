@@ -23,6 +23,8 @@ using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Web;
 
+// TODO: Create a CommonController so that we don't have copies of endpoints like /health, /cachedToken, /refresh
+
 public abstract class PlatformController : Controller
 {
 	private readonly IConfiguration _config;
@@ -31,6 +33,8 @@ public abstract class PlatformController : Controller
 #pragma warning disable
 	protected readonly HealthService _health;
 	protected readonly CacheService _cacheService;
+	protected readonly DC2Service _dc2Service;
+	protected readonly ApiService _apiService;
 #pragma warning restore
 
 	// internal ControllerInfo RegistrationDetails => new ControllerInfo(GetType());
@@ -184,6 +188,16 @@ public abstract class PlatformController : Controller
 		{
 			{ "tokensRemoved", _cacheService.ClearToken(accountId) }
 		});
+	}
+
+	[HttpPatch, Route(template: "refresh"), RequireAuth(AuthType.ADMIN_TOKEN)]
+	public async Task<ActionResult> UpdateDynamicConfig()
+	{
+		Log.Local(Owner.Will, "Refreshing DC2");
+		
+		_dc2Service.Refresh();
+
+		return Ok();
 	}
 
 	[HttpGet, Route(template: "environment"), RequireAuth(AuthType.RUMBLE_KEYS)]
