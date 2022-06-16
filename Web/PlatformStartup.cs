@@ -42,6 +42,11 @@ public abstract class PlatformStartup
 	{
 		get
 		{
+			if (MongoConnection == null)
+			{
+				return null;
+			}
+			
 			try
 			{
 				int colon = MongoConnection.LastIndexOf(':') + 1;

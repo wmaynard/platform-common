@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using RCL.Logging;
 using Rumble.Platform.Common.Services;
@@ -22,15 +23,18 @@ public class LogglyClient
 		{
 			string json = log.JSON;
 
-			if (json != null)
-				ApiService.Instance
+			if (json != null &&
+			    ApiService.Instance != null)
+			{
+				Task.Run(() => ApiService.Instance
 					.Request(URL)
 					.SetPayload(json)
 					.OnSuccess((_, _) =>
 					{
 						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
 					})
-					.PostAsync();
+					.PostAsync());
+			}
 		}
 		catch (Exception e)
 		{

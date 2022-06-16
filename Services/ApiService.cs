@@ -65,12 +65,16 @@ public class ApiService : PlatformService
 			} while (!((int)response.StatusCode).ToString().StartsWith("2") && --request.Retries > 0);
 		}
 		catch (Exception e)
-		{
-			Log.Error(Owner.Default, $"Could not send request to '{request.URL}'.", data: new
+		{ 
+			// don't infinitely log if failing to send to loggly
+			if (!request.URL.Contains("loggly.com"))
 			{
-				Request = request,
-				Response = response
-			}, exception: e);
+				Log.Error(Owner.Default, $"Could not send request to '{request.URL}'.", data: new
+				{
+					Request = request,
+					Response = response
+				}, exception: e);
+			}
 		}
 
 		ApiResponse output = new ApiResponse(response, request.URL);

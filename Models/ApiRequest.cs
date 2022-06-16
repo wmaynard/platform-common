@@ -48,15 +48,27 @@ public class ApiRequest
 				url = url,
 				code = code
 			};
-			
-			if (code.Between(300, 399))
-				Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
-			else if (code == 404)
-				Log.Error(Owner.Default, "ApiRequest resource not found.", data: data);
-			else if (code.Between(500, 599))
-				Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
-			else
-				Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+
+			// don't infinitely log if failing to send to loggly
+			if (!url.Contains("loggly.com"))
+			{
+				if (code.Between(300, 399))
+				{
+					Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
+				}
+				else if (code == 404)
+				{
+					Log.Error(Owner.Default, "ApiRequest resource not found.", data: data);
+				}
+				else if (code.Between(500, 599))
+				{
+					Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
+				}
+				else
+				{
+					Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+				}
+			}
 		};
 		URL = url;
 	}
