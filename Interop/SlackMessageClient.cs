@@ -30,7 +30,7 @@ public class SlackMessageClient
 
 	public SlackMessageClient(string channel, string token)
 	{
-		Channels = new HashSet<string>() { channel };
+		Channels = new HashSet<string> { channel };
 		Token = token.StartsWith("Bearer")
 			? token
 			: $"Bearer {token}";
@@ -95,10 +95,15 @@ public class SlackMessageClient
 		}
 		catch (Exception e)
 		{
-			Log.Warn(Owner.Will, "There was an error sending a message to Slack.", data: new
-			{
-				SlackApiResponse = response
-			}, exception: e);
+			string reason = response?.Optional<string>("error");
+			
+			if (reason == "no_text") // TD-12854
+				Log.Local(Owner.Will, "No text was sent to Slack; make sure there are no empty requests.");
+			else
+				Log.Error(Owner.Will, "There was an error sending a message to Slack.", data: new
+				{
+					SlackApiResponse = response
+				}, exception: e);
 		}
 		
 		Graphite.Track(Graphite.KEY_SLACK_MESSAGE_COUNT, 1, type: Graphite.Metrics.Type.FLAT);
