@@ -42,12 +42,19 @@ public class DC2Service : PlatformTimerService
 	public const string GLOBAL_SETTING_FRIENDLY_NAME = "Global";
 	public const string KEY_CLIENT_ID = "dynamicConfigClientID";
 
+	public const string COMMON_SETTING_NAME = "platform-common";
+	public const string COMMON_SETTING_FRIENDLY_NAME = "Platform Common";
+
 	private readonly ApiService _apiService;
 	private readonly HealthService _healthService;
 	private bool IsUpdating { get; set; }
 	public GenericData AllValues { get; private set; }
-	public GenericData GlobalValues => AllValues?.Optional<GenericData>(GLOBAL_SETTING_NAME);
-	public GenericData ProjectValues => AllValues?.Optional<GenericData>(PlatformEnvironment.ServiceName);
+	public GenericData CommonValues => AllValues?.Optional<GenericData>(key: COMMON_SETTING_NAME)
+		?? new GenericData();
+	public GenericData GlobalValues => AllValues?.Optional<GenericData>(key: GLOBAL_SETTING_NAME)
+		?? new GenericData();
+	public GenericData ProjectValues => AllValues?.Optional<GenericData>(key: PlatformEnvironment.ServiceName)
+		?? new GenericData();
 	private string ID { get; set; }
 	
 	public long LastUpdated { get; private set; }
@@ -164,5 +171,31 @@ public class DC2Service : PlatformTimerService
 		{
 			Log.Error(Owner.Default, "Unable to register service.", exception: e);
 		}
+	}
+
+	public T Optional<T>(string key) => ProjectValues.Optional<T>(key) ?? GlobalValues.Optional<T>(key);
+	
+	/// <summary>
+	/// Searches for a config value.  The hierarchy for scope is Project > Common > Global > (everything else). 
+	/// </summary>
+	/// <param name="key">The key of the value to look for.</param>
+	/// <returns>A value of a specified type.</returns>
+	public T Value<T>(string key) => ProjectValues.Optional<T>(key)
+		?? CommonValues.Optional<T>(key)
+		?? GlobalValues.Optional<T>(key)
+		?? Search<T>(key);
+
+	private T Search<T>(string key)
+	{
+		T output = default;
+		
+		foreach (GenericData data in AllValues.Values)
+		{
+			output ??= data.Optional<T>(key);
+			if (output != null)
+				break;
+		}
+
+		return output;
 	}
 }

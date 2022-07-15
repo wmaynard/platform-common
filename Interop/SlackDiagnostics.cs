@@ -39,6 +39,12 @@ public class SlackDiagnostics
 			Utilities.Log.Error(Owner.Default, "SlackDiagnostics requires a non-null, non-empty parameter 'title'.");
 			throw new Exception("SlackDiagnostics requires a non-null, non-empty parameter 'title'.");
 		}
+		
+		if (string.IsNullOrWhiteSpace(PlatformEnvironment.SlackLogBotToken))
+			Utilities.Log.Warn(Owner.Default, "Slack bot token not found; Slack diagnostics will be unusable.");
+		
+		if (string.IsNullOrWhiteSpace(PlatformEnvironment.SlackLogChannel))
+			Utilities.Log.Warn(Owner.Default, "No default Slack log channel found; Slack utilities may not instantiate correctly.");
 
 		Client ??= new SlackMessageClient(
 			channel: PlatformEnvironment.SlackLogChannel,

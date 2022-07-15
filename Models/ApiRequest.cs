@@ -49,26 +49,18 @@ public class ApiRequest
 				code = code
 			};
 
-			// don't infinitely log if failing to send to loggly
-			if (!url.Contains("loggly.com"))
-			{
-				if (code.Between(300, 399))
-				{
-					Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
-				}
-				else if (code == 404)
-				{
-					Log.Error(Owner.Default, "ApiRequest resource not found.", data: data);
-				}
-				else if (code.Between(500, 599))
-				{
-					Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
-				}
-				else
-				{
-					Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
-				}
-			}
+			// Don't infinitely log if failing to send to loggly
+			if (url.Contains("loggly.com"))
+				return;
+			
+			if (code.Between(300, 399))
+				Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
+			else if (code == 404)
+				Log.Error(Owner.Default, "ApiRequest resource not found.", data: data);
+			else if (code.Between(500, 599))
+				Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
+			else
+				Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
 		};
 		URL = url;
 	}
@@ -147,8 +139,8 @@ public class ApiRequest
 		Task<ApiResponse> task = SendAsync(method);
 		task.Wait();
 		ApiResponse output = task.Result;
-		result = output.AsGenericData;
-		code = output.StatusCode;
+		result = output?.AsGenericData;
+		code = output?.StatusCode ?? 500;
 		return output;
 	}
 

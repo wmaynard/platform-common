@@ -21,13 +21,12 @@ public class LogglyClient
 	{
 		try
 		{
-			string json = log.JSON;
+			string json = log?.JSON;
 
-			if (json != null &&
-			    ApiService.Instance != null)
+			if (json != null && ApiService.Instance != null)
 			{
 				Task.Run(() => ApiService.Instance
-					.Request(URL)
+					?.Request(URL)
 					.SetPayload(json)
 					.OnSuccess((_, _) =>
 					{

@@ -154,6 +154,13 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 	{
 		writer.WriteStartObject();
 
+		if (value == null)
+		{
+			Log.Error(Owner.Will, "Unexpected end of JSON.  Something may not have serialized correctly.");
+			writer.WriteEndObject();
+			return;
+		}
+			
 		foreach (KeyValuePair<string, object> pair in value)
 		{
 			string key = pair.Key;

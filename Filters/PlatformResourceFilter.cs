@@ -71,7 +71,7 @@ public class PlatformResourceFilter : PlatformBaseFilter, IResourceFilter
 				Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
 			}, exception: e);
 			SlackDiagnostics.Log("Request body failed to read.", "Unable to deserialize GenericData")
-				.Attach($"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}.txt", string.IsNullOrEmpty(json) ? "(no json)" : json)
+				.Attach($"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path.ToString().Replace("/", "_")}.txt", string.IsNullOrEmpty(json) ? "(no json)" : json)
 				.DirectMessage(Owner.Will)
 				.Wait();
 		}

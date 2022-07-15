@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -25,7 +26,7 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 	public int THRESHOLD_MS_ERROR { get; init; }
 	public int THRESHOLD_MS_WARN { get; init; }
 
-	private Dictionary<string, Metrics> Data { get; set; }
+	private ConcurrentDictionary<string, Metrics> Data { get; set; }
 	
 	/// <summary>
 	/// Adds a performance-monitoring filter to all requests in the service.  This filter will measure the time taken by endpoints to better understand where we have room for improvement.
@@ -38,7 +39,7 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 		THRESHOLD_MS_WARN = warnMS;
 		THRESHOLD_MS_ERROR = errorMS;
 		THRESHOLD_MS_CRITICAL = criticalMS;
-		Data = new Dictionary<string, Metrics>();
+		Data = new ConcurrentDictionary<string, Metrics>();
 		
 		Log.Info(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
 		{

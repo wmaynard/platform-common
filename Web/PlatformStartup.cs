@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -43,9 +44,7 @@ public abstract class PlatformStartup
 		get
 		{
 			if (MongoConnection == null)
-			{
 				return null;
-			}
 			
 			try
 			{
