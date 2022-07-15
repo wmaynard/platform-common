@@ -116,7 +116,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 			return Variables;
 
 		Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
-
+		
 		return Variables;
 	}
 

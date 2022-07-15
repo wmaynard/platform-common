@@ -222,6 +222,7 @@ public abstract class PlatformStartup
 
 	public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 	{
+		Log.Local(Owner.Default, $"Environment url: {PlatformEnvironment.Url(endpoint: "/")}");
 		string baseRoute = this.HasAttribute(out BaseRoute attribute)
 			? attribute.Route
 			: "";
