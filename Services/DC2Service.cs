@@ -19,6 +19,8 @@ namespace Rumble.Platform.Common.Services;
 // TODO: Value promotion to other environments
 public class DC2Service : PlatformTimerService
 {
+	public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
+	
 	public class DC2ClientInformation : PlatformDataModel
 	{
 		internal const string DB_KEY_CLIENT_ID = "client";
@@ -55,6 +57,8 @@ public class DC2Service : PlatformTimerService
 		?? new GenericData();
 	public GenericData ProjectValues => AllValues?.Optional<GenericData>(key: PlatformEnvironment.ServiceName)
 		?? new GenericData();
+
+	public string AdminToken => ProjectValues?.Optional<string>(FRIENDLY_KEY_ADMIN_TOKEN);
 	private string ID { get; set; }
 	
 	public long LastUpdated { get; private set; }
@@ -83,7 +87,7 @@ public class DC2Service : PlatformTimerService
 		IsUpdating = true;
 		
 		_apiService
-			.Request(PlatformEnvironment.Url("config/settings"))
+			.Request(PlatformEnvironment.Url("/config/settings"))
 			.AddParameter(key: "game", value: PlatformEnvironment.GameSecret)
 			.AddParameter(key: "secret", value: PlatformEnvironment.RumbleSecret)
 			.AddParameter(key: "client", value: new DC2ClientInformation
@@ -115,6 +119,17 @@ public class DC2Service : PlatformTimerService
 
 	public void Register()
 	{
+		// Most of the time this is going to return a 400 error.  This is expected; we're just making sure the
+		// platform-common section exists.
+		_apiService
+			.Request(PlatformEnvironment.Url("/config/settings/new"))
+			.SetPayload(new GenericData()
+			{
+				{ "name", COMMON_SETTING_NAME },
+				{ "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
+			})
+			.Post();
+		
 		try
 		{
 			ControllerInfo[] controllerInfo = Assembly
@@ -131,7 +146,7 @@ public class DC2Service : PlatformTimerService
 				.ToArray();
 		
 			_apiService
-				.Request(PlatformEnvironment.Url("config/register"))
+				.Request(PlatformEnvironment.Url("/config/register"))
 				.AddParameters(new GenericData
 				{
 					{ "game", PlatformEnvironment.GameSecret },
@@ -155,15 +170,21 @@ public class DC2Service : PlatformTimerService
 				})
 				.OnFailure((_, response) =>
 				{
-					if ((int)response == 404)
-						Log.Warn(Owner.Will, "Dynamic Config V2 not found.");
-					else if ((int)response == 405)
-						Log.Warn(Owner.Will, "HTTP method not recognized for DC2 registration", data: new
-						{
-							url = response.RequestUrl
-						});
-					else
-						Log.Error(Owner.Will, "Unable to register service with dynamic config.");
+					switch ((int)response)
+					{
+						case 404:
+							Log.Warn(Owner.Will, "Dynamic Config V2 not found.");
+							break;
+						case 405:
+							Log.Warn(Owner.Will, "HTTP method not recognized for DC2 registration", data: new
+							{
+								url = response.RequestUrl
+							});
+							break;
+						default:
+							Log.Error(Owner.Will, "Unable to register service with dynamic config.");
+							break;
+					}
 				})
 				.Patch(out GenericData _, out int code);
 		}

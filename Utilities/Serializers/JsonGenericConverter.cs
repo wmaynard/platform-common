@@ -256,6 +256,9 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 				case GenericData asGeneric:
 					Write(writer, asGeneric, options);
 					break;
+				// case KeyValuePair<string, object> asPair:
+				// 	Write(writer, new GenericData{{asPair.Key, asPair.Value}}, options);
+				// 	break;
 				case IEnumerable asArray:
 					WriteJsonArray(ref writer, ref asArray, options);
 					break;
@@ -269,6 +272,18 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 					writer.WriteNullValue();
 					break;
 				default:
+					try
+					{
+						Type type = obj.GetType();
+						if (type != null && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+						{
+							dynamic dynamo = obj;
+							Write(writer, new GenericData{{dynamo.Key, dynamo.Value}}, options);
+							break;
+						}
+					}
+					catch { }
+					
 					Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
 					{
 						Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",

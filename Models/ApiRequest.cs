@@ -31,6 +31,7 @@ public class ApiRequest
 	internal int ExponentialBackoffMS => (int)Math.Pow(2, _originalRetries - Retries);
 	private event EventHandler<ApiResponse> _onSuccess;
 	private event EventHandler<ApiResponse> _onFailure;
+	private bool FailureHandled { get; set; }
 	
 	public ApiRequest(ApiService spawner, string url, int retries = DEFAULT_RETRIES)
 	{
@@ -52,6 +53,19 @@ public class ApiRequest
 			// Don't infinitely log if failing to send to loggly
 			if (url.Contains("loggly.com"))
 				return;
+
+			if (FailureHandled) // We can assume that if a developer is using OnFailure that they're responsible for their own logs.
+			{
+				if (code.Between(300, 399))
+					Log.Local(Owner.Default, "ApiRequest encountered a routing error.", data: data);
+				else if (code == 404)
+					Log.Local(Owner.Default, "ApiRequest resource not found.", data: data);
+				else if (code.Between(500, 599))
+					Log.Local(Owner.Default, "ApiRequest encountered a server error.", data: data);
+				else
+					Log.Local(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+				return;
+			}
 			
 			if (code.Between(300, 399))
 				Log.Warn(Owner.Default, "ApiRequest encountered a routing error.", data: data);
@@ -73,15 +87,15 @@ public class ApiRequest
 
 	public ApiRequest AddAuthorization(string token)
 	{
-		if (token == null)
-		{
-			Log.Error(Owner.Default, "Null token added as authorization for an ApiRequest.");
-			return this;
-		}
-		return AddHeader("Authorization", token.StartsWith("Bearer ") 
-			? token 
-			: $"Bearer {token}"
-		);
+		if (token != null)
+			return AddHeader("Authorization", token.StartsWith("Bearer ") 
+				? token 
+				: $"Bearer {token}"
+			);
+		
+		Log.Error(Owner.Default, "Null token added as authorization for an ApiRequest.");
+		return this;
+		
 	}
 	public ApiRequest AddHeader(string key, string value) => AddHeaders(new GenericData() { { key, value } });
 	public ApiRequest AddHeaders(GenericData headers)
@@ -122,8 +136,13 @@ public class ApiRequest
 		_onSuccess += action;
 		return this;
 	}
+	/// <summary>
+	/// Adds error handling to the ApiRequest.  This triggers anytime the response is not a 2xx code.
+	/// Note that by calling this method, the default error handling reverts to LOCAL-only logs.
+	/// </summary>
 	public ApiRequest OnFailure(EventHandler<ApiResponse> action)
 	{
+		FailureHandled = true;
 		_onFailure += action;
 		return this;
 	}
@@ -254,6 +273,5 @@ public class ApiRequest
 			}, exception: e);
 			throw;
 		}
-		
 	}
 }

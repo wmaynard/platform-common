@@ -29,6 +29,27 @@ public class GenericData : Dictionary<string, object>
 		return output;
 	}
 
+	public static GenericData FromDictionary(dynamic dict)
+	{
+		GenericData output = new GenericData();
+		try
+		{
+			foreach (string key in dict.Keys)
+				output[key] = dict[key] is Dictionary<string, object> asDict
+					? FromDictionary(asDict)
+					: dict[key];
+			return output;
+		}
+		catch (Exception e)
+		{
+			Log.Error(Owner.Default, "Attempted to convert a dictionary to GenericData, but the type was not a dictionary.", data: new
+			{
+				SourceType = ((object)dict).GetType().FullName
+			}, exception: e);
+			return null;
+		}
+	}
+
 	[JsonIgnore]
 	public string JSON => JsonSerializer.Serialize(this, JsonHelper.SerializerOptions);
 
