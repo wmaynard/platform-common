@@ -12,7 +12,22 @@ public class ApiResponse
 	public bool Success => StatusCode.ToString().StartsWith("2");
 	public readonly int StatusCode;
 	internal HttpResponseMessage Response;
-	internal GenericData OriginalResponse => Await(Response.Content.ReadAsStringAsync());
+
+	internal GenericData OriginalResponse
+	{
+		get
+		{
+			try
+			{
+				return Await(Response.Content.ReadAsStringAsync());
+			}
+			catch (Exception e)
+			{
+				Log.Warn(Owner.Default, "Unable to read response.", exception: e);
+				return null;
+			}
+		}
+	}
 	public string RequestUrl { get; init; }
 
 	public ApiResponse(HttpResponseMessage message, string requestUrl)

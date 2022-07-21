@@ -88,8 +88,7 @@ public class DC2Service : PlatformTimerService
 		
 		_apiService
 			.Request(PlatformEnvironment.Url("/config/settings"))
-			.AddParameter(key: "game", value: PlatformEnvironment.GameSecret)
-			.AddParameter(key: "secret", value: PlatformEnvironment.RumbleSecret)
+			.AddRumbleKeys()
 			.AddParameter(key: "client", value: new DC2ClientInformation
 			{
 				ClientID = ID,

@@ -103,6 +103,9 @@ public class ApiRequest
 		Headers.Combine(other: headers, prioritizeOther: true);
 		return this;
 	}
+	public ApiRequest AddRumbleKeys() => AddParameter("game", PlatformEnvironment.GameSecret)
+		.AddParameter("secret", PlatformEnvironment.RumbleSecret);
+	
 	public ApiRequest AddParameter(string key, string value) => AddParameters(new GenericData() { { key, value } });
 	public ApiRequest AddParameters(GenericData parameters)
 	{
