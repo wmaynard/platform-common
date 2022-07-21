@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Rumble.Platform.Common.Utilities;
+namespace Rumble.Platform.Common.Enums;
 
 public enum ErrorCode
 {

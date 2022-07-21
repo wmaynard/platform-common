@@ -19,6 +19,7 @@ namespace Rumble.Platform.Common.Utilities;
 public class Log : PlatformDataModel
 {
 	private static Owner? _defaultOwner;
+	private static bool _printObjectsEnabled;
 	public static Owner DefaultOwner
 	{
 		get => _defaultOwner ?? RCL.Logging.Owner.Default;
@@ -28,6 +29,12 @@ public class Log : PlatformDataModel
 				Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new {Owner = Enum.GetName(DefaultOwner)});
 			_defaultOwner ??= OwnerInformation.Default = value;
 		}
+	}
+
+	public static bool PrintObjectsEnabled
+	{
+		get => _printObjectsEnabled;
+		set => _printObjectsEnabled = value;
 	}
 	private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
 		? null 
@@ -136,14 +143,15 @@ public class Log : PlatformDataModel
 		string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
 		string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
 		string msg = Message ?? "No Message";
-		
-#if DEBUG
-		string data = $"| {Data}";
-#elif RELEASE
-		string data = "";
-#endif
 
-		return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg} {data}";
+		if (PrintObjectsEnabled)
+		{
+			string data = Data?.ToString() ?? "";
+			if (!string.IsNullOrWhiteSpace(data))
+				msg += $" | {data}";
+		}
+
+		return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg}";
 	}
 
 	/// <summary>

@@ -268,6 +268,12 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
 		return output;
 	}
+
+	public static void Exit(string reason, int exitCode = 0)
+	{
+		Log.Local(Owner.Default, $"Environment terminated: {reason}");
+		Environment.Exit(exitCode);
+	}
 };
 
 // TODO: Incorporate DynamicConfigService as fallback values?

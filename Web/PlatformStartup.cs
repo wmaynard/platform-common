@@ -16,9 +16,11 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson.Serialization;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
@@ -29,6 +31,8 @@ using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
+
+
 
 namespace Rumble.Platform.Common.Web;
 
@@ -99,7 +103,6 @@ public abstract class PlatformStartup
 	protected IServiceCollection Services { get; set; }
 
 	private bool _filtersAdded;
-	private readonly List<Type> _bypassedFilters;
 
 	protected PlatformStartup(IConfiguration configuration = null, string serviceNameOverride = null)
 	{
@@ -115,13 +118,22 @@ public abstract class PlatformStartup
 			Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
 		Graphite.Initialize(serviceNameOverride ?? ServiceName);
-		_bypassedFilters = new List<Type>();
 	}
 
-	protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
+	public void ConfigureServices(IServiceCollection services) => ConfigureServices(services, true);
+	// protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
+	protected void ConfigureServices(IServiceCollection services, bool _internal = true)
 	{
+		PlatformOptions options = Configure(new PlatformOptions()).Validate();
+		bool webServerEnabled = options.WebServerEnabled;
+		Owner defaultOwner = options.ProjectOwner;
+		int warnMS = options.WarningThreshold;
+		int errorMS = options.ErrorThreshold;
+		int criticalMS = options.CriticalThreshold;
+		
 		WebServerEnabled = webServerEnabled;
 		Log.DefaultOwner = defaultOwner;
+		Log.PrintObjectsEnabled = options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
 		Log.Verbose(Owner.Default, "Logging default owner set.");
 		Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 
@@ -130,18 +142,17 @@ public abstract class PlatformStartup
 			// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
 			// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
 			// Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
-			// TODO: Do this with reflection so we can add filters without maintaining two files
-			if (!_bypassedFilters.Contains(typeof(PlatformAuthorizationFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.Authorization))
 				config.Filters.Add(new PlatformAuthorizationFilter());
-			if (!_bypassedFilters.Contains(typeof(PlatformResourceFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.Resource))
 				config.Filters.Add(new PlatformResourceFilter());
-			if (!_bypassedFilters.Contains(typeof(PlatformExceptionFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.Exception))
 				config.Filters.Add(new PlatformExceptionFilter());
-			if (!_bypassedFilters.Contains(typeof(PlatformHealthFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.Health))
 				config.Filters.Add(new PlatformHealthFilter());
-			if (!_bypassedFilters.Contains(typeof(PlatformPerformanceFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.Performance))
 				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
-			if (!_bypassedFilters.Contains(typeof(PlatformMongoTransactionFilter)))
+			if (options.EnabledFilters.HasFlag(CommonFilter.MongoTransaction))
 				config.Filters.Add(new PlatformMongoTransactionFilter());
 			_filtersAdded = true;
 		}
@@ -181,6 +192,8 @@ public abstract class PlatformStartup
 		Log.Verbose(Owner.Default, "Creating service singletons");
 		foreach (Type service in PlatformServices)
 		{
+			if (options.DisabledServices.Contains(service))
+				continue;
 			if (service.IsAssignableTo(typeof(IPlatformMongoService)) && MongoDisabled)
 				continue;
 			Services.AddSingleton(service);
@@ -208,17 +221,6 @@ public abstract class PlatformStartup
 		.GetEntryAssembly()
 		?.GetExportedTypes()
 		.OfType<PlatformController>();
-
-	protected void BypassFilter<T>() where T : PlatformBaseFilter
-	{
-		if (_filtersAdded)
-			throw new PlatformStartupException($"Filters were already added.  Cannot bypass {typeof(T).Name}.");
-		_bypassedFilters.Add(typeof(T));
-		Log.Info(Owner.Default, $"{typeof(T).Name} was bypassed.", data: new
-		{
-			Detail = "While discouraged, this may be intentional or even necessary for certain projects."
-		});
-	}
 
 	public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
 	{
@@ -327,4 +329,6 @@ public abstract class PlatformStartup
 	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder)
 	{
 	}
+
+	protected abstract PlatformOptions Configure(PlatformOptions options);
 }
