@@ -284,11 +284,12 @@ public class JsonGenericConverter : JsonConverter<GenericData>
 					}
 					catch { }
 					
-					Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
-					{
-						Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",
-						DataType = obj.GetType()
-					});
+					if (PlatformEnvironment.IsLocal)
+						Log.Warn(Owner.Default, "Unexpected data type during GenericData serialization.", data: new
+						{
+							Information = "A custom data type was likely passed into a GenericData object and JSON may not have serialized as expected.",
+							DataType = obj.GetType()
+						});
 					Write(writer, JsonSerializer.Serialize(obj, options), options);
 					break;
 			}

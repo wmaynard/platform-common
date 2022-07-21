@@ -292,6 +292,7 @@ public abstract class PlatformStartup
 				.UseAuthorization()
 				.UseEndpoints(endpoints => { endpoints.MapControllers(); })
 				.UseResponseCompression();
+			Log.Local(Owner.Default, "Application successfully started.");
 			return;
 		}
 
@@ -333,6 +334,7 @@ public abstract class PlatformStartup
 				ConfigureRoutes(builder);
 			})
 			.UseResponseCompression();
+		Log.Local(Owner.Default, "Application successfully started.");
 	}
 
 	protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder)

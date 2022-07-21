@@ -135,7 +135,7 @@ public class PlatformOptions
 	internal PlatformOptions Validate()
 	{
 		if (DisabledServices.Any())
-			Log.Info(ProjectOwner, "Some platform-common services have been disabled.  This is a new feature and may have unintended side effects.", data: new
+			Log.Info(ProjectOwner, "Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
 			{
 				DisabledServices = DisabledServices.Select(type => type.Name)
 			});
