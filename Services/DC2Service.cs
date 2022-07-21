@@ -110,7 +110,6 @@ public class DC2Service : PlatformTimerService
 			{
 				AllValues = response;
 				LastUpdated = Timestamp.UnixTime;
-				Log.Local(Owner.Will, ProjectValues.JSON);
 			})
 			.Get(out GenericData values, out int code);
 		

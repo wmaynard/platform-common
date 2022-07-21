@@ -38,7 +38,7 @@ namespace Rumble.Platform.Common.Web;
 
 public abstract class PlatformStartup
 {
-	private static readonly string MongoConnection = PlatformEnvironment.MongoConnectionString;
+	private static string MongoConnection { get; set; }
 	private static bool MongoDisabled => MongoConnection == null;
 	public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
 	private bool WebServerEnabled { get; set; }
@@ -101,6 +101,9 @@ public abstract class PlatformStartup
 
 	[JsonIgnore]
 	protected IServiceCollection Services { get; set; }
+	
+	[JsonIgnore]
+	private PlatformOptions Options { get; set; }
 
 	private bool _filtersAdded;
 
@@ -112,8 +115,15 @@ public abstract class PlatformStartup
 #endif
 		Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 		Configuration = configuration;
+		MongoConnection = PlatformEnvironment.MongoConnectionString;
 
+		Options = Configure(new PlatformOptions()).Validate();
 		Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
+		if (!Options.EnabledFeatures.HasFlag(CommonFeature.MongoDB))
+		{
+			Log.Local(Owner.Default, "MongoDB has been disabled in options.  MongoConnection will be set to null.");
+			MongoConnection = null;
+		}
 		if (MongoConnection == null)
 			Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
@@ -124,16 +134,15 @@ public abstract class PlatformStartup
 	// protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
 	protected void ConfigureServices(IServiceCollection services, bool _internal = true)
 	{
-		PlatformOptions options = Configure(new PlatformOptions()).Validate();
-		bool webServerEnabled = options.WebServerEnabled;
-		Owner defaultOwner = options.ProjectOwner;
-		int warnMS = options.WarningThreshold;
-		int errorMS = options.ErrorThreshold;
-		int criticalMS = options.CriticalThreshold;
+		bool webServerEnabled = Options.WebServerEnabled;
+		Owner defaultOwner = Options.ProjectOwner;
+		int warnMS = Options.WarningThreshold;
+		int errorMS = Options.ErrorThreshold;
+		int criticalMS = Options.CriticalThreshold;
 		
 		WebServerEnabled = webServerEnabled;
 		Log.DefaultOwner = defaultOwner;
-		Log.PrintObjectsEnabled = options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
+		Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
 		Log.Verbose(Owner.Default, "Logging default owner set.");
 		Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 
@@ -142,17 +151,17 @@ public abstract class PlatformStartup
 			// It's counter-intuitive, but this actually executes after the inherited class' ConfigureServices somewhere.
 			// This means that bypassing filters can actually happen at any point in the inherited ConfigureServices without error.
 			// Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
-			if (options.EnabledFilters.HasFlag(CommonFilter.Authorization))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.Authorization))
 				config.Filters.Add(new PlatformAuthorizationFilter());
-			if (options.EnabledFilters.HasFlag(CommonFilter.Resource))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.Resource))
 				config.Filters.Add(new PlatformResourceFilter());
-			if (options.EnabledFilters.HasFlag(CommonFilter.Exception))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.Exception))
 				config.Filters.Add(new PlatformExceptionFilter());
-			if (options.EnabledFilters.HasFlag(CommonFilter.Health))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.Health))
 				config.Filters.Add(new PlatformHealthFilter());
-			if (options.EnabledFilters.HasFlag(CommonFilter.Performance))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.Performance))
 				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
-			if (options.EnabledFilters.HasFlag(CommonFilter.MongoTransaction))
+			if (Options.EnabledFilters.HasFlag(CommonFilter.MongoTransaction))
 				config.Filters.Add(new PlatformMongoTransactionFilter());
 			_filtersAdded = true;
 		}
@@ -192,7 +201,7 @@ public abstract class PlatformStartup
 		Log.Verbose(Owner.Default, "Creating service singletons");
 		foreach (Type service in PlatformServices)
 		{
-			if (options.DisabledServices.Contains(service))
+			if (Options.DisabledServices.Contains(service))
 				continue;
 			if (service.IsAssignableTo(typeof(IPlatformMongoService)) && MongoDisabled)
 				continue;
