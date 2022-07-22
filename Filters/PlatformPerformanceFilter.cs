@@ -41,7 +41,7 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 		THRESHOLD_MS_CRITICAL = criticalMS;
 		Data = new ConcurrentDictionary<string, Metrics>();
 		
-		Log.Info(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
+		Log.Local(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
 		{
 			Thresholds = new
 			{
