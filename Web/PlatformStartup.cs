@@ -124,7 +124,7 @@ public abstract class PlatformStartup
 			Log.Local(Owner.Default, "MongoDB has been disabled in options.  MongoConnection will be set to null.");
 			MongoConnection = null;
 		}
-		if (MongoConnection == null)
+		else if (UsingMongoServices && MongoConnection == null)
 			Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
 		Graphite.Initialize(Options.ServiceName ?? ServiceName);
@@ -215,6 +215,8 @@ public abstract class PlatformStartup
 
 		Log.Local(Owner.Default, "Service configuration complete.");
 	}
+
+	protected bool UsingMongoServices => PlatformServices.Any(type => type.IsAssignableTo(typeof(IPlatformMongoService)));
 
 	// Use reflection to create singletons for all of our PlatformServices.  There's no obvious reason
 	// why we would ever want to create a service in a project where we wouldn't want to instantiate it,
