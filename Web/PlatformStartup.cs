@@ -107,7 +107,7 @@ public abstract class PlatformStartup
 
 	private bool _filtersAdded;
 
-	protected PlatformStartup(IConfiguration configuration = null, string serviceNameOverride = null)
+	protected PlatformStartup(IConfiguration configuration = null)
 	{
 #if RELEASE
 		if (PlatformEnvironment.SwarmMode)
@@ -127,7 +127,7 @@ public abstract class PlatformStartup
 		if (MongoConnection == null)
 			Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
-		Graphite.Initialize(serviceNameOverride ?? ServiceName);
+		Graphite.Initialize(Options.ServiceName ?? ServiceName);
 	}
 
 	public void ConfigureServices(IServiceCollection services) => ConfigureServices(services, true);
