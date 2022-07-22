@@ -129,10 +129,11 @@ public abstract class PlatformStartup
 
 		Graphite.Initialize(Options.ServiceName ?? ServiceName);
 	}
-
-	public void ConfigureServices(IServiceCollection services) => ConfigureServices(services, true);
+	
+	/// <param name="services"></param>
+	public virtual void ConfigureServices(IServiceCollection services) => Configure(services);
 	// protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
-	protected void ConfigureServices(IServiceCollection services, bool _internal = true)
+	private void Configure(IServiceCollection services)
 	{
 		bool webServerEnabled = Options.WebServerEnabled;
 		Owner defaultOwner = Options.ProjectOwner;
