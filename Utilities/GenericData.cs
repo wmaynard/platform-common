@@ -205,9 +205,9 @@ public class GenericData : Dictionary<string, object>
 	public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
 	public static bool operator !=(GenericData a, GenericData b) => !(a == b);
 
-	public T Require<T>(string key) => Translate<T>(Require(key)) ?? throw new PlatformException(message: $"Unable to cast {GetType().Name} to {typeof(T).Name}.");
+	public T Require<T>(string key) => (T)Translate<T>(Require(key)) ?? throw new PlatformException(message: $"Unable to cast {GetType().Name} to {typeof(T).Name}.");
 
-	public T Optional<T>(string key) => Translate<T>(Optional(key));
+	public T Optional<T>(string key) => (T)Translate<T>(Optional(key));
 
 	public object Require(string key) => ContainsKey(key)
 		? this[key]
@@ -240,7 +240,6 @@ public class GenericData : Dictionary<string, object>
 	private dynamic Translate<T>(object value)
 	{
 		if (typeof(T).IsAssignableTo(typeof(PlatformDataModel)) && value is string json)
-		{
 			try
 			{
 				return JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
@@ -249,19 +248,20 @@ public class GenericData : Dictionary<string, object>
 			{
 				Log.Warn(Owner.Will, "Unable to deserialize PlatformDataModel from JSON.");
 			}
-		}
+		
+		// We're dealing with a nullable type; make sure we didn't convert to a default value.
+		// For example, Translate<int?>(null) shouldn't come back as 0, it should come back as null.
+		// Without this, Convert will yield a default value.
+		// Will on 2022.07.25: This originally checked to see if underlying was not null as well, leaving null-handling to
+		// the remaining method code.  Unsure if this was done for a particular reason.
+		if (value == null)
+			return null;
+		
 		Type type = typeof(T);
 		Type underlying = Nullable.GetUnderlyingType(type);
-		bool isNull = value == null;
 		
 		try
 		{
-			// We're dealing with a nullable type; make sure we didn't convert to a default value.
-			// For example, Translate<int?>(null) shouldn't come back as 0, it should come back as null.
-			// Without this, Convert will yield a default value.
-			if (underlying != null && isNull)
-				return null;
-
 			try
 			{
 				// We're dealing with a collection of objects.  Try to automatically cast it to an array or List.
@@ -273,19 +273,13 @@ public class GenericData : Dictionary<string, object>
 
 					dynamic list = Activator.CreateInstance(typeof(List<>).MakeGenericType(e));
 
-					if (value != null)
-					{
-						// There has to be a better way to do this with LINQ, but have been struggling to get it to work correctly.
-						// Without the for loop, typing gets messed up.
-						// TryConvertToModel will automatically try to cast the data to the appropriate PlatformDataModel type if possible.
-						// Otherwise, it uses System.Convert to attempt a data conversion.
-						IEnumerable<dynamic> values = ((IEnumerable<dynamic>)value).Select(element => TryConvertToModel(element, e));
-						foreach (dynamic x in values)
-							list.Add(x);
-					}
-
-					// foreach (dynamic foo in ((IEnumerable<dynamic>) value).Select(element => Convert.ChangeType(element, e)))
-					// 	instance.Add(foo);
+					// There has to be a cleaner way to do this with LINQ, but have been struggling to get it to work correctly.
+					// Without the for loop, typing gets messed up.
+					// TryConvertToModel will automatically try to cast the data to the appropriate PlatformDataModel type if possible.
+					// Otherwise, it uses System.Convert to attempt a data conversion.
+					IEnumerable<dynamic> values = ((IEnumerable<dynamic>)value).Select(element => TryConvertToModel(element, e));
+					foreach (dynamic x in values)
+						list.Add(x);
 
 					return type.IsArray
 						? list.ToArray()
@@ -318,11 +312,9 @@ public class GenericData : Dictionary<string, object>
 				TypeCode.Boolean => Convert.ToBoolean(value),
 				TypeCode.Byte => Convert.ToByte(value),
 				TypeCode.Char => Convert.ToChar(value),
-				TypeCode.DateTime => isNull
-					? null
-					: value is long asLong
-						? DateTime.UnixEpoch.AddMilliseconds(asLong)
-						: Convert.ToDateTime(value),
+				TypeCode.DateTime => value is long asLong
+					? DateTime.UnixEpoch.AddMilliseconds(asLong)
+					: Convert.ToDateTime(value),
 				TypeCode.DBNull => null,
 				TypeCode.Decimal => Convert.ToDecimal(value),
 				TypeCode.Double => Convert.ToDouble(value),
@@ -335,9 +327,7 @@ public class GenericData : Dictionary<string, object>
 					: (T) value,
 				TypeCode.SByte => Convert.ToSByte(value),
 				TypeCode.Single => Convert.ToSingle(value),
-				TypeCode.String => isNull 
-					? null
-					: Convert.ToString(value),
+				TypeCode.String => Convert.ToString(value),
 				TypeCode.UInt16 => Convert.ToUInt16(value),
 				TypeCode.UInt32 => Convert.ToUInt32(value),
 				TypeCode.UInt64 => Convert.ToUInt64(value),

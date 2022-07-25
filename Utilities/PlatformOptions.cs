@@ -9,6 +9,14 @@ using Rumble.Platform.Common.Utilities;
 
 public class PlatformOptions
 {
+	// public const int MINIMUM_THROTTLE_THRESHOLD = 50;
+	// public const int MINIMUM_THROTTLE_PERIOD = 300;
+	
+	public const int MINIMUM_THROTTLE_THRESHOLD = 10;
+	public const int MINIMUM_THROTTLE_PERIOD = 60;
+	public const int DEFAULT_THROTTLE_THRESHOLD = 100;
+	public const int DEFAULT_THROTTLE_PERIOD = 3_600; // 1 hour
+	
 	internal Owner ProjectOwner { get; set; }
 	internal string ServiceName { get; set; }
 	internal Type[] DisabledServices { get; set; }
@@ -19,6 +27,8 @@ public class PlatformOptions
 	internal int WarningThreshold { get; set; }
 	internal int ErrorThreshold { get; set; }
 	internal int CriticalThreshold { get; set; }
+	internal int LogThrottleThreshold { get; set; }
+	internal int LogThrottlePeriodSeconds { get; set; }
 
 	internal PlatformOptions()
 	{
@@ -31,6 +41,8 @@ public class PlatformOptions
 		ErrorThreshold = 60_000;
 		CriticalThreshold = 90_000;
 		ServiceName = null;
+		LogThrottleThreshold = DEFAULT_THROTTLE_THRESHOLD;
+		LogThrottlePeriodSeconds = DEFAULT_THROTTLE_PERIOD;
 	}
 
 	private static T GetFullSet<T>() where T : Enum => ((T[])Enum.GetValues(typeof(T))).First().FullSet();
@@ -132,6 +144,22 @@ public class PlatformOptions
 		return this;
 	}
 
+	/// <summary>
+	/// Initializes the log throttling.  With a suppressAfter of 50 and period of 3600, up to 50 messages in one hour will be allowed.
+	/// After that, the next log to be sent will only send after one hour after the first message.  When the throttled log sends,
+	/// the cache is reset. 
+	/// </summary>
+	/// <param name="suppressAfter">The number of messages to allow before throttling kicks in.</param>
+	/// <param name="period">The length of time, in seconds, </param>
+	/// <returns></returns>
+	public PlatformOptions SetLogglyThrottleThreshold(int suppressAfter, int period)
+	{
+		LogThrottleThreshold = suppressAfter;
+		LogThrottlePeriodSeconds = period;
+		
+		return this;
+	}
+
 	internal PlatformOptions Validate()
 	{
 		if (DisabledServices.Any())
@@ -144,8 +172,26 @@ public class PlatformOptions
 			{
 				DisabledFilters = EnabledFilters.Invert().GetFlags()
 			});
-		
-		// TODO: Add more logs / protection here
+		if (LogThrottleThreshold < MINIMUM_THROTTLE_THRESHOLD)
+		{
+			Log.Info(ProjectOwner, "The log throttling threshold is too low and will be set to a minimum.", data: new
+			{
+				MinimumThreshold = MINIMUM_THROTTLE_THRESHOLD
+			});
+			LogThrottleThreshold = MINIMUM_THROTTLE_THRESHOLD;
+		}
+		if (LogThrottlePeriodSeconds < MINIMUM_THROTTLE_PERIOD)
+		{
+			Log.Info(ProjectOwner, "The log throttling period is too low and will be set to a minimum.", data: new
+			{
+				MinimumPeriod = MINIMUM_THROTTLE_PERIOD
+			});
+			LogThrottlePeriodSeconds = MINIMUM_THROTTLE_PERIOD;
+		}
+		if (EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling) && DisabledServices.Contains(typeof(CacheService)))
+			Log.Local(ProjectOwner, "Disabling the CacheService also disables the log throttling.");
+
+			// TODO: Add more logs / protection here
 		return this;
 	}
 

@@ -19,7 +19,6 @@ namespace Rumble.Platform.Common.Utilities;
 public class Log : PlatformDataModel
 {
 	private static Owner? _defaultOwner;
-	private static bool _printObjectsEnabled;
 	public static Owner DefaultOwner
 	{
 		get => _defaultOwner ?? RCL.Logging.Owner.Default;
@@ -31,34 +30,23 @@ public class Log : PlatformDataModel
 		}
 	}
 
-	public static bool PrintObjectsEnabled
-	{
-		get => _printObjectsEnabled;
-		set => _printObjectsEnabled = value;
-	}
+	public static bool PrintObjectsEnabled { get; internal set; }
+
 	private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
 		? null 
 		: new LogglyClient();
 
-	private static bool IsVerboseLoggingEnabled()
-	{
-		string value = PlatformEnvironment.Optional("VERBOSE_LOGGING");
-		
-		return value != null 
-			&& string.Equals(value, "true", StringComparison.InvariantCultureIgnoreCase);
-	}
-	
-	public enum LogType { VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL }
+	public enum LogType { VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL, THROTTLED }
 
 	[JsonIgnore]
 	private readonly Owner _owner;
 
 	[JsonInclude]
 	public string Owner => _owner.ToString();
-	[JsonInclude]
-	public string Severity => _severity.ToString();
+	[JsonInclude, JsonPropertyName("severity")]
+	public string Severity => SeverityType.ToString();
 	[JsonIgnore] 
-	private readonly LogType _severity;
+	internal LogType SeverityType { get; private set; }
 	[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string Message { get; set; }
 	[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -75,6 +63,7 @@ public class Log : PlatformDataModel
 	
 	[JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public object Data { get; set; }
+	
 	[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public Exception Exception { get; set; }
 
@@ -109,10 +98,13 @@ public class Log : PlatformDataModel
 	
 	[JsonInclude, JsonPropertyName("commonVersion")]
 	public string CommonVersion { get; init; }
+	
+	[JsonInclude, JsonPropertyName("throttleDetails")]
+	public GenericData ThrottleDetails { get; private set; }
 
 	private Log(LogType type, Owner owner, Exception exception = null)
 	{
-		_severity = type;
+		SeverityType = type;
 		_owner = owner;
 		Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
 		Exception = exception;
@@ -121,7 +113,7 @@ public class Log : PlatformDataModel
 			? ((PlatformException) Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
 			: Endpoint = Diagnostics.FindEndpoint();
 		
-		if (!PlatformEnvironment.IsLocal) 
+		if (!PlatformEnvironment.IsLocal)
 			return;
 		
 		MethodBase method = new StackFrame(3).GetMethod();
@@ -140,18 +132,18 @@ public class Log : PlatformDataModel
 	
 	private string BuildConsoleMessage()
 	{
-		string ownerStr = Owner.PadRight(MaxOwnerNameLength, ' ');
-		string severityStr = Severity.PadLeft(MaxSeverityLength, ' ');
-		string msg = Message ?? "No Message";
+		string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
+		string severity = Severity.PadLeft(MaxSeverityLength, ' ');
+		string message = Message ?? "No Message";
 
 		if (PrintObjectsEnabled)
 		{
 			string data = Data?.ToString() ?? "";
 			if (!string.IsNullOrWhiteSpace(data))
-				msg += $" | {data}";
+				message += $" | {data}";
 		}
 
-		return $"{ownerStr} | {ElapsedTime} | {severityStr} | {Caller}: {msg}";
+		return $"{owner} | {ElapsedTime} | {severity} | {Caller}: {message}";
 	}
 
 	/// <summary>
@@ -160,8 +152,11 @@ public class Log : PlatformDataModel
 	/// <returns>Returns itself for chaining.</returns>
 	private Log Send()
 	{
-		if (_severity != LogType.LOCAL)
-			Loggly?.Send(this);
+		bool throttled = false;
+		if (SeverityType != LogType.LOCAL)
+			Loggly?.Send(this, out throttled);
+		if (throttled)
+			SeverityType = LogType.THROTTLED;
 		if (PlatformEnvironment.IsLocal)
 			Console.WriteLine(BuildConsoleMessage());
 		return this;
@@ -176,7 +171,7 @@ public class Log : PlatformDataModel
 	/// <param name="exception">Any exception encountered, if available.</param>
 	public static void Verbose(Owner owner, string message, object data = null, Exception exception = null)
 	{
-		if (IsVerboseLoggingEnabled())
+		if (PlatformEnvironment.Optional<bool>("VERBOSE_LOGGING"))
 			Write(LogType.VERBOSE, owner, message, data, exception);
 	}
 	/// <summary>
@@ -207,12 +202,6 @@ public class Log : PlatformDataModel
 	{
 		try
 		{
-			if (!(PlatformEnvironment.Deployment.StartsWith("2") || PlatformEnvironment.Deployment.StartsWith("3")))
-			{
-				Info(owner, message, data, exception);
-				return;
-			}
-
 			string newMessage = "A Dev log type was used outside of a local or dev environment.  Remove the log call.";
 			Error(owner, newMessage, data: new
 			{
@@ -320,7 +309,7 @@ public class Log : PlatformDataModel
 		}
 		catch { }
 		
-		Log log = new Log(type, actual, exception)
+		new Log(type, actual, exception)
 		{
 			Data = data,
 			Message = message ?? exception?.Message,
@@ -328,4 +317,20 @@ public class Log : PlatformDataModel
 			Endpoint = Converter.ContextToEndpoint(context)
 		}.Send();
 	}
+
+	internal void AddThrottlingDetails(int count, long timestamp)
+	{
+		Message = ThrottledMessage;
+
+		long seconds = Timestamp.UnixTime - timestamp;
+		
+		ThrottleDetails = new GenericData
+		{
+			{ "message", $"Suppressed {count} logs with the same message over the last {seconds} seconds."},
+			{ "suppressed", count },
+			{ "period", seconds }
+		};
+	}
+	
+	internal string ThrottledMessage => $"Throttled: {Message}";
 }

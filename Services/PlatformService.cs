@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
@@ -12,8 +13,8 @@ namespace Rumble.Platform.Common.Services;
 
 public abstract class PlatformService : IService, IPlatformService
 {
+	protected static ConcurrentDictionary<Type, IPlatformService> Registry { get; private set; }
 	private IServiceProvider _services;
-	internal static PlatformService Instance { get; private set; }
 	public string Name => GetType().Name;
 
 	[BsonIgnore]
@@ -25,8 +26,16 @@ public abstract class PlatformService : IService, IPlatformService
 
 	protected PlatformService(IServiceProvider services = null)
 	{
+		Registry ??= new ConcurrentDictionary<Type, IPlatformService>();
+		if (Registry.ContainsKey(GetType()))
+			Registry[GetType()] = this;
+		else if (!Registry.TryAdd(GetType(), this))
+			Log.Warn(Owner.Default, "Failed to add an entry to the service registry", data: new
+			{
+				Type = GetType()
+			});
+		
 		Log.Local(Owner.Default, $"Creating {GetType().Name}");
-		Instance = this;
 	}
 
 	// TODO: This is the same code as in PlatformController's service resolution.
@@ -61,6 +70,19 @@ public abstract class PlatformService : IService, IPlatformService
 	}
 
 	public void OnDestroy() {}
+
+	internal static bool Get<T>(out T service) where T : PlatformService
+	{
+		if (Registry == null)
+		{
+			service = null;
+			return false;
+		}
+		bool output = Registry.TryGetValue(typeof(T), out IPlatformService svc);
+		service = (T)svc;
+
+		return output;
+	}
 
 	public virtual GenericData HealthStatus => new GenericData
 	{

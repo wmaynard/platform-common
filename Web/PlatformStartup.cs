@@ -144,6 +144,9 @@ public abstract class PlatformStartup
 		WebServerEnabled = webServerEnabled;
 		Log.DefaultOwner = defaultOwner;
 		Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
+		LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
+		LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
+		LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
 		Log.Verbose(Owner.Default, "Logging default owner set.");
 		Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 

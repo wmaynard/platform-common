@@ -1,4 +1,5 @@
 using System;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using RCL.Logging;
@@ -11,35 +12,96 @@ namespace Rumble.Platform.Common.Interop;
 public class LogglyClient
 {
 	public string URL { get; init; }
-
-	private readonly ApiService _apiService;
-	private LogglyClient(ApiService apiService) => _apiService = apiService; 
+	
+	public static bool UseThrottling { get; internal set; }
+	
+	public static int ThrottleSendFrequency { get; internal set; }
+	public static int CacheLifetime => ThrottleSendFrequency * 3_000;
+	public static int ThrottleThreshold { get; internal set; }
 	public LogglyClient() => URL = PlatformEnvironment.LogglyUrl;
 	
 	// ReSharper disable once MemberCanBeMadeStatic.Global
-	public void Send(Log log)
+	public void Send(Log log, out bool throttled)
 	{
+		throttled = false;
 		try
 		{
-			string json = log?.JSON;
-
-			if (json != null && ApiService.Instance != null)
+			if (log == null || !PlatformService.Get(out ApiService apiService))
+				return;
+			if (!ShouldSend(ref log))
 			{
-				Task.Run(() => ApiService.Instance
-					?.Request(URL)
-					.SetPayload(json)
-					.OnSuccess((_, _) =>
-					{
-						Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT);
-					})
-					.PostAsync());
+				throttled = true;
+				return;
 			}
+			
+			// if (stats.Count > ThrottleThreshold)
+			// 	log.AddThrottlingDetails(stats.Count - ThrottleThreshold, stats.Timestamp);
+
+			string json = log.JSON;	// Occasionally the log is disposed before the request goes out; assign the string now.
+			Task.Run(() => apiService
+				.Request(URL)
+				.SetPayload(json)
+				.OnSuccess((_, _) => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT))
+				.PostAsync()
+			);
 		}
 		catch (Exception e)
 		{
 			if (URL == null)
-				Log.Local(Owner.Sean, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
-			Log.Local(Owner.Sean, e.Message);
+				Log.Local(Owner.Default, "Missing or faulty LOGGLY_URL environment variable; Loggly integration will be disabled.");
+			Log.Local(Owner.Default, e.Message);
 		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="log"></param>
+	/// <param name="stats">If this is returned, the sent log needs to include throttling stats.</param>
+	/// <returns>True if the log should continue sending; false if the log needs to be throttled and withheld.</returns>
+	private static bool ShouldSend(ref Log log)
+	{
+		Stats stats = default;
+		
+		// If the log is critical or the cache service is inaccessible, send the log anyway.
+		if (!UseThrottling || log.SeverityType == Log.LogType.CRITICAL || !PlatformService.Get(out CacheService cache))
+			return true;
+
+		string key = $"Log|{log.Message}";
+		if (cache.HasValue(key, out stats))
+		{
+			stats.Count++;
+			
+			// Clear the cache if we exceeded the send frequency.  Otherwise keep adding to the count.
+			if (Timestamp.UnixTime - stats.Timestamp > ThrottleSendFrequency)
+			{
+				Log.Local(Owner.Will, "Log cache cleared.");
+				cache.Clear(key);
+				if (stats.Count > ThrottleThreshold)
+				{
+					log.AddThrottlingDetails(stats.Count - ThrottleThreshold, stats.Timestamp);
+					return true;
+				}
+			}
+			else
+				cache.Store(key, stats, expirationMS: CacheLifetime); // Keep the cache alive 3x longer than the log send frequency
+
+			// Only send the log if we haven't hit our threshold.
+			return stats.Count <= ThrottleThreshold;
+		}
+		stats = new Stats
+		{
+			Count = 1,
+			Timestamp = Timestamp.UnixTime
+		};
+		cache.Store(key, stats, expirationMS: CacheLifetime);
+
+		return true;
+	}
+
+	private class Stats
+	{
+		internal int Count;
+		internal long Timestamp;
 	}
 }
