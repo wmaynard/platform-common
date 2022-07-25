@@ -51,7 +51,7 @@ public class PlatformExceptionFilter : PlatformBaseFilter, IExceptionFilter
 			BadHttpRequestException => ex.Message,
 			_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
 		};
-		ErrorCode code = ErrorCode.NotSpecified;
+		ErrorCode code = ErrorCode.RuntimeException;
 		if (ex is PlatformException platEx)
 		{
 			code = platEx.Code;

@@ -33,7 +33,7 @@ public class CacheService : PlatformTimerService
 		
 		if (expirationMS > MAX_CACHE_TIME_MS)
 		{
-			Log.Warn(Owner.Will, "CacheService was asked to store a value for longer than the max allowed cache time.  Using max time instead.", data: new
+			Log.Local(Owner.Will, "CacheService was asked to store a value for longer than the max allowed cache time.  Using max time instead.", data: new
 			{
 				MaxCacheTime = MAX_CACHE_TIME_MS,
 				RequestedCacheTime = expirationMS

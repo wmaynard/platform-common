@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
@@ -16,11 +17,15 @@ public class PlatformException : Exception // TODO: Should probably be an abstra
 	public ErrorCode Code { get; private set; }
 	
 	public PlatformException() : this("No message provided."){}
+#pragma warning disable CS0618
 	public PlatformException(string message, Exception inner = null, ErrorCode code = ErrorCode.NotSpecified) : base(message, inner)
 	{
+		if (code == ErrorCode.NotSpecified)
+			Log.Local(Owner.Default, "No error code specified.  Make error codes more useful by supplying an error code.");
 		Endpoint = Diagnostics.FindEndpoint();
 		Code = code;
 	}
+#pragma warning restore CS0618
 
 	public string Detail
 	{

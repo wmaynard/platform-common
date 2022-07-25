@@ -9,6 +9,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -69,24 +70,24 @@ public class DC2Service : PlatformTimerService
 		_apiService = apiService;
 		_healthService = healthService;
 
-		// This allows the service to run code at startup so that we don't hit our API before we're ready fo r it.
+		// This allows the service to run code at startup so that we don't hit our API before we're ready for it.
 		lifetime.ApplicationStarted.Register(() =>
 		{
 			Register();
-			Refresh();
+			Refresh().Wait();
 		});
 	}
 	
-	protected override void OnElapsed() => Refresh();
+	protected override void OnElapsed() => Refresh().Wait();
 
-	public void Refresh()
+	public async Task Refresh()
 	{
 		if (IsUpdating)
 			return;
 		
 		IsUpdating = true;
 		
-		_apiService
+		await _apiService
 			.Request(PlatformEnvironment.Url("/config/settings"))
 			.AddRumbleKeys()
 			.AddParameter(key: "client", value: new DC2ClientInformation
@@ -110,7 +111,7 @@ public class DC2Service : PlatformTimerService
 				AllValues = response;
 				LastUpdated = Timestamp.UnixTime;
 			})
-			.Get(out GenericData values, out int code);
+			.GetAsync();
 		
 		IsUpdating = false;
 	}
@@ -121,10 +122,16 @@ public class DC2Service : PlatformTimerService
 		// platform-common section exists.
 		_apiService
 			.Request(PlatformEnvironment.Url("/config/settings/new"))
+			.AddRumbleKeys()
 			.SetPayload(new GenericData()
 			{
 				{ "name", COMMON_SETTING_NAME },
 				{ "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
+			})
+			.OnFailure((_, response) =>
+			{
+				if (response.StatusCode == 400)
+					Log.Local(Owner.Default, "Unable to create new dynamic config section.");
 			})
 			.Post();
 		

@@ -11,7 +11,7 @@ namespace Rumble.Platform.Common.Web;
 /// This class is used whenever an API call encounters an error.  Its purpose is to limit the amount of information
 /// that is returned to the client and provide uniform JSON responses.
 /// </summary>
-public class ErrorResponse : StandardResponse
+internal class ErrorResponse : StandardResponse
 {
 	[JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string Message { get; set; }
@@ -19,7 +19,7 @@ public class ErrorResponse : StandardResponse
 	[JsonInclude, JsonPropertyName("errorCode"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string Code { get; set; }
 
-	public ErrorResponse(string message, Exception data, ErrorCode code = ErrorCode.NotSpecified) : base(new { Exception = Clean(data) })
+	internal ErrorResponse(string message, Exception data, ErrorCode code) : base(new { Exception = Clean(data) })
 	{
 		Success = false;
 		Message = message;

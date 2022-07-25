@@ -41,7 +41,7 @@ public abstract class MasterService : PlatformTimerService
 		ID = Guid.NewGuid().ToString();	
 	} 
 
-	private string Name => GetType().Name;
+	private new string Name => GetType().Name;
 	private string LastActiveKey => $"{Name}_lastActive";
 	public bool IsPrimary => _config.Value<string>(Name) == ID;
 	private bool IsWorking { get; set; }
@@ -92,7 +92,7 @@ public abstract class MasterService : PlatformTimerService
 	{
 #if DEBUG
 		return;
-#endif
+#else
 		if (IsPrimary)
 		{
 			_config.Update(LastActiveKey, UnixTimeMS);
@@ -108,6 +108,7 @@ public abstract class MasterService : PlatformTimerService
 			Confiscate();
 		else
 			_config.Refresh();
+#endif
 	}
 
 	public void Cancel() => _tokenSource?.Cancel();

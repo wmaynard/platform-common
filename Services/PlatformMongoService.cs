@@ -108,7 +108,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 		}
 		catch (Exception e)
 		{
-			Log.Error(Owner.Will, "Could not commit transaction from PlatformMongoService.CommitTransaction().");
+			Log.Error(Owner.Will, "Could not commit transaction from PlatformMongoService.CommitTransaction().", exception: e);
 		}
 	}
 
@@ -207,14 +207,16 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 			if (dbIndex == null)
 			{
 				Log.Info(Owner.Will, $"Creating index '{modelIndex.Name}' on '{name}'.");
+#pragma warning disable CS0618
 				_collection.Indexes.CreateOne(Builders<Model>.IndexKeys.Ascending(modelIndex.DatabaseKey), new CreateIndexOptions()
+#pragma warning restore CS0618
 				{
 					Name = modelIndex.Name,
 					Unique = modelIndex.Unique
 				});
 			}
 			else if (dbIndex.IndexName != modelIndex.Name)
-				Log.Info(Owner.Will, $"An index already exists on '{name}' ({dbIndex.IndexName}).  Manually assigned indexes have priority, so the model's is ignored.");
+				Log.Verbose(Owner.Will, $"An index already exists on '{name}' ({dbIndex.IndexName}).  Manually assigned indexes have priority, so the model's is ignored.");
 		}
 	}
 

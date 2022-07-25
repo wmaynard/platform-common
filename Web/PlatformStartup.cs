@@ -105,8 +105,6 @@ public abstract class PlatformStartup
 	[JsonIgnore]
 	private PlatformOptions Options { get; set; }
 
-	private bool _filtersAdded;
-
 	protected PlatformStartup(IConfiguration configuration = null)
 	{
 #if RELEASE
@@ -167,7 +165,6 @@ public abstract class PlatformStartup
 				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
 			if (Options.EnabledFilters.HasFlag(CommonFilter.MongoTransaction))
 				config.Filters.Add(new PlatformMongoTransactionFilter());
-			_filtersAdded = true;
 		}
 
 		(WebServerEnabled

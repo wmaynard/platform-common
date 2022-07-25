@@ -125,12 +125,14 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 		if (keyMismatch)
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: "unauthorized",
-				data: new PlatformException(errorMessage, code: ErrorCode.KeyValidationFailed)
+				data: new PlatformException(errorMessage, code: ErrorCode.KeyValidationFailed),
+				code: ErrorCode.KeyValidationFailed
 			));
 		else if (requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: "unauthorized",
-				data: new PlatformException(errorMessage, code: ErrorCode.TokenValidationFailed)
+				data: new PlatformException(errorMessage, code: ErrorCode.TokenValidationFailed),
+				code: ErrorCode.TokenValidationFailed
 			));
 	}
 
@@ -234,7 +236,8 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 			context.HttpContext.Response.StatusCode = 400;
 			context.Result = new BadRequestObjectResult(new ErrorResponse(
 				message: "unauthorized",
-				data: new PlatformException("Account ID mismatch!", code: ErrorCode.AccountIdMismatch)
+				data: new PlatformException("Account ID mismatch!", code: ErrorCode.AccountIdMismatch),
+				code: ErrorCode.AccountIdMismatch
 			));
 		}
 	}

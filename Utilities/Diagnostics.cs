@@ -46,10 +46,7 @@ public class Diagnostics
 					.Select(arg => arg.Value?.ToString())
 			);
 		}
-		catch (Exception e)
-		{
-			
-		}
+		catch { }
 
 		return endpoint;
 	}

@@ -180,7 +180,7 @@ public abstract class PlatformController : Controller
 	}
 
 	[HttpDelete, Route(template: "cachedToken"), RequireAuth(AuthType.ADMIN_TOKEN)]
-	public async Task<ActionResult> DeleteCachedToken()
+	public ActionResult DeleteCachedToken()
 	{
 		string accountId = Require<string>("accountId");
 		
@@ -195,13 +195,13 @@ public abstract class PlatformController : Controller
 	{
 		Log.Local(Owner.Will, "Refreshing DC2");
 		
-		_dc2Service.Refresh();
+		await _dc2Service.Refresh();
 
 		return Ok();
 	}
 
 	[HttpGet, Route(template: "environment"), RequireAuth(AuthType.RUMBLE_KEYS)]
-	public async Task<ActionResult> GetEnvironmentVariables()
+	public ActionResult GetEnvironmentVariables()
 	{
 		if (PlatformEnvironment.IsProd)
 			Log.Warn(Owner.Will, "A request for an environment dump was made on prod.");

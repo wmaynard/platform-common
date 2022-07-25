@@ -36,7 +36,8 @@ public static class JsonHelper
 
 	public static JsonSerializerOptions SerializerOptions => _serializerOptions ??= new JsonSerializerOptions()
 	{
-		IgnoreNullValues = false,
+		// IgnoreNullValues = false,
+		DefaultIgnoreCondition = JsonIgnoreCondition.Never,
 		IncludeFields = true,
 		IgnoreReadOnlyFields = false,
 		IgnoreReadOnlyProperties = false,

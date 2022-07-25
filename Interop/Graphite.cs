@@ -206,7 +206,7 @@ public class Graphite
 		if (!name.StartsWith(prefix))
 			name = $"{prefix}-{name}";
 
-		Client.Add(name, value, endpoint, type);
+		Client.Add(name, value, endpoint, type).Wait();
 	}
 	
 	public class Metrics

@@ -246,7 +246,7 @@ public class GenericData : Dictionary<string, object>
 			}
 			catch (Exception e)
 			{
-				Log.Warn(Owner.Will, "Unable to deserialize PlatformDataModel from JSON.");
+				Log.Warn(Owner.Will, "Unable to deserialize PlatformDataModel from JSON.", exception: e);
 			}
 		
 		// We're dealing with a nullable type; make sure we didn't convert to a default value.
