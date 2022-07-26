@@ -12,13 +12,13 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Filters;
 
-public abstract class PlatformBaseFilter : IFilterMetadata
+public abstract class PlatformFilter : IFilterMetadata
 {
 	protected string TokenAuthEndpoint { get; init; }
+
+	protected static bool GetService<T>(out T service) where T : PlatformService => PlatformService.Get(out service);
 	
-	protected static T GetService<T>() where T : PlatformService => new HttpContextAccessor()?.HttpContext?.RequestServices?.GetService<T>();
-	
-	protected PlatformBaseFilter()
+	protected PlatformFilter()
 	{
 		Log.Local(Owner.Default, $"{GetType().Name} initialized.");
 

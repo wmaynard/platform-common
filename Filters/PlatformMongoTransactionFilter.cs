@@ -10,7 +10,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformMongoTransactionFilter : PlatformBaseFilter, IResourceFilter, IExceptionFilter, IResultFilter
+public class PlatformMongoTransactionFilter : PlatformFilter, IResourceFilter, IExceptionFilter, IResultFilter
 {
 	
 	public const string KEY_USE_MONGO_TRANSACTION = "StartMongoTransaction";

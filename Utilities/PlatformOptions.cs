@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.Filters;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 
@@ -33,6 +35,7 @@ public class PlatformOptions
 	internal PlatformOptions()
 	{
 		ProjectOwner = Owner.Default;
+		CustomFilters = new List<Type>();
 		DisabledServices = Array.Empty<Type>();
 		WebServerEnabled = false;
 		EnabledFeatures = GetFullSet<CommonFeature>();
@@ -63,6 +66,13 @@ public class PlatformOptions
 	public PlatformOptions SetServiceName(string name)
 	{
 		ServiceName = name;
+		return this;
+	}
+
+	public List<Type> CustomFilters { get; private set; } 
+	public PlatformOptions AddFilter<T>() where T : PlatformFilter
+	{
+		CustomFilters.Add(typeof(T));
 		return this;
 	}
 

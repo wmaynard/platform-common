@@ -17,7 +17,7 @@ using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFilter, IActionFilter
+public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter, IActionFilter
 {
 	private const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
 	public const string KEY_TOKEN = "PlatformToken";
@@ -145,9 +145,9 @@ public class PlatformAuthorizationFilter : PlatformBaseFilter, IAuthorizationFil
 	public static TokenInfo Validate(string encryptedToken)
 	{
 		encryptedToken = encryptedToken?.Replace("Bearer ", "");
-		
-		ApiService api = GetService<ApiService>();
-		CacheService cache = GetService<CacheService>();
+
+		GetService(out ApiService api);
+		GetService(out CacheService cache);
 
 		TokenInfo output;
 		if (cache.HasValue(encryptedToken, out output))

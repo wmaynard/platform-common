@@ -70,7 +70,12 @@ public abstract class PlatformService : IService, IPlatformService
 	}
 
 	public void OnDestroy() {}
-
+	
+	/// <summary>
+	/// Allows a roundabout way of accessing a service.  There are edge cases where a developer
+	/// can't use dependency injection (the cleaner approach).  This should be used sparingly
+	/// and only within Platform Common to discourage its use elsewhere.
+	/// </summary>
 	internal static bool Get<T>(out T service) where T : PlatformService
 	{
 		if (Registry == null)

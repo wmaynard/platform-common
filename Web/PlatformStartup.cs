@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
@@ -168,6 +169,11 @@ public abstract class PlatformStartup
 				config.Filters.Add(new PlatformPerformanceFilter(warnMS, errorMS, criticalMS));
 			if (Options.EnabledFilters.HasFlag(CommonFilter.MongoTransaction))
 				config.Filters.Add(new PlatformMongoTransactionFilter());
+			foreach (Type t in Options.CustomFilters)
+			{
+				Log.Local(Owner.Will, $"Adding in a custom filter: {t.Name}");
+				config.Filters.Add((IFilterMetadata)Activator.CreateInstance(t));
+			}
 		}
 
 		(WebServerEnabled

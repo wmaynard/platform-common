@@ -25,7 +25,7 @@ namespace Rumble.Platform.Common.Filters;
 /// prevent that, we need to have a catch-all implementation for Exceptions in OnActionExecuted.
 /// </summary>
 [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse")]
-public class PlatformExceptionFilter : PlatformBaseFilter, IExceptionFilter
+public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
 {
 	/// <summary>
 	/// This triggers after an action executes, but before any uncaught Exceptions are dealt with.  Here we can

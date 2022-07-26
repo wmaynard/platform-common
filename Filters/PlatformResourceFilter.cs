@@ -11,7 +11,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformResourceFilter : PlatformBaseFilter, IResourceFilter
+public class PlatformResourceFilter : PlatformFilter, IResourceFilter
 {
 	public const string KEY_AUTHORIZATION = "EncryptedToken";
 	public const string KEY_BODY = "RequestBody";

@@ -10,7 +10,7 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformHealthFilter : PlatformBaseFilter, IActionFilter, IResultFilter
+public class PlatformHealthFilter : PlatformFilter, IActionFilter, IResultFilter
 {
 	public void OnActionExecuting(ActionExecutingContext context)
 	{

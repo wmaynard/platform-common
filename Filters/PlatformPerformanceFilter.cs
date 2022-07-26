@@ -18,7 +18,7 @@ using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Filters;
 
-public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilter, IActionFilter, IResultFilter
+public class PlatformPerformanceFilter : PlatformFilter, IAuthorizationFilter, IActionFilter, IResultFilter
 {
 	private const int COUNT_BEFORE_LOG_FLUSH = 50_000;
 	public const string KEY_START = "StartTime";
