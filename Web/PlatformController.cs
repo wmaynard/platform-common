@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
@@ -75,6 +76,12 @@ public abstract class PlatformController : Controller
 	protected ObjectResult Problem(GenericData data) => base.BadRequest(data);
 	protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 
+	protected ObjectResult Problem(string detail, ErrorCode code) => Problem(new GenericData
+	{
+		{ "message", detail },
+		{ "errorCode", $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}" }
+	});
+
 	protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
 	// TODO: Fix the serialization such that we are consistent to lowerCamelCase keys
@@ -93,6 +100,12 @@ public abstract class PlatformController : Controller
 
 	[NonAction]
 	public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
+	protected ObjectResult Ok(string detail, ErrorCode code) => Ok(new GenericData
+	{
+		{ "message", detail },
+		{ "errorCode", $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}" }
+	});
+	
 
 	protected static object Merge(params object[] objects)
 	{

@@ -5,6 +5,7 @@ namespace Rumble.Platform.Common.Enums;
 
 public enum ErrorCode
 {
+	None,
 	// 000: Core Errors
 	[Display(Name = "0000"), Obsolete(message: "Avoid using unhelpful errors.  Consider adding an error code for what you need.")] NotSpecified,
 	[Display(Name = "0001")] RuntimeException,

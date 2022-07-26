@@ -12,7 +12,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.Common.Models;
-
+// TODO: UrlWithQuery property
 public class ApiRequest
 {
 	public const int DEFAULT_RETRIES = 6;
@@ -57,13 +57,13 @@ public class ApiRequest
 			if (FailureHandled) // We can assume that if a developer is using OnFailure that they're responsible for their own logs.
 			{
 				if (code.Between(300, 399))
-					Log.Local(Owner.Default, "ApiRequest encountered a routing error.", data: data);
+					Log.Local(Owner.Default, "ApiRequest encountered a routing error, but it's been handled by an OnFailure() callback.", data: data);
 				else if (code == 404)
-					Log.Local(Owner.Default, "ApiRequest resource not found.", data: data);
+					Log.Local(Owner.Default, "ApiRequest resource not found, but it's been handled by an OnFailure() callback.", data: data);
 				else if (code.Between(500, 599))
-					Log.Local(Owner.Default, "ApiRequest encountered a server error.", data: data);
+					Log.Local(Owner.Default, "ApiRequest encountered a server error, but it's been handled by an OnFailure() callback.", data: data);
 				else
-					Log.Local(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+					Log.Local(Owner.Default, "ApiRequest encountered an error, but it's been handled by an OnFailure() callback.", data: data);
 				return;
 			}
 			
@@ -74,7 +74,7 @@ public class ApiRequest
 			else if (code.Between(500, 599))
 				Log.Warn(Owner.Default, "ApiRequest encountered a server error.", data: data);
 			else
-				Log.Warn(Owner.Default, "ApiRequest encountered an unexpected error.", data: data);
+				Log.Warn(Owner.Default, "ApiRequest encountered an error.", data: data);
 		};
 		URL = url;
 	}

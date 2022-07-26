@@ -10,7 +10,7 @@ namespace Rumble.Platform.Common.Services;
 
 public class CacheService : PlatformTimerService
 {
-	private const int MAX_CACHE_TIME_MS = 3_600_000; // 1 hour
+	private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
 	private GenericData Values { get; set; }
 	private Dictionary<string, long> Expirations { get; set; }
 
@@ -33,7 +33,7 @@ public class CacheService : PlatformTimerService
 		
 		if (expirationMS > MAX_CACHE_TIME_MS)
 		{
-			Log.Local(Owner.Will, "CacheService was asked to store a value for longer than the max allowed cache time.  Using max time instead.", data: new
+			Log.Verbose(Owner.Will, "CacheService was asked to store a value for longer than the max allowed cache time.  Using max time instead.", data: new
 			{
 				MaxCacheTime = MAX_CACHE_TIME_MS,
 				RequestedCacheTime = expirationMS

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
@@ -125,13 +126,22 @@ public class DC2Service : PlatformTimerService
 			.AddRumbleKeys()
 			.SetPayload(new GenericData()
 			{
-				{ "name", COMMON_SETTING_NAME },
+				{ "name", COMMON_SETTING_NAME + "2" },
 				{ "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
 			})
-			.OnFailure((_, response) =>
+			.OnSuccess((sender, response) =>
 			{
-				if (response.StatusCode == 400)
-					Log.Local(Owner.Default, "Unable to create new dynamic config section.");
+				if (response.ErrorCode == ErrorCode.Unnecessary)
+					Log.Local(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
+				else
+					Log.Info(Owner.Default, $"Created a new dynamic config section: '{COMMON_SETTING_NAME}'");
+			})
+			.OnFailure((sender, response) =>
+			{
+				Log.Error(Owner.Default, "Unable to create new dynamic config section.", data: new
+				{
+					Response = response.AsGenericData
+				});
 			})
 			.Post();
 		

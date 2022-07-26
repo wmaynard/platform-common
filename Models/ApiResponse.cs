@@ -1,8 +1,11 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Models;
@@ -64,13 +67,37 @@ public class ApiResponse
 			return null;
 		}
 	}
-	public GenericData AsGenericData => Await(AsGenericDataAsync());
+	
+	public ErrorCode ErrorCode
+	{
+		get
+		{
+			string code = AsGenericData?.Optional<string>("errorCode")?.GetDigits();
+			if (code == null)
+				return ErrorCode.None;
+
+			try
+			{
+				return (ErrorCode)Enum.Parse(typeof(ErrorCode), code);
+			}
+			catch
+			{
+				Log.Local(Owner.Default, "Unable to parse platform error code as requested.");
+			}
+
+			return ErrorCode.None;
+		}
+	}
+
+	private GenericData _generic;
+	public GenericData AsGenericData => _generic ??= Await(AsGenericDataAsync());	// If this gets called multiple times, prevent the conversion after the first instance.
 	public async Task<GenericData> AsGenericDataAsync()
 	{
+		string asString = await AsStringAsync();
 		try
 		{
 			if (!Success)
-				return null;
+				return OriginalResponse;
 			return await AsStringAsync();
 		}
 		catch (Exception e)
