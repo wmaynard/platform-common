@@ -24,6 +24,10 @@ public class LogglyClient
 	public void Send(Log log, out bool throttled)
 	{
 		throttled = false;
+		
+		// We don't need to spam Loggly with VERBOSE local logs
+		if (PlatformEnvironment.IsLocal && log.SeverityType == Log.LogType.VERBOSE)
+			return;
 		try
 		{
 			if (log == null || !PlatformService.Get(out ApiService apiService))
@@ -33,9 +37,6 @@ public class LogglyClient
 				throttled = true;
 				return;
 			}
-			
-			// if (stats.Count > ThrottleThreshold)
-			// 	log.AddThrottlingDetails(stats.Count - ThrottleThreshold, stats.Timestamp);
 
 			string json = log.JSON;	// Occasionally the log is disposed before the request goes out; assign the string now.
 			Task.Run(() => apiService
