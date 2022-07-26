@@ -103,7 +103,7 @@ public class Graphite
 		CancelToken = new CancellationTokenSource();
 		Task.Run(Update);
 		
-		Log.Local(Owner.Default, "Graphite stream started.");
+		Log.Local(Owner.Will, "Graphite stream started.");
 	}
 
 	public void Stop()

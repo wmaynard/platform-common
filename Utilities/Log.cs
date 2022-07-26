@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
@@ -81,7 +82,7 @@ public class Log : PlatformDataModel
 			TimeSpan time = DateTime.UtcNow.Subtract(ServiceStart);
 			long ms = (long)(time.TotalMilliseconds);
 
-			return $"{ms:N0}ms".PadLeft(13, ' ');
+			return $"{ms:N0}ms";
 		}
 	}
 	[JsonIgnore]
@@ -101,7 +102,7 @@ public class Log : PlatformDataModel
 	
 	[JsonInclude, JsonPropertyName("throttleDetails")]
 	public GenericData ThrottleDetails { get; private set; }
-
+	
 	private Log(LogType type, Owner owner, Exception exception = null)
 	{
 		SeverityType = type;
@@ -116,8 +117,7 @@ public class Log : PlatformDataModel
 		if (!PlatformEnvironment.IsLocal)
 			return;
 		
-		MethodBase method = new StackFrame(3).GetMethod();
-		Caller = $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
+		Caller = Clean(new StackFrame(skipFrames: 3).GetMethod());
 		Version = PlatformEnvironment.Version;
 		CommonVersion = PlatformEnvironment.CommonVersion;
 		try // Particularly with Mongo, some Exceptions don't like being serialized.  There's probably a better way around this, but this works for now.
@@ -129,12 +129,66 @@ public class Log : PlatformDataModel
 			Exception = new PlatformSerializationException("JSON serialization failed.", Exception);
 		}
 	}
-	
+	/// <summary>
+	/// Cleans up a MethodBase obtained from a stack trace to be pretty-printed to the console.
+	/// If a callback or anonymous method is used, this also tries to extract the useful parts of the names.
+	/// </summary>
+	private static string Clean(MethodBase method)
+	{
+		try
+		{
+			string className = method?.DeclaringType?.FullName;
+			string methodName = method?.Name;
+			string cleanedClass = null;
+			string cleanedMethod = null;
+		
+			if (string.IsNullOrWhiteSpace(methodName))
+				methodName = "UnknownClass";
+			if (!className.Contains('.'))
+				cleanedClass = className;
+			else
+				className = className[(className.LastIndexOf('.') + 1)..];
+			
+			// Anonymous methods / callbacks come back with classnames like method.DeclaringType.FullName.
+			// This is probably a more brittle way to grab it as compared to a proper regex, but if this changes it can be addressed later.
+			if (className.Contains('+'))
+				className = className[..className.IndexOf('+')];
+			cleanedClass = className;
+
+			// Rename constructors to something more readable.
+			if (methodName == ".ctor")
+				return $"new {cleanedClass}";
+
+			if (string.IsNullOrWhiteSpace(methodName))
+				methodName = "UnknownMethod";
+
+			// Anonymous methods / callbacks come back as wonky angle brackets, e.g. <Register>b__26_0();
+			// These names aren't helpful to anyone, so try to pull out what's in the middle of those brackets instead.
+			int start = methodName.IndexOf('<');
+			int end = methodName.IndexOf('>');
+
+			if (start > -1 && end > start)
+				methodName = methodName[(start + 1)..end];
+			cleanedMethod = methodName;
+			return $"{cleanedClass}.{cleanedMethod}";
+		}
+		catch
+		{
+			// Something wonky happened; return the original code that built the console class / method.
+			return $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
+		}
+	}
+
+	private static bool _written;
+	private const int PADDING_TIMESTAMP = 13;
+	private const int PADDING_METHOD = 35;
 	private string BuildConsoleMessage()
 	{
 		string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
 		string severity = Severity.PadLeft(MaxSeverityLength, ' ');
 		string message = Message ?? "No Message";
+		string caller = Caller.PadLeft(totalWidth: PADDING_METHOD, paddingChar: ' ');
+		string time = ElapsedTime.PadLeft(PADDING_TIMESTAMP, ' ');
 
 		if (PrintObjectsEnabled)
 		{
@@ -143,7 +197,21 @@ public class Log : PlatformDataModel
 				message += $" | {data}";
 		}
 
-		return $"{owner} | {ElapsedTime} | {severity} | {Caller}: {message}";
+		// This is the first time we've printed a log.  Print the headers.
+		if (!_written)
+		{
+			string ownerHeader = "Owner".PadRight(MaxOwnerNameLength, paddingChar: ' ');
+			string lifetimeHeader = "App Lifetime".PadRight(totalWidth: PADDING_TIMESTAMP, paddingChar: ' ');
+			string severityHeader = "Severity".PadRight(MaxSeverityLength, paddingChar: ' ');
+			string callerHeader = "Class.Method".PadRight(totalWidth: PADDING_METHOD, paddingChar: ' ');
+			string messageHeader = "Message";
+
+			string headers = $"{ownerHeader} | {lifetimeHeader} | {severityHeader} | {callerHeader} | {messageHeader}";
+			Console.WriteLine(headers);
+			Console.WriteLine("".PadLeft(totalWidth: headers.Length * 2, paddingChar: '-'));
+			_written = true;
+		}
+		return $"{owner} | {time} | {severity} | {caller} | {message}";
 	}
 
 	/// <summary>
