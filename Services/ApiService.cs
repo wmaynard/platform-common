@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using RCL.Logging;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -55,14 +56,20 @@ public class ApiService : PlatformService
 	internal async Task<ApiResponse> SendAsync(ApiRequest request)
 	{
 		HttpResponseMessage response = null;
+		int code = -1;
 		try
 		{
 			do
 			{
-				Log.Verbose(Owner.Will, $"Sleeping for {request.ExponentialBackoffMS}ms");
-				Thread.Sleep(request.ExponentialBackoffMS);
+				if (code != -1)
+				{
+					Log.Verbose(Owner.Will, $"Request failed.  Sleeping for {request.ExponentialBackoffMS}ms");
+					Thread.Sleep(request.ExponentialBackoffMS);
+				}
+
 				response = await HttpClient.SendAsync(request);
-			} while (!((int)response.StatusCode).ToString().StartsWith("2") && --request.Retries > 0);
+				code = (int)response.StatusCode;
+			} while (!code.Between(200, 299) && --request.Retries > 0);
 		}
 		catch (Exception e)
 		{ 
