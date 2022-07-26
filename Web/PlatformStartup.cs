@@ -107,15 +107,24 @@ public abstract class PlatformStartup
 
 	protected PlatformStartup(IConfiguration configuration = null)
 	{
+		Options = Configure(new PlatformOptions()).Validate();
+		Log.DefaultOwner = Options.ProjectOwner;
+		Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
+		Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
+		LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
+		LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
+		LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
+		
 #if RELEASE
 		if (PlatformEnvironment.SwarmMode)
 			Log.Info(Owner.Default, "Swarm mode is enabled.  Some features, such as Loggly and Graphite integration, are disabled for load testing.");
 #endif
+		
+		Log.Local(Owner.Will, "PlatformOptions loaded.");
 		Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
 		Configuration = configuration;
 		MongoConnection = PlatformEnvironment.MongoConnectionString;
-
-		Options = Configure(new PlatformOptions()).Validate();
+		
 		Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
 		if (!Options.EnabledFeatures.HasFlag(CommonFeature.MongoDB))
 		{
@@ -133,19 +142,12 @@ public abstract class PlatformStartup
 	// protected void ConfigureServices(IServiceCollection services, Owner defaultOwner = Owner.Default, int warnMS = 500, int errorMS = 2_000, int criticalMS = 30_000, bool webServerEnabled = false)
 	private void Configure(IServiceCollection services)
 	{
-		bool webServerEnabled = Options.WebServerEnabled;
-		Owner defaultOwner = Options.ProjectOwner;
 		int warnMS = Options.WarningThreshold;
 		int errorMS = Options.ErrorThreshold;
 		int criticalMS = Options.CriticalThreshold;
 		
-		WebServerEnabled = webServerEnabled;
-		Log.DefaultOwner = defaultOwner;
-		Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
-		Log.PrintInColor = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
-		LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
-		LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
-		LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
+		WebServerEnabled = Options.WebServerEnabled;
+		
 		Log.Verbose(Owner.Default, "Logging default owner set.");
 		Log.Verbose(Owner.Default, "Adding Controllers and Filters");
 

@@ -86,7 +86,6 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 	/// </summary>
 	public void OnResultExecuted(ResultExecutedContext context)
 	{
-		
 		// base.OnResultExecuted(context);
 		string name = context.HttpContext.Request.Path.Value;
 		long taken = TimeTaken(context);
@@ -101,7 +100,8 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 
 		// Log the time taken
 #if DEBUG
-		Log.Verbose(Owner.Default, message, data: diagnostics);
+		if (PlatformEnvironment.IsLocal)
+			Log.Verbose(Owner.Default, message: $"{name} took {taken}ms to execute", data: diagnostics);
 #else
 		if (taken > THRESHOLD_MS_CRITICAL && THRESHOLD_MS_CRITICAL > 0)
 			Log.Critical(Owner.Default, message, data: diagnostics);
@@ -110,7 +110,7 @@ public class PlatformPerformanceFilter : PlatformBaseFilter, IAuthorizationFilte
 		else if (taken > THRESHOLD_MS_WARN && THRESHOLD_MS_WARN > 0)
 			Log.Warn(Owner.Default, message, data: diagnostics);
 		else 
-			Log.Verbose(Owner.Default, message, data: diagnostics);
+			Log.Verbose(Owner.Default, message: "Endpoint time recorded.", data: diagnostics);
 #endif
 		if (taken < 0) // The calculation failed; do not track it as a valid 
 			return;

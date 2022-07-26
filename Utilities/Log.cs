@@ -32,7 +32,7 @@ public class Log : PlatformDataModel
 	}
 
 	public static bool PrintObjectsEnabled { get; internal set; }
-	public static bool PrintInColor { get; internal set; }
+	public static bool NoColor { get; internal set; }
 
 	private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
 		? null 
@@ -217,7 +217,7 @@ public class Log : PlatformDataModel
 
 	private static void PrettyPrint(string text, ConsoleColor color)
 	{
-		if (!PrintInColor)
+		if (NoColor)
 		{
 			Console.WriteLine(text);
 			return;
