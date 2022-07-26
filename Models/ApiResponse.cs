@@ -31,6 +31,7 @@ public class ApiResponse
 			}
 		}
 	}
+	
 	public string RequestUrl { get; init; }
 
 	public ApiResponse(HttpResponseMessage message, string requestUrl)

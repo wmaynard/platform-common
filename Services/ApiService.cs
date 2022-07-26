@@ -67,15 +67,15 @@ public class ApiService : PlatformService
 		catch (Exception e)
 		{ 
 			// Don't infinitely log if failing to send to loggly
-			if (!request.URL.Contains("loggly.com"))
-				Log.Error(Owner.Default, $"Could not send request to '{request.URL}'.", data: new
+			if (!request.Url.Contains("loggly.com"))
+				Log.Error(Owner.Default, $"Could not send request to '{request.Url}'.", data: new
 				{
 					Request = request,
 					Response = response
 				}, exception: e);
 		}
 
-		ApiResponse output = new ApiResponse(response, request.URL);
+		ApiResponse output = new ApiResponse(response, request.UrlWithQuery);
 		request.Complete(output);
 		Record(output.StatusCode);
 		return output;

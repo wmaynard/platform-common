@@ -19,7 +19,12 @@ public class ApiRequest
 	
 	// These methods cannot contain a body.
 	private static readonly HttpMethod[] NO_BODY = { HttpMethod.Delete, HttpMethod.Get, HttpMethod.Head, HttpMethod.Trace };
-	internal string URL { get; private set; }
+	internal string Url { get; private set; }
+	internal string UrlWithQuery => Url + QueryString;
+	
+	internal string QueryString => Parameters.Any()
+		? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
+		: "";
 	internal GenericData Headers { get; private set; }
 	internal GenericData Payload { get; private set; }
 	internal GenericData Response { get; private set; }
@@ -76,12 +81,12 @@ public class ApiRequest
 			else
 				Log.Warn(Owner.Default, "ApiRequest encountered an error.", data: data);
 		};
-		URL = url;
+		Url = url;
 	}
 
 	public ApiRequest SetUrl(string url)
 	{
-		URL = url;
+		Url = url;
 		return this;
 	}
 
@@ -246,11 +251,7 @@ public class ApiRequest
 
 			output.Method = request.Method;
 
-			string parameters = request.Parameters.Any()
-				? "?" + string.Join('&', request.Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
-				: "";
-			string url = request.URL + parameters;
-			output.RequestUri = new Uri(url);
+			output.RequestUri = new Uri(request.UrlWithQuery);
 
 			foreach (KeyValuePair<string, object> pair in request.Headers)
 			{
