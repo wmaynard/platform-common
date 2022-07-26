@@ -84,7 +84,7 @@ public class SlackDiagnostics
 		{
 			info.Count++;
 			CachedLogs[Title] = info;
-			Utilities.Log.Dev(Owner.Will, $"It's too recent for the SlackDiagnostics to send another log for the given message. ({Title})");
+			Utilities.Log.Verbose(Owner.Will, $"It's too recent for the SlackDiagnostics to send another log for the given message. ({Title})");
 			return;
 		}
 

@@ -55,7 +55,7 @@ public class RedirectExtensionlessRule : PlatformRewriteRule
 		if (intended == null)	// We couldn't find a file to serve.  Maybe there's a later rule that addresses it.
 			return default;
 		
-		Log.Dev(Owner.Will, $"Intended file: {WEB_ROOT + intended}");
+		Log.Verbose(Owner.Will, $"Intended file: {WEB_ROOT + intended}");
 		request.Path = new PathString(intended);
 		return default;
 	}
