@@ -142,6 +142,7 @@ public abstract class PlatformStartup
 		WebServerEnabled = webServerEnabled;
 		Log.DefaultOwner = defaultOwner;
 		Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
+		Log.PrintInColor = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
 		LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
 		LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
 		LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;

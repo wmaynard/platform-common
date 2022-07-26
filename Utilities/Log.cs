@@ -32,6 +32,7 @@ public class Log : PlatformDataModel
 	}
 
 	public static bool PrintObjectsEnabled { get; internal set; }
+	public static bool PrintInColor { get; internal set; }
 
 	private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
 		? null 
@@ -216,6 +217,11 @@ public class Log : PlatformDataModel
 
 	private static void PrettyPrint(string text, ConsoleColor color)
 	{
+		if (!PrintInColor)
+		{
+			Console.WriteLine(text);
+			return;
+		}
 		ConsoleColor previous = Console.ForegroundColor;
 		Console.ForegroundColor = color;
 		Console.WriteLine(text);
@@ -234,8 +240,7 @@ public class Log : PlatformDataModel
 		if (throttled)
 			SeverityType = LogType.THROTTLED;
 		if (PlatformEnvironment.IsLocal)
-		{
-			ConsoleColor color = SeverityType switch
+			PrettyPrint(BuildConsoleMessage(), SeverityType switch
 			{
 				LogType.VERBOSE => ConsoleColor.DarkGray,
 				LogType.LOCAL => ConsoleColor.Gray,
@@ -245,9 +250,7 @@ public class Log : PlatformDataModel
 				LogType.CRITICAL => ConsoleColor.DarkRed,
 				LogType.THROTTLED => ConsoleColor.DarkGray,
 				_ => throw new ArgumentOutOfRangeException()
-			};
-			PrettyPrint(BuildConsoleMessage(), color);
-		}
+			});
 		return this;
 	}
 
