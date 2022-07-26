@@ -181,7 +181,7 @@ public class Log : PlatformDataModel
 
 	private static bool _written;
 	private const int PADDING_TIMESTAMP = 13;
-	private const int PADDING_METHOD = 35;
+	private const int PADDING_METHOD = 42;
 	private string BuildConsoleMessage()
 	{
 		string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
@@ -207,11 +207,19 @@ public class Log : PlatformDataModel
 			string messageHeader = "Message";
 
 			string headers = $"{ownerHeader} | {lifetimeHeader} | {severityHeader} | {callerHeader} | {messageHeader}";
-			Console.WriteLine(headers);
-			Console.WriteLine("".PadLeft(totalWidth: headers.Length * 2, paddingChar: '-'));
+			PrettyPrint(headers, ConsoleColor.Cyan);
+			PrettyPrint("".PadLeft(totalWidth: headers.Length * 2, paddingChar: '-'), ConsoleColor.Cyan);
 			_written = true;
 		}
 		return $"{owner} | {time} | {severity} | {caller} | {message}";
+	}
+
+	private static void PrettyPrint(string text, ConsoleColor color)
+	{
+		ConsoleColor previous = Console.ForegroundColor;
+		Console.ForegroundColor = color;
+		Console.WriteLine(text);
+		Console.ForegroundColor = previous;
 	}
 
 	/// <summary>
@@ -226,7 +234,20 @@ public class Log : PlatformDataModel
 		if (throttled)
 			SeverityType = LogType.THROTTLED;
 		if (PlatformEnvironment.IsLocal)
-			Console.WriteLine(BuildConsoleMessage());
+		{
+			ConsoleColor color = SeverityType switch
+			{
+				LogType.VERBOSE => ConsoleColor.DarkGray,
+				LogType.LOCAL => ConsoleColor.Gray,
+				LogType.INFO => ConsoleColor.Black,
+				LogType.WARN => ConsoleColor.Yellow,
+				LogType.ERROR => ConsoleColor.Red,
+				LogType.CRITICAL => ConsoleColor.DarkRed,
+				LogType.THROTTLED => ConsoleColor.DarkGray,
+				_ => throw new ArgumentOutOfRangeException()
+			};
+			PrettyPrint(BuildConsoleMessage(), color);
+		}
 		return this;
 	}
 
