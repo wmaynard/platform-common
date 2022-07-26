@@ -110,7 +110,7 @@ public class PlatformOptions
 	/// </summary>
 	public PlatformOptions DisableFeatures(CommonFeature features)
 	{
-		EnabledFeatures = features.Invert();
+		EnabledFeatures = (EnabledFeatures.Invert() | features).Invert();
 		return this;
 	}
 
@@ -120,7 +120,7 @@ public class PlatformOptions
 	/// </summary>
 	public PlatformOptions DisableFilters(CommonFilter filters)
 	{
-		EnabledFilters = filters.Invert();
+		EnabledFilters = (EnabledFilters.Invert() | filters).Invert();
 		return this;
 	}
 

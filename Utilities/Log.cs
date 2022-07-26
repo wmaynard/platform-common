@@ -186,7 +186,7 @@ public class Log : PlatformDataModel
 	private string BuildConsoleMessage()
 	{
 		string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
-		string severity = Severity.PadLeft(MaxSeverityLength, ' ');
+		string severity = Severity.PadRight(MaxSeverityLength, ' ');
 		string message = Message ?? "No Message";
 		string caller = Caller.PadLeft(totalWidth: PADDING_METHOD, paddingChar: ' ');
 		string time = ElapsedTime.PadLeft(PADDING_TIMESTAMP, ' ');
