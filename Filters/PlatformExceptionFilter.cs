@@ -60,6 +60,7 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
 
 		data["endpoint"] = context.GetEndpoint();
 		data["origin"] = origin;
+		data["environment"] = PlatformEnvironment.Url("/");
 
 		// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
 		if (ex is MongoCommandException mce)
