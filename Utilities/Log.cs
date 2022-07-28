@@ -406,7 +406,7 @@ public class Log : PlatformDataModel
       Data = data,
       Message = message ?? exception?.Message,
       Token = token,
-      Endpoint = Converter.ContextToEndpoint(context)
+      Endpoint = context.GetEndpoint()?.DisplayName 
     }.Send();
   }
 
