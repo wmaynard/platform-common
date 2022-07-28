@@ -406,7 +406,9 @@ public class Log : PlatformDataModel
       Data = data,
       Message = message ?? exception?.Message,
       Token = token,
-      Endpoint = context.GetEndpoint()?.DisplayName 
+#pragma warning disable CS0618
+      Endpoint = Converter.ContextToEndpoint(context)
+#pragma warning restore CS0618
     }.Send();
   }
 
