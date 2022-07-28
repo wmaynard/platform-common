@@ -4,8 +4,8 @@ namespace Rumble.Platform.Common.Exceptions;
 
 public class PlatformStartupException : PlatformException
 {
-	
-	public PlatformStartupException(string message) : base(message)
-	{
-	}
+  
+  public PlatformStartupException(string message) : base(message)
+  {
+  }
 }

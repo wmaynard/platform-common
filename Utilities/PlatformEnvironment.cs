@@ -20,260 +20,260 @@ namespace Rumble.Platform.Common.Utilities;
 /// </summary>
 public static class PlatformEnvironment // TODO: Add method to build a url out for service interop
 {
-	public const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
-	private const string LOCAL_SECRETS_JSON = "environment.json";
+  public const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
+  private const string LOCAL_SECRETS_JSON = "environment.json";
 
-	public const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
-	public const string KEY_GAME_ID = "GAME_GUKEY";
-	public const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
-	public const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
-	public const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
-	public const string KEY_LOGGLY_URL = "LOGGLY_URL";
-	public const string KEY_COMPONENT = "RUMBLE_COMPONENT";
-	public const string KEY_MONGODB_URI = "MONGODB_URI";
-	public const string KEY_MONGODB_NAME = "MONGODB_NAME";
-	public const string KEY_GRAPHITE = "GRAPHITE";
-	public const string KEY_REGISTRATION_NAME = "RUMBLE_REGISTRATION_NAME";
-	public const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
-	public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
-	public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
-	public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
-	public const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
+  public const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
+  public const string KEY_GAME_ID = "GAME_GUKEY";
+  public const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
+  public const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
+  public const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
+  public const string KEY_LOGGLY_URL = "LOGGLY_URL";
+  public const string KEY_COMPONENT = "RUMBLE_COMPONENT";
+  public const string KEY_MONGODB_URI = "MONGODB_URI";
+  public const string KEY_MONGODB_NAME = "MONGODB_NAME";
+  public const string KEY_GRAPHITE = "GRAPHITE";
+  public const string KEY_REGISTRATION_NAME = "RUMBLE_REGISTRATION_NAME";
+  public const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
+  public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
+  public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
+  public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
+  public const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
 
-	// Helper getter properties
-	internal static GenericData VarDump => !IsProd			// Useful for diagnosing issues with config.  Should never be used in production.
-		? new GenericData { { "environment", Variables.Copy() } }
-		: new GenericData();
-	public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
-	public static string GameSecret => Optional(KEY_GAME_ID);
-	public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
-	public static string Deployment => Optional(KEY_DEPLOYMENT);
-	public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
-	public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
-	public static string ServiceName => Optional(KEY_COMPONENT);
-	public static string RegistrationName => Optional(KEY_REGISTRATION_NAME);
-	public static string MongoConnectionString => Optional(KEY_MONGODB_URI);
-	public static string MongoDatabaseName => Optional(KEY_MONGODB_NAME);
-	public static string Graphite => Optional(KEY_GRAPHITE);
-	public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
-	public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
-	public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
-	public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
+  // Helper getter properties
+  internal static GenericData VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
+    ? new GenericData { { "environment", Variables.Copy() } }
+    : new GenericData();
+  public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
+  public static string GameSecret => Optional(KEY_GAME_ID);
+  public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
+  public static string Deployment => Optional(KEY_DEPLOYMENT);
+  public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
+  public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
+  public static string ServiceName => Optional(KEY_COMPONENT);
+  public static string RegistrationName => Optional(KEY_REGISTRATION_NAME);
+  public static string MongoConnectionString => Optional(KEY_MONGODB_URI);
+  public static string MongoDatabaseName => Optional(KEY_MONGODB_NAME);
+  public static string Graphite => Optional(KEY_GRAPHITE);
+  public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
+  public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
+  public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
+  public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
 
-	private static Dictionary<string, string> FallbackValues { get; set; }
+  private static Dictionary<string, string> FallbackValues { get; set; }
 
-	public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || (Deployment?.NumericBetween(min: 0, max: 99) ?? false);
-	public static readonly bool IsDev = Deployment?.NumericBetween(min: 100, max: 199) ?? false;
-	public static readonly bool IsStaging = Deployment?.NumericBetween(min: 200, max: 299) ?? false;
-	public static readonly bool IsProd = Deployment?.NumericBetween(min: 300, max: 399) ?? false;
-	
-	public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
+  public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || (Deployment?.NumericBetween(min: 0, max: 99) ?? false);
+  public static readonly bool IsDev = Deployment?.NumericBetween(min: 100, max: 199) ?? false;
+  public static readonly bool IsStaging = Deployment?.NumericBetween(min: 200, max: 299) ?? false;
+  public static readonly bool IsProd = Deployment?.NumericBetween(min: 300, max: 399) ?? false;
+  
+  public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
-	private static bool Initialized => Variables != null;
-	private static GenericData Variables { get; set; }
+  private static bool Initialized => Variables != null;
+  private static GenericData Variables { get; set; }
 
-	public static readonly string Version = Assembly
-		.GetEntryAssembly()
-		?.GetName()
-		.Version
-		?.ToString()
-		?? "Unknown";
+  public static readonly string Version = Assembly
+    .GetEntryAssembly()
+    ?.GetName()
+    .Version
+    ?.ToString()
+    ?? "Unknown";
 
-	public static readonly string CommonVersion = ReadCommonVersion();
+  public static readonly string CommonVersion = ReadCommonVersion();
 
-	private static string ReadCommonVersion()
-	{
-		Version v = Assembly.GetExecutingAssembly().GetName().Version;
+  private static string ReadCommonVersion()
+  {
+    Version v = Assembly.GetExecutingAssembly().GetName().Version;
 
-		return v != null
-			? $"{v.Major}.{v.Minor}.{v.Build}"
-			: "Unknown";
-	}
+    return v != null
+      ? $"{v.Major}.{v.Minor}.{v.Build}"
+      : "Unknown";
+  }
 
-	private static GenericData Initialize()
-	{
-		Variables ??= new GenericData();
+  private static GenericData Initialize()
+  {
+    Variables ??= new GenericData();
 
-		// Local secrets are stored in environment.json when developers are working locally.
-		// These are low priority, and will return an empty dataset when deployed.
-		Variables.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
+    // Local secrets are stored in environment.json when developers are working locally.
+    // These are low priority, and will return an empty dataset when deployed.
+    Variables.Combine(other: LoadLocalSecrets(), prioritizeOther: true);
 
-		// The meat of environment variables on deployment.
-		Variables.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
+    // The meat of environment variables on deployment.
+    Variables.Combine(other: LoadEnvironmentVariables(), prioritizeOther: true);
 
-		// Common variables are fallbacks.  Any other value will override them.
-		// In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
-		// we manage environment variables locally.
-		Variables.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+    // Common variables are fallbacks.  Any other value will override them.
+    // In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
+    // we manage environment variables locally.
+    Variables.Combine(other: LoadCommonVariables(), prioritizeOther: false);
 
-		if (LogglyUrl != null)
-			return Variables;
+    if (LogglyUrl != null)
+      return Variables;
 
-		string loggly = Variables.Optional<string>(KEY_LOGGLY_ROOT);
-		string tag = Variables.Optional<string>(KEY_COMPONENT);
+    string loggly = Variables.Optional<string>(KEY_LOGGLY_ROOT);
+    string tag = Variables.Optional<string>(KEY_COMPONENT);
 
-		if (loggly == null || tag == null)
-			return Variables;
+    if (loggly == null || tag == null)
+      return Variables;
 
-		Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
-		
-		return Variables;
-	}
+    Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
+    
+    return Variables;
+  }
 
-	private static GenericData LoadCommonVariables()
-	{
-		try
-		{
-			GenericData output = new GenericData();
+  private static GenericData LoadCommonVariables()
+  {
+    try
+    {
+      GenericData output = new GenericData();
 
-			string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
-			GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
+      string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
+      GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
 
-			if (common == null)
-			{
-				Log.Warn(Owner.Will, $"Parsing '{KEY_PLATFORM_COMMON}' returned a null value.", data: new
-				{
-					// The common variables include some sensitive values, so we should be careful about what we send to Loggly.
-					EnvVarsKeys = string.Join(',', Variables.Select(pair => pair.Key)),
-					CommonValueLength = Variables?.Optional<string>(KEY_PLATFORM_COMMON)?.Length
-				});
-				return output;
-			}
+      if (common == null)
+      {
+        Log.Warn(Owner.Will, $"Parsing '{KEY_PLATFORM_COMMON}' returned a null value.", data: new
+        {
+          // The common variables include some sensitive values, so we should be careful about what we send to Loggly.
+          EnvVarsKeys = string.Join(',', Variables.Select(pair => pair.Key)),
+          CommonValueLength = Variables?.Optional<string>(KEY_PLATFORM_COMMON)?.Length
+        });
+        return output;
+      }
 
-			foreach (string key in common.Keys)
-				output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment)
-				              ?? common?.Optional<GenericData>(key)?.Optional<object>("*");
+      foreach (string key in common.Keys)
+        output[key] = common?.Optional<GenericData>(key)?.Optional<object>(deployment)
+                      ?? common?.Optional<GenericData>(key)?.Optional<object>("*");
 
-			// Format the LOGGLY_URL.
-			string root = output.Optional<string>(KEY_LOGGLY_ROOT);
-			string component = ServiceName;
-			if (root != null && component != null)
-				output[KEY_LOGGLY_URL] = string.Format(root, component);
+      // Format the LOGGLY_URL.
+      string root = output.Optional<string>(KEY_LOGGLY_ROOT);
+      string component = ServiceName;
+      if (root != null && component != null)
+        output[KEY_LOGGLY_URL] = string.Format(root, component);
 
-			// Parse out MONGODB_NAME from the MONGODB_URI.
-			try
-			{
-				string connection = Optional(KEY_MONGODB_URI);
-				connection = connection?[(connection.LastIndexOf('/') + 1)..];
+      // Parse out MONGODB_NAME from the MONGODB_URI.
+      try
+      {
+        string connection = Optional(KEY_MONGODB_URI);
+        connection = connection?[(connection.LastIndexOf('/') + 1)..];
 
-				output[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
-			}
-			catch
-			{
-			} // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
+        output[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
+      }
+      catch
+      {
+      } // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
 
-			return output;
-		}
-		catch (Exception e)
-		{
-			Log.Warn(Owner.Will, "Could not read PLATFORM_COMMON variables.", data: new
-			{
-				StackTrace = e.StackTrace
-			}, exception: e);
-			return new GenericData();
-		}
-	}
+      return output;
+    }
+    catch (Exception e)
+    {
+      Log.Warn(Owner.Will, "Could not read PLATFORM_COMMON variables.", data: new
+      {
+        StackTrace = e.StackTrace
+      }, exception: e);
+      return new GenericData();
+    }
+  }
 
-	private static GenericData LoadEnvironmentVariables()
-	{
-		try
-		{
-			GenericData output = new GenericData();
-			IDictionary vars = Environment.GetEnvironmentVariables();
-			foreach (string key in vars.Keys)
-				output[key] = vars[key];
-			return output;
-		}
-		catch (Exception e)
-		{
-			Log.Warn(Owner.Will, "Could not read environment variables.", exception: e);
-			return new GenericData();
-		}
-	}
+  private static GenericData LoadEnvironmentVariables()
+  {
+    try
+    {
+      GenericData output = new GenericData();
+      IDictionary vars = Environment.GetEnvironmentVariables();
+      foreach (string key in vars.Keys)
+        output[key] = vars[key];
+      return output;
+    }
+    catch (Exception e)
+    {
+      Log.Warn(Owner.Will, "Could not read environment variables.", exception: e);
+      return new GenericData();
+    }
+  }
 
-	private static GenericData LoadLocalSecrets()
-	{
-		try
-		{
-			GenericData output = File.Exists(LOCAL_SECRETS_JSON)
-				? File.ReadAllText(LOCAL_SECRETS_JSON)
-				: new GenericData();
-			return output;
-		}
-		catch (Exception e)
-		{
-			Log.Warn(Owner.Will, "Could not read local secrets file.", exception: e);
-			return new GenericData();
-		}
-	}
+  private static GenericData LoadLocalSecrets()
+  {
+    try
+    {
+      GenericData output = File.Exists(LOCAL_SECRETS_JSON)
+        ? File.ReadAllText(LOCAL_SECRETS_JSON)
+        : new GenericData();
+      return output;
+    }
+    catch (Exception e)
+    {
+      Log.Warn(Owner.Will, "Could not read local secrets file.", exception: e);
+      return new GenericData();
+    }
+  }
 
-	private static T Fetch<T>(string key, bool optional)
-	{
-		Variables ??= Initialize();
-		return optional
-			? Variables.Optional<T>(key)
-			: Variables.Require<T>(key);
-	}
+  private static T Fetch<T>(string key, bool optional)
+  {
+    Variables ??= Initialize();
+    return optional
+      ? Variables.Optional<T>(key)
+      : Variables.Require<T>(key);
+  }
 
-	public static T Require<T>(string key) => Fetch<T>(key, optional: false);
-	public static string Require(string key) => Require<string>(key);
-	public static T Require<T>(string key, out T value) => value = Require<T>(key);
-	public static string Require(string key, out string value) => value = Require(key);
-	public static T Optional<T>(string key) => Fetch<T>(key, optional: true);
-	public static string Optional(string key) => Optional<string>(key);
-	public static T Optional<T>(string key, out T value) => value = Optional<T>(key);
-	public static string Optional(string key, out string value) => value = Optional(key);
+  public static T Require<T>(string key) => Fetch<T>(key, optional: false);
+  public static string Require(string key) => Require<string>(key);
+  public static T Require<T>(string key, out T value) => value = Require<T>(key);
+  public static string Require(string key, out string value) => value = Require(key);
+  public static T Optional<T>(string key) => Fetch<T>(key, optional: true);
+  public static string Optional(string key) => Optional<string>(key);
+  public static T Optional<T>(string key, out T value) => value = Optional<T>(key);
+  public static string Optional(string key, out string value) => value = Optional(key);
 
-	public static string Optional(string key, string fallbackValue) => Optional<string>(key, fallbackValue);
+  public static string Optional(string key, string fallbackValue) => Optional<string>(key, fallbackValue);
 
-	public static T Optional<T>(string key, T fallbackValue)
-	{
-		T output = Fetch<T>(key, optional: true);
+  public static T Optional<T>(string key, T fallbackValue)
+  {
+    T output = Fetch<T>(key, optional: true);
 
-		bool useFallback = output == null || output.Equals(default);
-		
-		if (useFallback)
-			Log.Warn(Owner.Default, "Environment fallback value is being used", data: new
-			{
-				tips = "Double-check the .yml and CI/CD variables.  Something may be missing.",
-				missingKey = key,
-				fallbackValue = fallbackValue,
-				allKeys = Variables?.Select(pair => pair.Key).OrderBy(_ => _),
-				initialized = Initialized
-			});
+    bool useFallback = output == null || output.Equals(default);
+    
+    if (useFallback)
+      Log.Warn(Owner.Default, "Environment fallback value is being used", data: new
+      {
+        tips = "Double-check the .yml and CI/CD variables.  Something may be missing.",
+        missingKey = key,
+        fallbackValue = fallbackValue,
+        allKeys = Variables?.Select(pair => pair.Key).OrderBy(_ => _),
+        initialized = Initialized
+      });
 
-		return useFallback
-			? fallbackValue
-			: output;
-	}
+    return useFallback
+      ? fallbackValue
+      : output;
+  }
 
-	public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
+  public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
 
-	public static string Url(params string[] paths)
-	{
-		string[] segments = paths
-			.Where(path => !string.IsNullOrWhiteSpace(path))
-			.ToArray();
+  public static string Url(params string[] paths)
+  {
+    string[] segments = paths
+      .Where(path => !string.IsNullOrWhiteSpace(path))
+      .ToArray();
 
-		if (!segments.Any())
-			return null;
+    if (!segments.Any())
+      return null;
 
-		string output = segments.First();
+    string output = segments.First();
 
-		if (segments.Length == 1)
-			return output;
+    if (segments.Length == 1)
+      return output;
 
-		for (int i = 1; i < segments.Length; i++)
-			output = $"{output.TrimEnd('/')}/{segments[i].TrimStart('/')}";
+    for (int i = 1; i < segments.Length; i++)
+      output = $"{output.TrimEnd('/')}/{segments[i].TrimStart('/')}";
 
-		return output;
-	}
+    return output;
+  }
 
-	public static void Exit(string reason, int exitCode = 0)
-	{
-		Log.Local(Owner.Default, $"Environment terminated: {reason}");
-		Environment.Exit(exitCode);
-	}
+  public static void Exit(string reason, int exitCode = 0)
+  {
+    Log.Local(Owner.Default, $"Environment terminated: {reason}");
+    Environment.Exit(exitCode);
+  }
 };
 
 // TODO: Incorporate DynamicConfigService as fallback values?

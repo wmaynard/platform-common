@@ -27,57 +27,57 @@ namespace Rumble.Platform.Common.Filters;
 [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse")]
 public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
 {
-	/// <summary>
-	/// This triggers after an action executes, but before any uncaught Exceptions are dealt with.  Here we can
-	/// make sure we prevent stack traces from going out and return a BadRequestResult instead (for example).
-	/// Dumping too much information out to bad requests is unnecessary risk for bad actors.
-	/// </summary>
-	/// <param name="context"></param>
-	public void OnException(ExceptionContext context)
-	{
-		if (context.Exception == null)
-			return;
+  /// <summary>
+  /// This triggers after an action executes, but before any uncaught Exceptions are dealt with.  Here we can
+  /// make sure we prevent stack traces from going out and return a BadRequestResult instead (for example).
+  /// Dumping too much information out to bad requests is unnecessary risk for bad actors.
+  /// </summary>
+  /// <param name="context"></param>
+  public void OnException(ExceptionContext context)
+  {
+    if (context.Exception == null)
+      return;
 
-		Exception ex = context.Exception;
-		GenericData data = new GenericData();
-		string origin = (string)context.HttpContext.Items[PlatformResourceFilter.KEY_REQUEST_ORIGIN];
+    Exception ex = context.Exception;
+    GenericData data = new GenericData();
+    string origin = (string)context.HttpContext.Items[PlatformResourceFilter.KEY_REQUEST_ORIGIN];
 
-		string message = ex switch
-		{
-			// JsonSerializationException => "Invalid JSON.",
-			JsonException => "Invalid JSON.",
-			ArgumentNullException => ex.Message,
-			PlatformException => ex.Message,
-			BadHttpRequestException => ex.Message,
-			_ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
-		};
-		ErrorCode code = ErrorCode.RuntimeException;
-		if (ex is PlatformException platEx)
-		{
-			code = platEx.Code;
-			data = platEx.Data;
-		}
+    string message = ex switch
+    {
+      // JsonSerializationException => "Invalid JSON.",
+      JsonException => "Invalid JSON.",
+      ArgumentNullException => ex.Message,
+      PlatformException => ex.Message,
+      BadHttpRequestException => ex.Message,
+      _ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
+    };
+    ErrorCode code = ErrorCode.RuntimeException;
+    if (ex is PlatformException platEx)
+    {
+      code = platEx.Code;
+      data = platEx.Data;
+    }
 
-		data["endpoint"] = context.GetEndpoint();
-		data["origin"] = origin;
-		data["baseUrl"] = PlatformEnvironment.Url("/");
-		data["environment"] = PlatformEnvironment.Name;
+    data["endpoint"] = context.GetEndpoint();
+    data["origin"] = origin;
+    data["baseUrl"] = PlatformEnvironment.Url("/");
+    data["environment"] = PlatformEnvironment.Name;
 
-		// Special handling for MongoCommandException because it doesn't like being serialized to JSON.
-		if (ex is MongoCommandException mce)
-		{
-			ex = new PlatformMongoException(mce);
-			Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: data, exception: mce);
-		}
-		else
-			Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
+    // Special handling for MongoCommandException because it doesn't like being serialized to JSON.
+    if (ex is MongoCommandException mce)
+    {
+      ex = new PlatformMongoException(mce);
+      Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: data, exception: mce);
+    }
+    else
+      Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
 
-		context.Result = new BadRequestObjectResult(new ErrorResponse(
-			message: message,
-			data: ex,
-			code: code
-		));
-		context.ExceptionHandled = true;
-		Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, context.GetEndpoint(), Graphite.Metrics.Type.FLAT);
-	}
+    context.Result = new BadRequestObjectResult(new ErrorResponse(
+      message: message,
+      data: ex,
+      code: code
+    ));
+    context.ExceptionHandled = true;
+    Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, context.GetEndpoint(), Graphite.Metrics.Type.FLAT);
+  }
 }
