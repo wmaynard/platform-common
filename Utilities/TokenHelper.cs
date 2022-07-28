@@ -20,7 +20,7 @@ public class TokenHelper
 
         string token = client.GetGameConfig(variableName);
 
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrWhiteSpace(token))
         {
             Log.Error(Owner.Sean, "Missing admin token for service");
         }
