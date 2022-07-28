@@ -124,7 +124,7 @@ public class DynamicConfigClient : IService
         
         try
         {
-            request.Headers.Add("Authorization", _secret);
+            request.Headers.Add("RumbleKey", _secret);
         }
         catch (Exception e)
         {
@@ -341,7 +341,7 @@ public class DynamicConfigClient : IService
         
         try
         {
-            request.Headers.Add("Authorization", _secret);
+            request.Headers.Add("RumbleKey", _secret);
             request.Headers.Add("If-None-Match", etag);
         }
         catch (Exception e)
