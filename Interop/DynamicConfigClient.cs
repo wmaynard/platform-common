@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -118,19 +119,36 @@ public class DynamicConfigClient : IService
 
         string clientConfigUrl = Path.Combine(_configServiceUrl, "clientConfig");
 
-        WebRequest request = WebRequest.Create(new Uri(clientConfigUrl)) as HttpWebRequest;
-        request.Method = "GET";
-        request.Headers.Set("RumbleKey", _secret);
-        WebResponse responseObject = await Task<WebResponse>.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, request);
+        HttpClientService httpClientService = ServicesManager.Get<HttpClientService>();
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, clientConfigUrl);
+        
+        try
+        {
+            request.Headers.Add("Authorization", _secret);
+        }
+        catch (Exception e)
+        {
+            Logger.Exception(e, "Failed to setup request dynamic config init", Owner.Sean);
+            return false;
+        }
 
-        Stream responseStream = responseObject.GetResponseStream();
-        StreamReader streamReader = new StreamReader(responseStream);
-        string configData = await streamReader.ReadToEndAsync();
+        HttpResponseMessage response = await httpClientService.SendAsync(request);
 
+        if (!response.IsSuccessStatusCode)
+        {
+            Logger.Error("Failed to init dynamic config. bad response", Owner.Sean, ReportingMethod.LocalAndRemote, ("httpCode", response.StatusCode.ToString()));
+            return false;
+        }
+        
+        
         JsonDocument configJson;
         try
         {
+            Stream responseData = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            StreamReader streamReader = new StreamReader(responseData);
+            string configData = await streamReader.ReadToEndAsync();
             configJson = JsonDocument.Parse(configData);
+            response.Dispose();
         }
         catch (Exception e)
         {
@@ -317,36 +335,47 @@ public class DynamicConfigClient : IService
     private async Task<string> FetchConfig(String scope, String etag, CancellationToken cancellationToken)
     {
         string clientConfigUrl = string.Format("{0}config/{1}", _configServiceUrl, scope);
-        HttpWebResponse responseObject = null;
+        
+        HttpClientService httpClientService = ServicesManager.Get<HttpClientService>();
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, clientConfigUrl);
         
         try
         {
-            WebRequest request = WebRequest.Create(new Uri(clientConfigUrl)) as HttpWebRequest;
-            request.Method = "GET";
-            request.Headers.Set("RumbleKey", _secret);
-            request.Headers.Set("If-None-Match", etag);
-            responseObject = (HttpWebResponse) await Task<WebResponse>.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, request);
-
+            request.Headers.Add("Authorization", _secret);
+            request.Headers.Add("If-None-Match", etag);
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Sean, "Failed to fetch dynamic config", exception: e, data: 
-                new { url = clientConfigUrl });
+            Logger.Exception(e, "Failed to fetch dynamic config", Owner.Sean);
             return null;
         }
 
+        HttpResponseMessage response = await httpClientService.SendAsync(request);
+        
         if (cancellationToken.IsCancellationRequested)
         {
             return null;
         }
 
-        string configData = null;
-        
-        if ((int) responseObject.StatusCode == 200)
+        if (!response.IsSuccessStatusCode)
         {
-            Stream responseStream = responseObject.GetResponseStream();
-            StreamReader streamReader = new StreamReader(responseStream);
+            Logger.Error("Failed to fetch dynamic config. bad response", Owner.Sean, ReportingMethod.LocalAndRemote, ("httpCode", response.StatusCode.ToString()));
+            return null;
+        }
+        
+        
+        string configData = null;
+        try
+        {
+            Stream responseData = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            StreamReader streamReader = new StreamReader(responseData);
             configData = await streamReader.ReadToEndAsync();
+            response.Dispose();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Sean, "Dynamic config: Failed to parse clientConfig json", exception: e);
+            return null;
         }
         
         return configData;
