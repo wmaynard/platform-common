@@ -23,132 +23,131 @@ namespace Rumble.Platform.Common.Services;
 /// </summary>
 public abstract class MasterService : PlatformTimerService
 {
-  private const int MS_INTERVAL = 5_000;      // The interval to check in; recent check-ins indicate service is still active.
-  private const int MS_TAKEOVER = 300_000;    // The threshold at which the previous MasterService should be replaced by the current one.
-  public static int MaximumRetryTime => MS_TAKEOVER + MS_INTERVAL;
-#pragma warning disable
-  private readonly ConfigService _config;
-#pragma warning restore
-  
-  private Task _runningTask;
-  private CancellationTokenSource _tokenSource;
-  
-  protected string ID { get; init; }
+    private const int MS_INTERVAL = 5_000;      // The interval to check in; recent check-ins indicate service is still active.
+    private const int MS_TAKEOVER = 300_000;    // The threshold at which the previous MasterService should be replaced by the current one.
+    public static int MaximumRetryTime => MS_TAKEOVER + MS_INTERVAL;
+    #pragma warning disable
+    private readonly ConfigService _config;
+    #pragma warning restore
 
-  protected MasterService(ConfigService configService) : base(intervalMS: MS_INTERVAL, startImmediately: true)
-  {
-    _config = configService;
-    ID = Guid.NewGuid().ToString(); 
-  } 
+    private Task _runningTask;
+    private CancellationTokenSource _tokenSource;
 
-  private new string Name => GetType().Name;
-  private string LastActiveKey => $"{Name}_lastActive";
-  public bool IsPrimary => _config.Value<string>(Name) == ID;
-  private bool IsWorking { get; set; }
-  private long LastActivity => _config.Value<long>(LastActiveKey);
-  
-  /// <summary>
-  /// Attempts to complete an action.  Returns false if the given singleton isn't the master node.
-  /// </summary>
-  /// <param name="action"></param>
-  /// <returns></returns>
-  public async Task<bool> Do(Action action, Func<bool> validation = null)
-  {
-    if (!IsPrimary)
+    protected string ID { get; init; }
+
+    protected MasterService(ConfigService configService) : base(intervalMS: MS_INTERVAL, startImmediately: true)
     {
-      if (validation != null)
-        Schedule(action, MaximumRetryTime, validation);
-      return false;
+        _config = configService;
+        ID = Guid.NewGuid().ToString(); 
+    } 
+
+    private new string Name => GetType().Name;
+    private string LastActiveKey => $"{Name}_lastActive";
+    public bool IsPrimary => _config.Value<string>(Name) == ID;
+    private bool IsWorking { get; set; }
+    private long LastActivity => _config.Value<long>(LastActiveKey);
+
+    /// <summary>
+    /// Attempts to complete an action.  Returns false if the given singleton isn't the master node.
+    /// </summary>
+    /// <param name="action"></param>
+    /// <returns></returns>
+    public async Task<bool> Do(Action action, Func<bool> validation = null)
+    {
+        if (!IsPrimary)
+        {
+            if (validation != null)
+                Schedule(action, MaximumRetryTime, validation);
+            return false;
+        }
+
+        await Task.Run(action);
+        return true;
     }
-      
-    await Task.Run(action);
-    return true;
-  }
 
-  private void Schedule(Action action, int ms, Func<bool> validation = null)
-  {
-    // TODO: Retry work; if it's false here, we aren't the primary node
-    // Check that lastactive has changed since schedule was called and that the ID isn't us
-  }
-
-  protected T Get<T>(string key)
-  {
-    try
+    private void Schedule(Action action, int ms, Func<bool> validation = null)
     {
-      return _config.Value<T>($"{Name}_{key}");
+        // TODO: Retry work; if it's false here, we aren't the primary node
+        // Check that lastactive has changed since schedule was called and that the ID isn't us
     }
-    catch
+
+    protected T Get<T>(string key)
     {
-      return default;
+        try
+        {
+            return _config.Value<T>($"{Name}_{key}");
+        }
+        catch
+        {
+            return default;
+        }
     }
-  }
 
-  protected async void Set(string key, object value) => await Do(() =>
-  {
-    _config.Update($"{Name}_{key}", value);
-  });
-
-  protected sealed override void OnElapsed()
-  {
-#if DEBUG
-    return;
-#else
-    if (IsPrimary)
+    protected async void Set(string key, object value) => await Do(() =>
     {
-      _config.Update(LastActiveKey, UnixTimeMS);
-      
-      // We want the config to be updated regardless of whether or not our worker threads are processing.
-      // If we don't update it and our service takes too long to work, another container will try to take over and
-      // duplicate the work.
-      if (IsWorking)
+        _config.Update($"{Name}_{key}", value);
+    });
+
+    protected sealed override void OnElapsed()
+    {
+        #if DEBUG
         return;
-      BeginTask();
-    }
-    else if (UnixTimeMS - LastActivity > MS_TAKEOVER)
-      Confiscate();
-    else
-      _config.Refresh();
-#endif
-  }
+        #else
+        if (IsPrimary)
+        {
+            _config.Update(LastActiveKey, UnixTimeMS);
 
-  public void Cancel() => _tokenSource?.Cancel();
-  private void BeginTask()
-  {
-    _tokenSource = new CancellationTokenSource();
-    _runningTask = Task.Run(() =>
+            // We want the config to be updated regardless of whether or not our worker threads are processing.
+            // If we don't update it and our service takes too long to work, another container will try to take over and
+            // duplicate the work.
+            if (IsWorking)
+                return;
+            BeginTask();
+        }
+        else if (UnixTimeMS - LastActivity > MS_TAKEOVER)
+            Confiscate();
+        else
+            _config.Refresh();
+        #endif
+    }
+
+    public void Cancel() => _tokenSource?.Cancel();
+    private void BeginTask()
     {
-      IsWorking = true;
-      try
-      {
-        Work();
-      }
-      catch (Exception e)
-      {
-        Log.Error(Owner.Will, e.Message);
-      }
-      IsWorking = false;
-    }, cancellationToken: _tokenSource.Token);
-  }
-
-  protected abstract void Work();
-
-  private void Confiscate()
-  {
-    _config.Update(Name, ID);
-    _config.Update(LastActiveKey, UnixTimeMS);
-    Log.Info(Owner.Will, "Confiscating work as the master node");
-  }
-
-  public override GenericData HealthStatus => new GenericData
-  {
-    { 
-      Name, new GenericData()
-      {
-        { "ServiceId", ID},
-        { $"{Name}_isMasterNode", IsPrimary },
-        { $"{LastActiveKey}", $"{UnixTimeMS - LastActivity}ms ago" },
-        { "ConfigService",  _config.HealthStatus }
-      }
+        _tokenSource = new CancellationTokenSource();
+        _runningTask = Task.Run(() =>
+        {
+            IsWorking = true;
+            try
+            {
+                Work();
+            }
+            catch (Exception e)
+            {
+                Log.Error(Owner.Will, e.Message);
+            }
+            IsWorking = false;
+        }, cancellationToken: _tokenSource.Token);
     }
-  };
+
+    protected abstract void Work();
+
+    private void Confiscate()
+    {
+        _config.Update(Name, ID);
+        _config.Update(LastActiveKey, UnixTimeMS);
+        Log.Info(Owner.Will, "Confiscating work as the master node");
+    }
+
+    public override GenericData HealthStatus => new GenericData
+    {
+        { Name, new GenericData
+            {
+                { "ServiceId", ID},
+                { $"{Name}_isMasterNode", IsPrimary },
+                { $"{LastActiveKey}", $"{UnixTimeMS - LastActivity}ms ago" },
+                { "ConfigService",  _config.HealthStatus }
+            }
+        }
+    };
 }

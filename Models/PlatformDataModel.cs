@@ -21,76 +21,70 @@ namespace Rumble.Platform.Common.Models;
 [BsonIgnoreExtraElements]
 public abstract class PlatformDataModel
 {
-  /// <summary>
-  /// A self-containing wrapper for use in generating JSON responses for models.  All models should
-  /// contain their data in a JSON field using their own name.  For example, if we have an object Foo, the JSON
-  /// should be:
-  ///   "foo": {
-  ///     /* the Foo's JSON-serialized data */
-  ///   }
-  /// While it may be necessary to override this property in some cases, this should help enforce consistency
-  /// across services.
-  /// </summary>
-  [BsonIgnore]
-  [JsonIgnore] // Required to avoid circular references during serialization
-  public virtual object ResponseObject  // TODO: This really needs a refactor.  With the transition to GenericData, this expando nonsense can be replaced.
-  {
-    get
+    /// <summary>
+    /// A self-containing wrapper for use in generating JSON responses for models.  All models should
+    /// contain their data in a JSON field using their own name.  For example, if we have an object Foo, the JSON
+    /// should be:
+    ///   "foo": {
+    ///     /* the Foo's JSON-serialized data */
+    ///   }
+    /// While it may be necessary to override this property in some cases, this should help enforce consistency
+    /// across services.
+    /// </summary>
+    [BsonIgnore]
+    [JsonIgnore] // Required to avoid circular references during serialization
+    public virtual object ResponseObject  // TODO: This really needs a refactor.  With the transition to GenericData, this expando nonsense can be replaced.
     {
-      ExpandoObject expando = new ExpandoObject();
-      IDictionary<string, object> output = (IDictionary<string, object>) expando;
-      output[GetType().Name] = this;
-      return output;
+        get
+        {
+            ExpandoObject expando = new ExpandoObject();
+            IDictionary<string, object> output = (IDictionary<string, object>) expando;
+            output[GetType().Name] = this;
+            return output;
+        }
     }
-  }
 
-  [BsonIgnore]
-  [JsonIgnore]
-  public static long UnixTime => Timestamp.UnixTime;
+    [BsonIgnore]
+    [JsonIgnore]
+    public static long UnixTime => Timestamp.UnixTime;
 
-  [BsonIgnore]
-  [JsonIgnore]
-  public string JSON
-  {
-    get
+    [BsonIgnore]
+    [JsonIgnore]
+    public string JSON
     {
-      try
-      {
-        return JsonSerializer.Serialize(this, GetType(), JsonHelper.SerializerOptions);
-      }
-      catch (Exception e)
-      {
-        Log.Local(Owner.Default, e.Message);
-        return null;
-      }
+        get
+        {
+            try
+            {
+                return JsonSerializer.Serialize(this, GetType(), JsonHelper.SerializerOptions);
+            }
+            catch (Exception e)
+            {
+                Log.Local(Owner.Default, e.Message);
+                return null;
+            }
+        }
     }
-  }
 
-  public void Validate()
-  {
-    Validate(out List<string> errors);
+    public void Validate()
+    {
+        Validate(out List<string> errors);
 
-    if (errors.Any())
-      throw new ModelValidationException(this, errors);
-  }
+        if (errors.Any())
+            throw new ModelValidationException(this, errors);
+    }
 
-  // TODO: Use an interface or make this abstract to force its adoption?
-  protected virtual void Validate(out List<string> errors) => errors = new List<string>();
+    // TODO: Use an interface or make this abstract to force its adoption?
+    protected virtual void Validate(out List<string> errors) => errors = new List<string>();
 
-  protected void Test(bool condition, string error, ref List<string> errors)
-  {
-    errors ??= new List<string>();
-    if (!condition)
-      errors.Add(error);
-  }
+    protected void Test(bool condition, string error, ref List<string> errors)
+    {
+        errors ??= new List<string>();
+        if (!condition)
+            errors.Add(error);
+    }
 
-  public static T FromJSON<T>(string json) where T : PlatformDataModel
-  {
-    return JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
-  }
+    public static T FromJSON<T>(string json) where T : PlatformDataModel => JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
 
-  public static implicit operator PlatformDataModel(string json)
-  {
-    return FromJSON<PlatformDataModel>(json);
-  }
+    public static implicit operator PlatformDataModel(string json) => FromJSON<PlatformDataModel>(json);
 }

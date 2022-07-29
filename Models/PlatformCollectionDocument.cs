@@ -6,10 +6,10 @@ namespace Rumble.Platform.Common.Models;
 
 public abstract class PlatformCollectionDocument : PlatformDataModel
 {
-  [BsonId, BsonRepresentation(BsonType.ObjectId)]
-  [JsonInclude]
-  public string Id { get; protected set; }
+    [BsonId, BsonRepresentation(BsonType.ObjectId)]
+    [JsonInclude]
+    public string Id { get; protected set; }
 
-  public void ChangeId() => Id = ObjectId.GenerateNewId().ToString();
-  public void NullifyId() => Id = null;
+    public void ChangeId() => Id = ObjectId.GenerateNewId().ToString();
+    public void NullifyId() => Id = null;
 }

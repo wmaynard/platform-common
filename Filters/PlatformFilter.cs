@@ -14,14 +14,14 @@ namespace Rumble.Platform.Common.Filters;
 
 public abstract class PlatformFilter : IFilterMetadata
 {
-  protected string TokenAuthEndpoint { get; init; }
+    protected string TokenAuthEndpoint { get; init; }
 
-  protected static bool GetService<T>(out T service) where T : PlatformService => PlatformService.Get(out service);
+    protected static bool GetService<T>(out T service) where T : PlatformService => PlatformService.Get(out service);
   
-  protected PlatformFilter()
-  {
-    Log.Local(Owner.Default, $"{GetType().Name} initialized.");
+    protected PlatformFilter()
+    {
+        Log.Local(Owner.Default, $"{GetType().Name} initialized.");
 
-    TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
-  }
+        TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
+    }
 }
