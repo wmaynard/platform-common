@@ -5,11 +5,8 @@ namespace Rumble.Platform.Common.Exceptions;
 
 public class PlatformSerializationException : PlatformException
 {
-  [JsonInclude]
-  public string BadObject { get; init; }
+    [JsonInclude]
+    public string BadObject { get; init; }
   
-  public PlatformSerializationException(string message, object badObject) : base(message)
-  {
-    BadObject = badObject.GetType().Name;
-  }
+    public PlatformSerializationException(string message, object badObject) : base(message) => BadObject = badObject.GetType().Name;
 }

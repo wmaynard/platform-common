@@ -9,26 +9,24 @@ namespace Rumble.Platform.Common.Exceptions;
 
 public class InvalidTokenException : PlatformException
 {
-  [JsonInclude]
-  public string EncryptedToken { get; private set; }
+    [JsonInclude]
+    public string EncryptedToken { get; private set; }
   
-  [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-  public TokenInfo Token { get; private set; }
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TokenInfo Token { get; private set; }
   
-  [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-  public bool EmptyToken { get; private set; }
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool EmptyToken { get; private set; }
   
-  [JsonInclude]
-  public string VerificationEndpoint { get; private set; }
-  public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner)
-  {
-    EncryptedToken = token?.Replace("Bearer ", "");
-    EmptyToken = string.IsNullOrEmpty(token);
-    VerificationEndpoint = endpoint;
-  }
+    [JsonInclude]
+    public string VerificationEndpoint { get; private set; }
+    public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner)
+    {
+      EncryptedToken = token?.Replace("Bearer ", "");
+      EmptyToken = string.IsNullOrEmpty(token);
+      VerificationEndpoint = endpoint;
+    }
 
-  public InvalidTokenException(string token, TokenInfo info, string endpoint, Exception inner = null) : this(token, endpoint, inner)
-  {
-    Token = info;
-  }
+    public InvalidTokenException(string token, TokenInfo info, string endpoint, Exception inner = null) 
+        : this(token, endpoint, inner) => Token = info;
 }

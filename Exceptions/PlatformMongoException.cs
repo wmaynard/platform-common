@@ -9,11 +9,8 @@ namespace Rumble.Platform.Common.Exceptions;
 /// </summary>
 public class PlatformMongoException : PlatformException
 {
-  [JsonInclude]
-  public string CodeName { get; init; }
+    [JsonInclude]
+    public string CodeName { get; init; }
   
-  public PlatformMongoException(MongoCommandException e) : base(e.Message)
-  {
-    CodeName = e.CodeName;
-  }
+    public PlatformMongoException(MongoCommandException e) : base(e.Message) => CodeName = e.CodeName;
 }

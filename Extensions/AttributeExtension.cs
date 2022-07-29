@@ -14,78 +14,73 @@ namespace Rumble.Platform.Common.Extensions;
 /// </summary>
 public static class AttributeExtension
 {
-  public static Attribute[] GetAttributes(this object obj) => Attribute.GetCustomAttributes(obj.GetType());
+    public static Attribute[] GetAttributes(this object obj) => Attribute.GetCustomAttributes(obj.GetType());
 
-  public static T GetAttribute<T>(this object obj) where T : Attribute => obj.GetAttributes<T>().FirstOrDefault();
-  public static T[] GetAttributes<T>(this object obj) where T : Attribute => Attribute
-    .GetCustomAttributes(obj.GetType())
-    .OfType<T>()
-    .ToArray();
+    public static T GetAttribute<T>(this object obj) where T : Attribute => obj.GetAttributes<T>().FirstOrDefault();
+    public static T[] GetAttributes<T>(this object obj) where T : Attribute => Attribute
+        .GetCustomAttributes(obj.GetType())
+        .OfType<T>()
+        .ToArray();
 
-  // public static T[] GetAttributes<T>(this Type type) where T : Attribute => type.GetCustomAttributes().OfType<T>().ToArray();
-
-  public static T GetAttribute<T>(this MemberInfo info) where T : Attribute => info.GetAttributes<T>().FirstOrDefault();
-  public static T[] GetAttributes<T>(this MemberInfo info) where T : Attribute => info
-    .GetCustomAttributes()
-    .OfType<T>()
-    .ToArray();
+    public static T GetAttribute<T>(this MemberInfo info) where T : Attribute => info.GetAttributes<T>().FirstOrDefault();
+    public static T[] GetAttributes<T>(this MemberInfo info) where T : Attribute => info
+        .GetCustomAttributes()
+        .OfType<T>()
+        .ToArray();
   
-  public static bool HasAttribute<T>(this object obj, out T attribute) where T : Attribute
-  {
-    attribute = default;
-    try
+    public static bool HasAttribute<T>(this object obj, out T attribute) where T : Attribute
     {
-      attribute = obj.GetAttribute<T>();
-    }
-    catch (Exception e)
-    {
-      Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{obj?.GetType().FullName}'.", exception: e);
+        attribute = default;
+        try
+        {
+            attribute = obj.GetAttribute<T>();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{obj?.GetType().FullName}'.", exception: e);
+        }
+        return attribute != default;
     }
 
-    return attribute != default;
+    public static bool HasAttribute<T>(this MemberInfo info, out T attribute) where T : Attribute
+    {
+        attribute = default;
+        try
+        {
+             attribute = info.GetAttribute<T>();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{info.Name}'.", exception: e);
+        }
+        return attribute != default;
+    }
+
+    public static bool HasAttributes<T>(this MemberInfo info, out T[] attributes) where T : Attribute
+    {
+        attributes = Array.Empty<T>();
+        try
+        {
+            attributes = info.GetAttributes<T>();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{info.Name}'.", exception: e);
+        }
+        return attributes.Any();
   }
-
-  public static bool HasAttribute<T>(this MemberInfo info, out T attribute) where T : Attribute
-  {
-    attribute = default;
-    try
+    
+    public static bool HasAttributes<T>(this object obj, out T[] attributes) where T : Attribute
     {
-      attribute = info.GetAttribute<T>();
+        attributes = Array.Empty<T>();
+        try
+        {
+            attributes = obj.GetAttributes<T>();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{obj?.GetType().FullName}'.", exception: e);
+        }
+        return attributes.Any();
     }
-    catch (Exception e)
-    {
-      Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{info.Name}'.", exception: e);
-    }
-
-    return attribute != default;
-  }
-
-  public static bool HasAttributes<T>(this MemberInfo info, out T[] attributes) where T : Attribute
-  {
-    attributes = Array.Empty<T>();
-    try
-    {
-      attributes = info.GetAttributes<T>();
-    }
-    catch (Exception e)
-    {
-      Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{info.Name}'.", exception: e);
-    }
-
-    return attributes.Any();
-  }
-  public static bool HasAttributes<T>(this object obj, out T[] attributes) where T : Attribute
-  {
-    attributes = Array.Empty<T>();
-    try
-    {
-      attributes = obj.GetAttributes<T>();
-    }
-    catch (Exception e)
-    {
-      Log.Error(Owner.Default, $"Unable to check for attribute '{typeof(T).FullName}' in '{obj?.GetType().FullName}'.", exception: e);
-    }
-
-    return attributes.Any();
-  }
 }
