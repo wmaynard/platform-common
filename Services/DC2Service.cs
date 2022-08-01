@@ -119,31 +119,31 @@ public class DC2Service : PlatformTimerService
 
     public void Register()
     {
-    // Most of the time this is going to return a 400 error.  This is expected; we're just making sure the
-    // platform-common section exists.
-        // _apiService
-        //     .Request(PlatformEnvironment.Url("/config/settings/new"))
-        //     .AddRumbleKeys()
-        //     .SetPayload(new GenericData
-        //     {
-        //         { "name", COMMON_SETTING_NAME + "2" },
-        //         { "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
-        //     })
-        //     .OnSuccess((sender, response) =>
-        //     {
-        //         if (response.ErrorCode == ErrorCode.Unnecessary)
-        //             Log.Local(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
-        //         else
-        //             Log.Info(Owner.Default, $"Created a new dynamic config section: '{COMMON_SETTING_NAME}'");
-        //     })
-        //     .OnFailure((sender, response) =>
-        //     {
-        //         Log.Error(Owner.Default, "Unable to create new dynamic config section.", data: new
-        //         {
-        //             Response = response.AsGenericData
-        //         });
-        //     })
-        //     .Post();
+        _apiService
+            .Request(PlatformEnvironment.Url("/config/settings/new"))
+            .AddRumbleKeys()
+            .SetPayload(new GenericData
+            {
+                { "name", COMMON_SETTING_NAME + "2" },
+                { "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
+            })
+            .OnSuccess((sender, response) =>
+            {
+                // Most of the time, this will have an Unnecessary error code.  This is expected.  We need this call to happen
+                // to instantiate a settings collection for each service.
+                if (response.ErrorCode == ErrorCode.Unnecessary)
+                    Log.Verbose(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
+                else
+                    Log.Info(Owner.Default, $"Created a new dynamic config section: '{COMMON_SETTING_NAME}'");
+            })
+            .OnFailure((sender, response) =>
+            {
+                Log.Error(Owner.Default, "Unable to create new dynamic config section.", data: new
+                {
+                    Response = response.AsGenericData
+                });
+            })
+            .Post();
 
         try
         {

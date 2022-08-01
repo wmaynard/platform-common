@@ -190,13 +190,7 @@ public class Log : PlatformDataModel
         string message = Message ?? "No Message";
         string caller = Caller.PadLeft(totalWidth: PADDING_METHOD, paddingChar: ' ');
         string time = ElapsedTime.PadLeft(PADDING_TIMESTAMP, ' ');
-
-        if (PrintObjectsEnabled)
-        {
-            string data = Data?.ToString() ?? "";
-            if (!string.IsNullOrWhiteSpace(data))
-                message += $" | {data}";
-        }
+        
 
         // This is the first time we've printed a log.  Print the headers.
         if (!_written)
@@ -239,18 +233,27 @@ public class Log : PlatformDataModel
             Loggly?.Send(this, out throttled);
         if (throttled)
             SeverityType = LogType.THROTTLED;
-        if (PlatformEnvironment.IsLocal)
-            PrettyPrint(BuildConsoleMessage(), SeverityType switch
-            {
-                LogType.VERBOSE => ConsoleColor.DarkGray,
-                LogType.LOCAL => ConsoleColor.Gray,
-                LogType.INFO => ConsoleColor.Black,
-                LogType.WARN => ConsoleColor.Yellow,
-                LogType.ERROR => ConsoleColor.Red,
-                LogType.CRITICAL => ConsoleColor.DarkRed,
-                LogType.THROTTLED => ConsoleColor.DarkGray,
-                _ => throw new ArgumentOutOfRangeException()
-            });
+        if (!PlatformEnvironment.IsLocal)
+            return this;
+        PrettyPrint(BuildConsoleMessage(), SeverityType switch
+        {
+            LogType.VERBOSE => ConsoleColor.DarkGray,
+            LogType.LOCAL => ConsoleColor.Gray,
+            LogType.INFO => ConsoleColor.Black,
+            LogType.WARN => ConsoleColor.Yellow,
+            LogType.ERROR => ConsoleColor.Red,
+            LogType.CRITICAL => ConsoleColor.DarkRed,
+            LogType.THROTTLED => ConsoleColor.DarkGray,
+            _ => throw new ArgumentOutOfRangeException()
+        });
+        
+        if (!PrintObjectsEnabled)
+            return this;
+
+        string data = (Data?.ToString() ?? "") + System.Environment.NewLine;
+        if (!string.IsNullOrWhiteSpace(data))
+            PrettyPrint(data, ConsoleColor.Green);
+        
         return this;
     }
 

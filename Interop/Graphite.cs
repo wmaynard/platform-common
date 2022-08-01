@@ -134,7 +134,6 @@ public class Graphite
 
     private async Task Send(long ts)
     {
-        Log.Verbose(Owner.Default, "Sending data to graphite.");
         try
         {
             List<Metrics> data = new List<Metrics>();
