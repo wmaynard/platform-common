@@ -213,7 +213,7 @@ public class GenericData : Dictionary<string, object>
 
     public object Optional(string key) => ContainsKey(key)
         ? this[key]
-        : null;
+        : default;
 
     /// <summary>
     /// If the object to convert is a PlatformDataModel, this method will serialize the GenericData into JSON
@@ -247,13 +247,12 @@ public class GenericData : Dictionary<string, object>
                 Log.Warn(Owner.Will, "Unable to deserialize PlatformDataModel from JSON.", exception: e);
             }
 
-        // We're dealing with a nullable type; make sure we didn't convert to a default value.
-        // For example, Translate<int?>(null) shouldn't come back as 0, it should come back as null.
-        // Without this, Convert will yield a default value.
-        // Will on 2022.07.25: This originally checked to see if underlying was not null as well, leaving null-handling to
-        // the remaining method code.  Unsure if this was done for a particular reason.
+        // Even though Rider grays out the (T) as if it's irrelevant code, this is not the case because the return type is dynamic.
+        // (dynamic)default == null
+        // (bool)default == false
+        // This was causing some non-nullable types to throw Exceptions during casting.
         if (value == null)
-            return null;
+            return (T)default;
 
         Type type = typeof(T);
         Type underlying = Nullable.GetUnderlyingType(type);
