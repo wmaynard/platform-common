@@ -8,7 +8,7 @@ public class SettingsValue : PlatformDataModel
     [BsonElement("value"), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName("value")]
     public object Value { get; init; }
-	
+    
     [BsonElement("comment"), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName("comment")]
     public string Comment { get; init; }

@@ -15,34 +15,34 @@ public class RegisteredService : PlatformDataModel
     public const string FRIENDLY_KEY_ENDPOINTS = "endpoints";
     public const string FRIENDLY_KEY_CONTROLLER_INFO = "controllers";
     public const string FRIENDLY_KEY_ROOT_INGRESS = "rootIngress";
-	
+  
     [JsonInclude, JsonPropertyName(PlatformEnvironment.KEY_DEPLOYMENT)]
     public string Deployment { get; set; }
 
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VERSION)]
     public string Version { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_COMMON_VERSION)]
     public string CommonVersion { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_LAST_UPDATED)]
     public long LastUpdated { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_LAST_ACTIVE)]
     public long LastActive { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_OWNER)]
     public string Owner { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ENDPOINTS)]
     public string[] Endpoints { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROOT_INGRESS)]
     public string RootIngress { get; set; }
-	
+  
     [JsonInclude, JsonPropertyName(DC2Service.KEY_CLIENT_ID)]
     public string DynamicConfigClientId { get; set; }
-	
+  
     public ControllerInfo[] Controllers { get; set; }
 
     // public GenericData Config { get; set; }
@@ -56,7 +56,7 @@ public class RegisteredService : PlatformDataModel
     protected override void Validate(out List<string> errors)
     {
         errors = new List<string>();
-		
+    
         if (string.IsNullOrWhiteSpace(Version))
             errors.Add("Missing version");
         if (string.IsNullOrWhiteSpace(Owner))
