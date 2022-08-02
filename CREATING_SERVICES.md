@@ -28,7 +28,6 @@ For the purposes of this tutorial, comments found in code blocks are for your un
 	* `appsettings.json`
 	* `appsettings.Development.json`
 	* `Program.cs`
-	* `Startup.cs`
 	
 ## Set the Default Namespace
 
@@ -36,7 +35,6 @@ Rider converts the `pet-shop-service` project name into the namespace `pet_shop_
 
 1. Right click on the project and select `Properties`.
 2. For `Root namespace`, enter `Rumble.Platform.PetShopService`.
-3. Open a code file, such as `Startup.cs`.  Refactor the namespace `pet_shop_service` to match the above.
 
 ## Create the Remaining Project Structure
 
@@ -52,12 +50,8 @@ All .NET Platform projects should conform to the same base structure.  While you
 
 ## Before You Get Started
 
-1.  Add the following NuGet packages to your project:
-	* `platform-csharp-common`.  See the **Adding the Library** in [README.md](README.md) for more information.
-	* `Newtonsoft.Json`
-	* `MongoDB.Driver`
-	* `MongoDB.Driver.Core`
-2. In `/Properties/launchSettings.json`, set `launchBrowser` to `false`.  This prevents Rider from launching your web browser on every run.
+1.  Add the `platform-csharp-common` nuget package to your project.  See the **Adding the Library** in [README.md](README.md) for more information.
+2. In `/Properties/launchSettings.json`, set `launchBrowser` to `false`.  This prevents Rider from launching your web browser on every run.  You should also remove the `https` entry from `profiles.applicationUrl` - all of our deployed services sit behind an external load balancer which takes care of the HTTPS for us.
 
 
 4. In `.gitignore`, add the following:
@@ -72,28 +66,175 @@ All .NET Platform projects should conform to the same base structure.  While you
 5. In `/environment.json`, add the below values.  Note that many of them contain sensitive information, hence adding the file to `.gitignore`.  These are just sample values and will need to be changed to suit your environment.
 
 
-	{
-	    "GRAPHITE": "graphite.rumblegames.com:2003",
-	    "LOGGLY_URL": "https://logs-01.loggly.com/bulk/{id}/tag/pet-service",
-	    "MONGODB_NAME": "pet-service",
-	    "MONGODB_URI": "mongodb://localhost:27017"
-	    "RUMBLE_COMPONENT": "pet-service",
-	    "RUMBLE_DEPLOYMENT": "yourname_local",
-	    "RUMBLE_KEY": "{secret}",
-	    "RUMBLE_TOKEN_VERIFICATION": "https://dev.nonprod.tower.cdrentertainment.com/player/verify",
-	    "VERBOSE_LOGGING": "false"
+```
+{
+  "MONGODB_NAME": "pet-service",
+  "RUMBLE_COMPONENT": "pet-service",
+  "RUMBLE_REGISTRATION_NAME": "Pet Service Tutorial",
+  "RUMBLE_DEPLOYMENT": "007",
+  "GITLAB_ENVIRONMENT_URL":  "https://dev.nonprod.tower.cdrentertainment.com/",
+  "PLATFORM_COMMON": {
+	"MONGODB_URI": {
+	  "*": "mongodb://localhost:27017/pet-service?retryWrites=true&w=majority&minPoolSize=2"
+	},
+	"CONFIG_SERVICE_URL": {
+	  "*": "https://config-service.cdrentertainment.com/",
+	  "307": "https://prod-a.services.tower.rumblegames.com/"
+	},
+	"GAME_GUKEY": {
+	  "*": "57901c6df82a45708018ba73b8d16004"
+	},
+	"GRAPHITE": {
+	  "*": "graphite.rumblegames.com:2003"
+	},
+	"LOGGLY_BASE_URL": {
+	  "*": "https://logs-01.loggly.com/bulk/f91d5019-e31d-4955-812c-31891b64b8d9/tag/{0}/"
+	},
+	"RUMBLE_KEY": {
+	  "*": "72d0676767714480b1e4cec845105332"
+	},
+	"RUMBLE_TOKEN_VALIDATION": {
+	  "*": "https://dev.nonprod.tower.cdrentertainment.com/token/validate"
+	},
+	"SLACK_ENDPOINT_POST_MESSAGE": {
+	  "*": "https://slack.com/api/chat.postMessage"
+	},
+	"SLACK_ENDPOINT_UPLOAD": {
+	  "*": "https://slack.com/api/files.upload"
+	},
+	"SLACK_ENDPOINT_USER_LIST": {
+	  "*": "https://slack.com/api/users.list"
+	},
+	"SLACK_LOG_BOT_TOKEN": {
+	  "*": "xoxb-4937491542-3072841079041-s1VFRHXYg7BFFGLqtH5ks5pp"
+	},
+	"SLACK_LOG_CHANNEL": {
+	  "*": "C031TKSGJ4T"
+	},
+	"SWARM_MODE": {
+	  "*": false
+	},
+	"VERBOSE_LOGGING": {
+	  "*": false
 	}
+  }
+}
+```
 
-| Key | Value | Notes |
-| :--- | :--- | --- |
-| `LOGGLY_URL` | `https://logs-01.loggly.com/bulk/{id}/tag/{name}` | The link to a Loggly instance.  Ask `#coders` for a valid link. |
-| `MONGODB_NAME` |  `{name}` | The name of the database you wish to connect to in MongoDB. |
-| `MONGODB_URI` | `mongodb://localhost:27017` | The connection string for MongoDB.  Avoid connecting to any database other than the DEV environment unless you have a very good reason to do otherwise.  Ask DevOps for a Mongo database and connection string for your service when ready. |
-| `RUMBLE_DEPLOYMENT` | `{your_name}_local` | Identifies your system in logs.  **IMPORTANT:** Without "local" in this field, you will not see any Log information in your console window! |
-| `RUMBLE_KEY` | `{secret}` | Ask DevOps or Platform for where to find this value. |
-| `RUMBLE_TOKEN_VERIFICATION` | `{dev_environment}/player/verify` | Use the value for platform services from the Dynamic Config for the dev environment. |
-| `VERBOSE_LOGGING` | false | Logs fall into various categories for severity.  VERBOSE is the most minor and is disabled by default.  Enable this to see all logs in your console. |
+6. Finally, right click on your project > Edit > `Edit pet-shop-service.csproj`.  Edit the `<PropertyGroup>` sectionto match the following:
 
+```
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>Rumble.Platform.PetShopService</RootNamespace>
+	</PropertyGroup>
+```
+
+This is some under-the-hood magic to give us automatic version numbers, useful for diagnosing specific issues that we won't touch as part of this tutorial, but needs to be present in every project.
+
+
+| Key                         | Value                                             | Notes                                                                                                                                                                                                                                       |
+|:----------------------------|:--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `LOGGLY_URL`                | `https://logs-01.loggly.com/bulk/{id}/tag/{name}` | The link to a Loggly instance.  Ask `#coders` for a valid link.                                                                                                                                                                             |
+| `MONGODB_NAME`              | `{name}`                                          | The name of the database you wish to connect to in MongoDB.                                                                                                                                                                                 |
+| `MONGODB_URI`               | `mongodb://localhost:27017`                       | The connection string for MongoDB.  Avoid connecting to any database other than the DEV environment unless you have a very good reason to do otherwise.  Ask DevOps for a Mongo database and connection string for your service when ready. |
+| `RUMBLE_DEPLOYMENT`         | `{your_name}_local`                               | Identifies your system in logs.  **IMPORTANT:** Without "local" in this field, you will not see any Log information in your console window!                                                                                                 |
+| `RUMBLE_KEY`                | `{secret}`                                        | Ask DevOps or Platform for where to find this value.                                                                                                                                                                                        |
+| `RUMBLE_TOKEN_VERIFICATION` | `{dev_environment}/player/verify`                 | Use the value for platform services from the Dynamic Config for the dev environment.                                                                                                                                                        |
+| `VERBOSE_LOGGING`           | false                                             | Logs fall into various categories for severity.  VERBOSE is the most minor and is disabled by default.  Enable this to see all logs in your console.                                                                                        |
+
+## Create A Startup Class
+
+With .NET 5, this step was unnecessary; however, .NET 6 changed the default project structure.  This is solved easily enough: right-click on your project and add `Startup.cs`.  From here, we will build out our service configuration.
+
+```
+using RCL.Logging;
+using Rumble.Platform.Common.Web;
+
+namespace Rumble.Platform.PetShopService;
+
+public class Startup : PlatformStartup
+{
+    protected override PlatformOptions Configure(PlatformOptions options) => options
+        .SetProjectOwner(Owner.Will);
+}
+```
+
+At its most basic, this is all we need to get started.  The indentation might look funky right now, but the `PlatformOptions` class uses method chaining to configure our service.  This tutorial is intended for a high-level view only, but if you're curious what other parts can be configured, refer to the <TODO> section.
+
+Normally, `Startup.cs` would require you to create singletons of all of your services, add filters, and set JSON serialization options (among other tasks).  However, much of this can be standardized by `platform-csharp-common` so that all of our services behave the same.
+
+However, there is one major configuration change we should make.  Not all services have the same performance requirements, and our common library will automatically log warnings / errors / critical errors when an endpoint takes too long to respond.  While they do have default values, it's good practice to set them up for each project.  Some services will need more time to complete their work than others.
+
+We can accomplish this by continuing the method chain for `PlatformOptions`:
+
+```
+using RCL.Logging;
+using Rumble.Platform.Common.Web;
+
+namespace Rumble.Platform.PetShopService;
+
+public class Startup : PlatformStartup
+{
+    protected override PlatformOptions Configure(PlatformOptions options) => options
+        .SetProjectOwner(Owner.Will)
+        .SetPerformanceThresholds(warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
+}
+```
+
+With this configuration, `platform-csharp-common` will log warnings, errors, and critical errors at 500ms, 2s, and 30s respectively.  While working locally, is very likely to trigger a ton of warnings and errors, though, since debug configurations are much slower.  We can prevent spam with preprocessing directives:
+
+```
+public class Startup : PlatformStartup
+{
+    protected override PlatformOptions Configure(PlatformOptions options) => options
+        .SetProjectOwner(Owner.Will)
+#if DEBUG
+        .SetPerformanceThresholds(warnMS: 5_000, errorMS: 20_000, criticalMS: 300_000);
+#else
+        .SetPerformanceThresholds(warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
+#endif
+}
+```
+
+This should be enough to prevent log spam when working locally, but still use our limits when the code is deployed.  This will probably still log issues when we're paused on breakpoints, but should at least reduce the amount of logs we have to sift through.
+
+## Reference the Startup Class from `Program.cs`
+
+.NET 6 began using a different template for their default `Program.cs` file, so replace the contents with the following code, which was the previous standard:
+
+```
+using System.Reflection;
+using Rumble.Platform.PetShopService;
+
+namespace Rumble.Platform.PetShopService;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        if (args.Contains("-version"))
+        {
+            AssemblyName assembly = Assembly.GetExecutingAssembly().GetName();
+            Console.WriteLine($"{assembly.Name}:{assembly.Version}");
+            return;
+        }
+        CreateHostBuilder(args).Build().Run();
+    }
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+}
+```
+
+`Main()` is just the entry point for our application.  The conditional statement in there is what enables our continuous integration (CI) process to tag commits with version numbers.
+
+Meanwhile, `CreateHostBuilder()` is responsible for actually running our service and initializing everything as per our startup classes.  Your service can technically run now, but without any logic in it, it won't actually have any functionality.  
+
+Next, we'll explore how we deal with data in and data out through the use of Models.
 
 ## Create A Model
 
@@ -108,6 +249,14 @@ First, we need to define what our data needs to look like.  Let's start by addin
 	    public DateTime IntakeDate { get; private set; }
 	    public float Price { get; private set; }
 
+	    // A default constructor is needed to support platform-common functionality.
+	    // Use this to set default values - including invalid ones if necessary.
+	    public Pet()
+	    {
+	        IntakeDate = DateTime.Now;
+	        Price = 100;
+	    }
+
 	    public Pet(string name, float price, DateTime? intake = null, DateTime? birthday = null)
 	    {
 	        Name = name;
@@ -120,9 +269,9 @@ First, we need to define what our data needs to look like.  Let's start by addin
 We've created very basic properties to track information on pets.  However, we're still missing key information; our service still needs to know how to de/serialize our model.  To do that, we need to add some **Attributes**.  There are two important attributes we need:
 	
 * `[BsonElement]`: Short for "binary JSON", this is the primary method for service <-> MongoDB transfer.
-* `[JsonProperty]`: Part of Newtonsoft's library, this is the primary method for service <-> client transfer.
+* `[JsonPropertyName]`: This is the primary method for service <-> client transfer.
 
-As per Platform best practices, we should have different keys, one `FRIENDLY_KEY` and one `DB_KEY`.  Every character saved in MongoDB will help reduce the size of the data storage requirements.  When dealing with a global scale, this can have a very significant impact.  See XXX for more information on this.
+As per Platform best practices, we should have different keys, one `FRIENDLY_KEY` and one `DB_KEY`. Database keys are shorthand and can be useful to keep Mongo clean and not looking like a word-wall.  A DB key also makes our data more secure in that, as an `internal` constant, we know that only this particular service knows what keys to look for.
 
 	...
 	// Naming here is subjective.  The keys should be abbreviated or shortened where possible,
@@ -133,7 +282,7 @@ As per Platform best practices, we should have different keys, one `FRIENDLY_KEY
 	internal const string DB_KEY_NAME = "name";
 	internal const string DB_KEY_PRICE = "cost";
 
-	// Technically, a key with the same name as the property is redundant.  However, they're very
+	// Technically, a key with the same name as its property is redundant.  However, they're very
 	// useful in case the code is ever refactored.  Making sure the serialized value remains the same
 	// is a high priority to support front-end development.
 	public const string FRIENDLY_KEY_ADOPTION_DATE = "adoptedOn";
@@ -143,25 +292,25 @@ As per Platform best practices, we should have different keys, one `FRIENDLY_KEY
 	public const string FRIENDLY_KEY_PRICE = "price";
 
 	[BsonElement(DB_KEY_NAME)]
-	[JsonProperty(FRIENDLY_KEY_NAME)]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_NAME)]
 	public string Name { get; private set; }
-
+	
 	// Note the BsonIgnoreIfNull and the NullValueHandling differences.
 	// Generally, it's a good idea to omit null or default values, but can be desirable depending on the situation.
 	[BsonElement(DB_KEY_ADOPTION_DATE), BsonIgnoreIfNull]
-	[JsonProperty(FRIENDLY_KEY_ADOPTION_DATE, NullValueHandling = NullValueHandling.Ignore)]
+	[JsonPropertyName(FRIENDLY_KEY_ADOPTION_DATE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? AdoptedDate { get; private set; }
-
+	
 	[BsonElement(DB_KEY_BIRTHDAY)]
-	[JsonProperty(FRIENDLY_KEY_BIRTHDAY)]
+	[JsonPropertyName(FRIENDLY_KEY_BIRTHDAY)]
 	public DateTime Birthday { get; private set; }
-
+	
 	[BsonElement(DB_KEY_INTAKE_DATE)]
-	[JsonProperty(FRIENDLY_KEY_INTAKE_DATE)]
+	[JsonPropertyName(FRIENDLY_KEY_INTAKE_DATE)]
 	public DateTime IntakeDate { get; private set; }
-
+	
 	[BsonElement(DB_KEY_PRICE), BsonIgnoreIfDefault]
-	[JsonProperty(FRIENDLY_KEY_PRICE, DefaultValueHandling = DefaultValueHandling.Ignore)]
+	[JsonPropertyName(FRIENDLY_KEY_PRICE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public float Price { get; private set; }
 	...
 
@@ -175,16 +324,26 @@ While this looks like an intimidating amount of work just for data persistence, 
 	public int DaysInCare => (int)(AdoptedDate ?? DateTime.Now).Subtract(IntakeDate).TotalDays;
 	...
 
-Finally, because all of our properties must be set privately, we'll want a method to alter our `AdoptedDate` when a pet goes to their "forever home":
+Because all of our properties must be set privately, we'll want a method to alter our `AdoptedDate` when a pet goes to their "forever home":
 
 	...
-	public void Adopt(DateTime? date = null)
-	{
-	   AdoptedDate = date ?? DateTime.Now;
-	}
+	public void Adopt(DateTime? date = null) => AdoptedDate = date ?? DateTime.Now;
 	...
 
 In practice, we would probably add more functionality to this method.  However, we'll keep it simple at the moment.
+
+And finally, to provide useful errors to the client, all models should have a `Validate()` method:
+
+```
+protected override void Validate(out List<string> errors)
+{
+    errors = new List<string>();
+    if (Name == null)
+        errors.Add("Name cannot be null!");
+}
+```
+
+Validate is used by platform-common to make sure we don't have any unexpected data.  Or perhaps it's more accurate to say that it can better provide us with information when there are attempts at giving us bad data.
 
 Now we're ready to create our service.
 
@@ -197,41 +356,7 @@ With our `Pet` model completed, we now need to add a respective `PetService` to 
 	    public PetService() : base("pets") { }
 	}
 
-There's a lot of behind-the-scenes magic happening in the base class regarding configuration here, but there are only two important takeaways for now.  The type specified in the angle brackets next to the base class links the service to your previously-built model, and the constructor is calling the base constructor to set the MongoDB collection name to use with your model.
-
-## Configure `/Startup.cs`
-
-Normally, `Startup.cs` would require you to create singletons of all of your services, add filters, and set JSON serialization options (among other tasks).  However, much of this can be standardized by `platform-csharp-common` so that all of our services behave the same.  So, we'll make `Startup.cs` inherit from `PlatformStartup`.  Replace the `Startup` class with the following:
-
-	public class Startup : PlatformStartup { }
-
-This is technically all we need; `platform-csharp-common` takes care of the nitty-gritty.  However, there is one major configuration change we should make.  Not all services have the same performance requirements, and our common library will automatically log warnings / errors / critical errors when an endpoint takes too long to respond.  While they do have default values, it's good practice to set them up for each project.  Some services will need more time to complete their work than others.
-
-We can accomplish this by modifying `ConfigureServices:`
-
-	public class Startup : PlatformStartup
-	{
-	    public void ConfigureServices(IServiceCollection services)
-	    {
-	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
-	    }
-	}
-
-With this configuration, `platform-csharp-common` will log warnings, errors, and critical errors at 500ms, 2s, and 30s respectively.  While working locally, is very likely to trigger a ton of warnings and errors, though, since debug configurations are much slower.  We can prevent spam with preprocessing directives:
-
-	public class Startup : PlatformStartup
-	{
-	    public void ConfigureServices(IServiceCollection services) // Use your Owner value instead of Owner.Platform
-	    {
-	#if DEBUG
-	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 5_000, errorMS: 20_000, criticalMS: 300_000);
-	#else
-	        base.ConfigureServices(services, defaultOwner: Owner.Platform, warnMS: 500, errorMS: 2_000, criticalMS: 30_000);
-	#endif
-	    }
-	}
-
-This should be enough to prevent log spam when working locally, but still use our limits when the code is deployed.  This will probably still log issues when we're paused on breakpoints, but should at least reduce the amount of logs we have to sift through.
+There's a lot of behind-the-scenes magic happening in the base class regarding configuration here, but there are only two important takeaways for now.  The type specified in the angle brackets next to the base class links the service to your previously-built model, and the base constructor sets the MongoDB collection name to use with your model.
 
 ## Create A New Controller
 
@@ -239,24 +364,17 @@ Finally, we need to add a controller.  Controllers are responsible for handling 
 
 Let's start simple with just the bare minimum:
 
-	[ApiController, Route("pet")]
-	public class PetController : PlatformController
-	{
-	    private readonly PetService _petService;
-	
-	    public PetController(PetService petService, IConfiguration config) : base(config)
-	    {
-	        _petService = petService;
-	    }
-	
-	    [HttpGet, Route("health")]
-	    public override ActionResult HealthCheck()
-	    {
-	        return Ok(_petService.HealthCheckResponseObject); // this is a little archaic and may change soon
-	    }
-	}
+```
+[Route("pet")]
+public class PetController : PlatformController
+{
+    private readonly PetService _petService;
 
-Our attributes at the top of the Controller tell .NET to route all web requests to `/pets/` to this class.  We currently have one endpoint in our Controller - `/pets/health` - which can be used to check in on our project and make sure any related microservices are still up and running.
+    public PetController(PetService petService, IConfiguration config) : base(config) => _petService = petService;
+}
+```
+
+Our attribute at the top of the Controller tell .NET to route all web requests to `/pets/` to this class.  We currently have one endpoint in our Controller that's added by platform-common - `/pets/health` - which can be used to check in on our project and make sure any related microservices are still up and running.
 
 In the constructor, there's some wizardry afoot, and it needs a small explanation.  APIs in .NET rely on **dependency injection**.  When our project is starting up, .NET recognizes that this controller needs our PetService class in order to be created.  Consequently, when the Controller is instantiated, it is passed the PetService singleton when it is created.
 
@@ -308,11 +426,9 @@ The `Require<Type>` function is a feature of the PlatformController.  This looks
 	  }
 	}
 
-If you want manual control over data parsing, you can use the Controller's property `Body` to manually extract values.
-
 ## Test the API
 
-We're now ready to test the API!  Run the project in debug mode and create a collection of endpoints for each of the four in our `PetController`.
+We're now ready to test the API!  Run the project in debug mode and create a collection of endpoints in Postman for each of the four in our `PetController`.
 
 ## Creating Custom Exceptions
 
@@ -351,22 +467,21 @@ For the last step in this tutorial, we're going to secure our endpoints behind t
 	{
 	    ...
 
-This will require standard tokens for all endpoints.  `RequireAuth` can be used on classes or individual methods, but for the purposes of this tutorial, we'll just secure the entire controller.  However, there's on endpoint that we want to be publicly available: `/health`.
+This will require standard tokens for all endpoints.  `RequireAuth` can be used on classes or individual methods, but for the purposes of this tutorial, we'll just secure the entire controller.  However, there's on endpoint that we want to be publicly available: `List()`.
 
 We can make an exemption for this endpoint with a method-level attribute: `NoAuth`:
 
 	...
-	[HttpGet, Route("health"), NoAuth]
-	public override ActionResult HealthCheck()
-	{
+    [HttpGet, NoAuth]
+    public ObjectResult List() => Ok(CollectionResponseObject(_petService.List()));
 	    ...
 
-We can also go the other direction and require admin privileges on a different endpoint:
+We can also go the other direction and require admin privileges instead:
 
-	[HttpGet, RequireAuth(TokenType.ADMIN)]
+	[HttpGet, RequireAuth(TokenType.ADMIN_TOKEN)]
 	public ObjectResult List() => Ok(CollectionResponseObject(_petService.List()));
 
-Now, if you return to your Postman collection, you will notice that the only endpoint that you can get a successful response from is `/health`.  For each of the other endpoints, you will have to add a valid token to the Authorization in Postman, and the endpoint for listing all pets requires an Admin token.
+Now, if you return to your Postman collection, you will notice that the only endpoint that you can get a successful response from is one with a `NoAuth` added to it.  For each of the other endpoints, you will have to add a valid token to the Authorization in Postman, and the endpoint for listing all pets requires an Admin token.  If you need a valid token to test with, ask Will for a new token.
 
 Once you've implemented token auth, you can then access details about the client by using the Controller's property `Token` in the body of your endpoints.
 
