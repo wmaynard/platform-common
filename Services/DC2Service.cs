@@ -86,7 +86,13 @@ public class DC2Service : PlatformTimerService
 
     protected override void OnElapsed() => Refresh().Wait();
 
-    public async Task<Section[]> GetAdminData()
+    public Section[] GetAdminData()
+    {
+        Task<Section[]> task = GetAdminDataAsync();
+        task.Wait();
+        return task.Result;
+    }
+    public async Task<Section[]> GetAdminDataAsync()
     {
         Section[] output = null;
         
@@ -111,7 +117,7 @@ public class DC2Service : PlatformTimerService
             })
             .GetAsync();
 
-        return output;
+        return output ?? Array.Empty<Section>();
     }
 
     public async Task Refresh()
@@ -152,6 +158,12 @@ public class DC2Service : PlatformTimerService
 
     public void Register()
     {
+        if (string.IsNullOrWhiteSpace(PlatformEnvironment.RegistrationName))
+        {
+            Log.Error(Owner.Default, $"In order to register this project with dynamic-config-v2, you must provide `{PlatformEnvironment.KEY_REGISTRATION_NAME}` in your CI settings.");
+            return;
+        }
+        
         _apiService
             .Request(PlatformEnvironment.Url("/config/settings/new"))
             .AddRumbleKeys()
