@@ -53,6 +53,11 @@ public class HttpClientService : IService
     {
         return await _httpClient.GetAsync(url);
     }
+    
+    public async Task<HttpResponseMessage> GetAsync(string url, HttpCompletionOption completionOption)
+    {
+        return await _httpClient.GetAsync(url, completionOption);
+    }
 
     public void OnDestroy()
     {
