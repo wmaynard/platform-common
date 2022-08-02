@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json.Serialization;
+using RCL.Logging;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -32,7 +34,7 @@ public class SlackUser : PlatformDataModel
         if (data == null)
             return null;
         GenericData profile = data.Optional<GenericData>("profile");
-        return new SlackUser()
+        return new SlackUser
         {
             ID = NullIfEmpty(data.Optional<string>("id")),
             Name = NullIfEmpty(data.Optional<string>("name")),
@@ -95,4 +97,53 @@ public class SlackUser : PlatformDataModel
 
         return SearchScores[combinedKey];
     }
+
+    private static List<SlackUser> Users;
+
+    public static SlackUser[] Load()
+    {
+        List<SlackUser> users = new List<SlackUser>();
+        ApiService.Instance
+            .Request(SlackMessageClient.GET_USER_LIST)
+            .AddAuthorization(PlatformEnvironment.SlackLogBotToken)
+            .OnSuccess((_, response) =>
+            {
+                users.AddRange(response.AsGenericData.Require<GenericData[]>(key: "members").Select(memberData => (SlackUser)memberData));
+            })
+            .OnFailure((_, _) =>
+            {
+                Log.Verbose(Owner.Default, "Unable to load Slack users.");
+            })
+            .Get();
+        return users.ToArray();
+    }
+
+    public static SlackUser[] Find(IEnumerable<SlackUser> users, params Owner[] owners) => owners
+        .Select(owner => UserSearch(users, OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())
+        .ToArray();
+    
+    // TODO: Refactor Find / move out of SlackMessageClient
+    public static SlackUser Find(params Owner[] owners)
+    {
+        Users ??= new List<SlackUser>();
+        if (!Users.Any())
+            ApiService.Instance
+                .Request(SlackMessageClient.GET_USER_LIST)
+                .AddAuthorization(PlatformEnvironment.SlackLogBotToken)
+                .OnSuccess((_, response) =>
+                {
+                    Users.AddRange(response.AsGenericData.Require<GenericData[]>(key: "members").Select(memberData => (SlackUser)memberData));
+                }).Get();
+        return owners
+            .Select(owner => UserSearch(OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())
+            .ToArray()
+            .FirstOrDefault();
+    }
+    
+    public static SlackUser[] UserSearch(params string[] terms) => UserSearch(Users);
+    public static SlackUser[] UserSearch(IEnumerable<SlackUser> users, params string[] terms) => users?
+       .OrderByDescending(user => user.Score(terms))
+       .Where(user => user.Score(terms) > 0)
+       .ToArray()
+       ?? Array.Empty<SlackUser>();
 }

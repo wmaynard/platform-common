@@ -43,6 +43,11 @@ public class ApiService : PlatformService
 
     internal async Task<HttpResponseMessage> MultipartFormPost(string url, MultipartFormDataContent content) => await HttpClient.PostAsync(url, content); 
 
+    /// <summary>
+    /// Initializes the base HTTP request.
+    /// </summary>
+    /// <param name="url">The URL to hit.  If a partial URL is used, it is appended to the base of PlatformEnvironment.Url().</param>
+    /// <param name="retries">How many times to retry the request if it fails.</param>
     public ApiRequest Request(string url, int retries = ApiRequest.DEFAULT_RETRIES) => new ApiRequest(this, url, retries);
 
     internal GenericData Send(HttpRequestMessage message) => null;

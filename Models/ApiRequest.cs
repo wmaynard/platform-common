@@ -45,6 +45,21 @@ public class ApiRequest
         Payload = new GenericData();
         Parameters = new GenericData();
         SetRetries(retries);
+        Url = url;
+
+        if (Url.StartsWith('/'))
+        {
+            // Will on 2022.08.01: This may be an unnecessary log.  However, just to make sure that this method gets used correctly,
+            // keep some verbose logs until we can definitively say no one is using it in other ways.
+            Log.Verbose(Owner.Default, "URL starts with '/'.  This is assumed to use PlatformEnvironment.Url.", data: new
+            {
+                PlatformEnvironmentUrl = PlatformEnvironment.Url("/"),
+                Url = url,
+                ResultUrl = PlatformEnvironment.Url(url)
+            });
+            Url = PlatformEnvironment.Url(Url);
+        }
+        
         _onSuccess += (_, response) => { };
         _onFailure += (_, response) =>
         {
@@ -81,7 +96,6 @@ public class ApiRequest
             else
                 Log.Warn(Owner.Default, "ApiRequest encountered an error.", data: data);
         };
-        Url = url;
     }
 
     public ApiRequest SetUrl(string url)

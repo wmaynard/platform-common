@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -12,6 +13,7 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
@@ -21,6 +23,9 @@ namespace Rumble.Platform.Common.Services;
 // TODO: Value promotion to other environments
 public class DC2Service : PlatformTimerService
 {
+    // Used by the dynamic config service to return all values for the admin portal
+    public const string API_KEY_SECTIONS = "sections";
+    
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
 
     public class DC2ClientInformation : PlatformDataModel
@@ -81,6 +86,34 @@ public class DC2Service : PlatformTimerService
 
     protected override void OnElapsed() => Refresh().Wait();
 
+    public async Task<Section[]> GetAdminData()
+    {
+        Section[] output = null;
+        
+        await _apiService
+            .Request("/config/settings/all")
+            // .Request("http://localhost:5151/config/settings/all")
+            .AddRumbleKeys()
+            .OnFailure((_, response) =>
+            {
+                Log.Error(Owner.Will, "Unable to fetch config data for portal.");
+            })
+            .OnSuccess((_, response) =>
+            {
+                try
+                {
+                    output = response.AsGenericData.Require<Section[]>(API_KEY_SECTIONS);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(Owner.Will, "Unable to parse config data for portal.", exception: e);
+                }
+            })
+            .GetAsync();
+
+        return output;
+    }
+
     public async Task Refresh()
     {
         if (IsUpdating)
@@ -89,7 +122,7 @@ public class DC2Service : PlatformTimerService
         IsUpdating = true;
 
         await _apiService
-            .Request(PlatformEnvironment.Url("/config/settings"))
+            .Request("/config/settings")
             .AddRumbleKeys()
             .AddParameter(key: "client", value: new DC2ClientInformation
             {
