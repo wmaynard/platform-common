@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
@@ -87,4 +88,6 @@ public abstract class PlatformDataModel
     public static T FromJSON<T>(string json) where T : PlatformDataModel => JsonSerializer.Deserialize<T>(json, JsonHelper.SerializerOptions);
 
     public static implicit operator PlatformDataModel(string json) => FromJSON<PlatformDataModel>(json);
+
+    internal static void RegisterWithMongo<T>() => BsonClassMap.RegisterClassMap<T>();
 }

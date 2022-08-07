@@ -185,6 +185,35 @@ public abstract class PlatformStartup
         BsonSerializer.RegisterSerializer(new BsonGenericConverter());
         Log.Local(Owner.Default, "BSON converters configured.");
 
+
+        // When using nested custom data structures, Mongo will often be confused about de/serialization of those types.  This can lead to uncaught exceptions
+        // without much information available on how to fix it.  Typically, this is achieved from running the following during Startup:
+        //      BsonClassMap.RegisterClassMap<YourTypeHere>();
+        // However, this is inconsistent with the goal of platform-common.  Common should reduce all of this frustrating boilerplate.
+        // We can do this with reflection instead.  It's a slower process, but since this only happens once at Startup it's not significant.
+        // TODO: Do not process this is mongo is disabled
+        // TODO: Better error messages
+        List<string> unregisteredTypes = new List<string>();
+        foreach (Type type in DataModels)
+            try
+            {
+                MethodInfo info = typeof(PlatformDataModel).GetMethod(nameof(PlatformDataModel.RegisterWithMongo));
+                MethodInfo generic = info.MakeGenericMethod(type);
+                generic.Invoke(Activator.CreateInstance(type), null);
+            }
+            catch (Exception e)
+            {
+                unregisteredTypes.Add(type.Name);
+                Log.Local(Owner.Will, $"Unable to register {type.Name} with Mongo");
+            }
+        
+        Log.Verbose(Owner.Will, "Registered PlatformDataModels with Mongo.");
+        if (unregisteredTypes.Any())
+            Log.Warn(Owner.Will, "Some PlatformDataModels were not able to be registered.", data: new
+            {
+                Types = unregisteredTypes
+            });
+
         Log.Verbose(Owner.Default, "Adding CORS to services");
         services.AddCors(options =>
         {
@@ -233,6 +262,14 @@ public abstract class PlatformStartup
         .Concat(Assembly.GetExecutingAssembly().GetExportedTypes()) // Add platform-common's types
         .Where(type => !type.IsAbstract)
         .Where(type => type.IsAssignableTo(typeof(PlatformService)))
+        ?? Array.Empty<Type>();
+    
+    protected static IEnumerable<Type> DataModels => Assembly
+        .GetEntryAssembly()
+        ?.GetExportedTypes() // Add the project's types 
+        .Concat(Assembly.GetExecutingAssembly().GetExportedTypes()) // Add platform-common's types
+        .Where(type => !type.IsAbstract)
+        .Where(type => type.IsAssignableTo(typeof(PlatformDataModel)))
         ?? Array.Empty<Type>();
 
     protected static IEnumerable<PlatformController> PlatformControllers => Assembly
