@@ -16,6 +16,7 @@ public enum ErrorCode
 
     // 100: Authorization
     [Display(Name = "0100")] KeyValidationFailed,
+    [Display(Name = "0101")] Unauthorized,
         // 10: Tokens
         [Display(Name = "0111")] TokenValidationFailed,
         [Display(Name = "0112")] TokenPermissionsFailed,
