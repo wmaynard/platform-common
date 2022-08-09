@@ -17,10 +17,16 @@ public class OwnerInformation
         LastName = last;
     }
 
+    /// <summary>
+    /// This class is primarily used to search for Owners when sending slack messages / pinging people.  Without this, there's a risk of pinging the wrong person.
+    /// As a perfect example, without David's entry here, Slack might ping Kirch or DLo instead.
+    /// </summary>
     private static readonly Dictionary<Owner, OwnerInformation> Directory = new Dictionary<Owner, OwnerInformation>()
     {
+        { Owner.Alex, new OwnerInformation("Alex", "Dunn")},
         { Owner.Austin, new OwnerInformation("Austin", "Takechi") },
         { Owner.Chris, new OwnerInformation("Chris", "March") },
+        { Owner.David, new OwnerInformation("David", "Bethune")},
         { Owner.Eitan, new OwnerInformation("Eitan", "Levy") },
         { Owner.Eric, new OwnerInformation("Eric", "Sheris") },
         { Owner.Ernesto, new OwnerInformation("Ernesto", "Rojo") },
