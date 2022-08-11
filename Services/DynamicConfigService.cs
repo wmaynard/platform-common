@@ -68,17 +68,17 @@ public class DynamicConfigService : PlatformTimerService
     private Task UpdateAsync() => IsUpdating ? null : Task.Run(Update);
 
     private GenericData Fetch(string scope) => _apiService
-    .Request(PlatformEnvironment.Url(PlatformEnvironment.ConfigServiceUrl, $"/config/{scope}"))
-    .AddHeader("RumbleKey", RumbleKey)
-    .OnFailure((sender, response) =>
-    {
-        _healthService.Degrade(amount: 10);
-        Log.Error(Owner.Default, "Failed to fetch dynamic config.", data: new
+        .Request(PlatformEnvironment.Url(PlatformEnvironment.ConfigServiceUrl, $"/config/{scope}"))
+        .AddHeader("RumbleKey", RumbleKey)
+        .OnFailure((sender, response) =>
         {
-            Url = response.RequestUrl
-        });
-    })
-    .Get();
+            _healthService.Degrade(amount: 10);
+            Log.Error(Owner.Default, "Failed to fetch dynamic config.", data: new
+            {
+                Url = response.RequestUrl
+            });
+        })
+        .Get();
 
     private GenericData Fetch(string scope, out GenericData output) => output = Fetch(scope);
 }

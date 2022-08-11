@@ -45,8 +45,9 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
 
         string authorization = context.HttpContext.Request.Headers.FirstOrDefault(pair => pair.Key == "Authorization").Value.ToString();
         
-        Log.Verbose(Owner.Will, "Authorization received.", data: new
+        Log.Verbose(Owner.Will, $"Authorization received.", data: new
         {
+            Endpoint = context.GetEndpoint(),
             Authorization = $"'{authorization}'",
             TokenLength = authorization.Length,
             Headers = context.HttpContext.Request.Headers

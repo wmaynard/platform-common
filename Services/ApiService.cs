@@ -69,7 +69,12 @@ public class ApiService : PlatformService
             {
                 if (code != -1)
                 {
-                    Log.Verbose(Owner.Will, $"Request failed.  Sleeping for {request.ExponentialBackoffMS}ms");
+                    Log.Verbose(Owner.Will, $"Request failed; retrying.", data: new
+                    {
+                        BackoffMS = request.ExponentialBackoffMS,
+                        RetriesRemaining = request.Retries,
+                        Url = request.Url
+                    });
                     Thread.Sleep(request.ExponentialBackoffMS);
                 }
 

@@ -100,7 +100,10 @@ public class HealthService : PlatformTimerService
 
     public void Score(int points)
     {
-        Log.Verbose(Owner.Will, $"Scoring {points} HP");
+        Log.Verbose(Owner.Will, $"Adding HP", data: new
+        {
+            Amount = points
+        });
         string id = _accessor.TryGetItem<string>(KEY_ID);
 
         if (id != null)
