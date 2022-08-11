@@ -86,18 +86,19 @@ public class SlackMessageClient
             message.Compress();
             message.Channel = channel;
 
-            await ApiService.Instance
-                .Request(POST_MESSAGE)
-                .AddAuthorization(Token)
-                .SetPayload(message.JSON)
-                .OnFailure((_, apiResponse) => response = apiResponse.AsGenericData ?? new GenericData())
-                .OnSuccess((_, apiResponse) =>
-                {
-                    response = apiResponse.AsGenericData ?? new GenericData();
-                    if (!response.Require<bool>("ok"))
-                        throw new FailedRequestException(POST_MESSAGE, message.JSON);
-                })
-                .PostAsync();
+            if (ApiService.Instance != null)
+                await ApiService.Instance
+                    .Request(POST_MESSAGE)
+                    .AddAuthorization(Token)
+                    .SetPayload(message.JSON)
+                    .OnFailure((_, apiResponse) => response = apiResponse.AsGenericData ?? new GenericData())
+                    .OnSuccess((_, apiResponse) =>
+                    {
+                        response = apiResponse.AsGenericData ?? new GenericData();
+                        if (!response.Require<bool>("ok"))
+                            throw new FailedRequestException(POST_MESSAGE, message.JSON);
+                    })
+                    .PostAsync();
         }
         catch (Exception e)
         {

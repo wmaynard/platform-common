@@ -43,11 +43,16 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         bool adminTokenRequired = auths.Any(auth => auth.Type == AuthType.ADMIN_TOKEN);
         bool standardTokenRequired = auths.Any(auth => auth.Type == AuthType.STANDARD_TOKEN);
 
-        string bearerToken = context.HttpContext.Request.Headers
-            .FirstOrDefault(pair => pair.Key == "Authorization")
-            .Value
-            .ToString()
-            ?.Replace("Bearer ", "");
+        string authorization = context.HttpContext.Request.Headers.FirstOrDefault(pair => pair.Key == "Authorization").Value.ToString();
+        
+        Log.Verbose(Owner.Will, "Authorization received.", data: new
+        {
+            Authorization = $"'{authorization}'",
+            TokenLength = authorization.Length,
+            Headers = context.HttpContext.Request.Headers
+        });
+        
+        string bearerToken = authorization?.Replace("Bearer ", "");
         
         TokenInfo tokenInfo = null;
 
@@ -73,7 +78,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                     {
                         ValidationUrl = PlatformEnvironment.TokenValidation,
                         Code = response.StatusCode,
-                        EncryptedToken = bearerToken,
+                        EncryptedToken = $"'{bearerToken}'",
                         EventId = eventId
                     });
                     

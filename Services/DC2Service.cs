@@ -176,6 +176,7 @@ public class DC2Service : PlatformTimerService
             {
                 // Most of the time, this will have an Unnecessary error code.  This is expected.  We need this call to happen
                 // to instantiate a settings collection for each service.
+                // TODO: This relies on dynamic-config being updated for those error codes to match; might need to parse error codes by reflection / name instead.
                 if (response.ErrorCode == ErrorCode.Unnecessary)
                     Log.Verbose(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
                 else
@@ -183,10 +184,18 @@ public class DC2Service : PlatformTimerService
             })
             .OnFailure((sender, response) =>
             {
+#if DEBUG
+                if (PlatformEnvironment.Url("/") == "/")
+                    Log.Local(Owner.Default, "Unable to create new dynamic config section.  You may need a GITLAB_ENVIRONMENT_URL in your environment.json.");
+                else
+                    Log.Error(Owner.Default, "Unable to create new dynamic config section.");
+#else
                 Log.Error(Owner.Default, "Unable to create new dynamic config section.", data: new
                 {
                     Response = response.AsGenericData
                 });
+#endif
+
             })
             .Post();
 
@@ -206,12 +215,8 @@ public class DC2Service : PlatformTimerService
                 .ToArray();
 
             _apiService
-            .Request(PlatformEnvironment.Url("/config/register"))
-            .AddParameters(new GenericData
-            {
-                { "game", PlatformEnvironment.GameSecret },
-                { "secret", PlatformEnvironment.RumbleSecret }
-            })
+            .Request(PlatformEnvironment.Url(endpoint: "/config/register"))
+            .AddRumbleKeys()
             .SetPayload(new GenericData
             {
                 { PlatformEnvironment.KEY_COMPONENT, PlatformEnvironment.ServiceName },

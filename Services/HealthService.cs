@@ -142,7 +142,8 @@ public class HealthService : PlatformTimerService
         else
             UpdateWarning(isBadState: health < WARNING_THRESHOLD);  // Check to see if we fell over
 
-        Log.Verbose(Owner.Default, $"Health: {Health} %");
+        if (PlatformEnvironment.IsLocal)
+            Log.Verbose(Owner.Default, $"Health: {Health} %");
 
         // TODO: Grab ALL services for health - include them in a separate health object as non-controller services.
         PlatformService[] services = controller?.MemberServices ?? Array.Empty<PlatformService>();
