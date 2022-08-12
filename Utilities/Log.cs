@@ -38,7 +38,9 @@ public class Log : PlatformDataModel
         ? null 
         : new LogglyClient();
 
-    public enum LogType { VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL, THROTTLED }
+    public enum LogType { NONE, VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL, THROTTLED }
+
+    private LogType Emphasis { get; set; }
 
     [JsonIgnore]
     private readonly Owner _owner;
@@ -129,6 +131,8 @@ public class Log : PlatformDataModel
         {
             Exception = new PlatformSerializationException("JSON serialization failed.", Exception);
         }
+
+        Emphasis = LogType.NONE;
     }
     /// <summary>
     /// Cleans up a MethodBase obtained from a stack trace to be pretty-printed to the console.
@@ -235,8 +239,13 @@ public class Log : PlatformDataModel
             SeverityType = LogType.THROTTLED;
         if (!PlatformEnvironment.IsLocal)
             return this;
-        PrettyPrint(BuildConsoleMessage(), SeverityType switch
+
+        LogType type = Emphasis == LogType.NONE
+            ? SeverityType
+            : Emphasis;
+        PrettyPrint(BuildConsoleMessage(), type switch
         {
+            LogType.NONE => ConsoleColor.DarkGray,
             LogType.VERBOSE => ConsoleColor.DarkGray,
             LogType.LOCAL => ConsoleColor.Gray,
             LogType.INFO => ConsoleColor.Black,
@@ -277,11 +286,12 @@ public class Log : PlatformDataModel
     /// <param name="message">The message to log.</param>
     /// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
     /// <param name="exception">Any exception encountered, if available.</param>
-    public static void Local(Owner owner, string message, object data = null, Exception exception = null)
+    /// <param name="emphasis">Makes this log appear as another type with color printing enabled.</param>
+    public static void Local(Owner owner, string message, object data = null, Exception exception = null, LogType emphasis = LogType.LOCAL)
     {
         if (!PlatformEnvironment.IsLocal)
             return;
-        Write(LogType.LOCAL, owner, message, data, exception);
+        Write(LogType.LOCAL, owner, message, data, exception, emphasis: emphasis);
     }
 
     /// <summary>
@@ -388,7 +398,7 @@ public class Log : PlatformDataModel
     /// <param name="message">The message to log.</param>
     /// <param name="data">Any data you wish to include in the log.  Can be an anonymous object.</param>
     /// <param name="exception">Any exception encountered, if available.</param>
-    public static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null)
+    public static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null, LogType emphasis = LogType.NONE)
     {
         Owner actual = owner == RCL.Logging.Owner.Default
             ? DefaultOwner
@@ -410,8 +420,9 @@ public class Log : PlatformDataModel
             Message = message ?? exception?.Message,
             Token = token,
             #pragma warning disable CS0618
-            Endpoint = Converter.ContextToEndpoint(context)
-            #pragma warning restore CS0618
+            Endpoint = Converter.ContextToEndpoint(context),
+            #pragma warning restore CS0618,
+            Emphasis = emphasis
         }.Send();
     }
 

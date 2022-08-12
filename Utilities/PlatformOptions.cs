@@ -31,6 +31,7 @@ public class PlatformOptions
     internal int CriticalThreshold { get; set; }
     internal int LogThrottleThreshold { get; set; }
     internal int LogThrottlePeriodSeconds { get; set; }
+    internal string RegistrationName { get; set; }
 
     internal PlatformOptions()
     {
@@ -57,6 +58,16 @@ public class PlatformOptions
     public PlatformOptions SetProjectOwner(Owner owner) 
     {
         ProjectOwner = owner;
+        return this;
+    }
+
+    /// <summary>
+    /// This name is required for Dynamic Config to create a section for the service.  Ideally, this name is human-readable / friendly.
+    /// For example, "Chat" instead of "Chat Service".  This name will appear in Portal for managing values.  Changing this name will alter
+    /// which section Dynamic Config pulls values from.
+    public PlatformOptions SetRegistrationName(string name)
+    {
+        RegistrationName = name;
         return this;
     }
 
@@ -171,10 +182,10 @@ public class PlatformOptions
     internal PlatformOptions Validate()
     {
         if (DisabledServices.Any())
-            Log.Info(ProjectOwner, "Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
+            Log.Local(ProjectOwner, "Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
             {
                 DisabledServices = DisabledServices.Select(type => type.Name)
-            });
+            }, emphasis: Log.LogType.WARN);
         if (!EnabledFilters.IsFullSet())
             Log.Info(ProjectOwner, "Some platform-common filters have been disabled.  This is a new feature and may have unintended side effects.", data: new
             {
@@ -197,7 +208,12 @@ public class PlatformOptions
             LogThrottlePeriodSeconds = MINIMUM_THROTTLE_PERIOD;
         }
         if (EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling) && DisabledServices.Contains(typeof(CacheService)))
-            Log.Local(ProjectOwner, "Disabling the CacheService also disables the log throttling.");
+            Log.Local(ProjectOwner, "Disabling the CacheService also disables log throttling.");
+        if (string.IsNullOrWhiteSpace(RegistrationName))
+        {
+            Log.Warn(Owner.Default, "No registration name set for dynamic config.  Set one in PlatformOptions.SetRegistrationName().");
+            RegistrationName = PlatformEnvironment.ServiceName;
+        }
 
         // TODO: Add more logs / protection here
         return this;

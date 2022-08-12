@@ -120,7 +120,7 @@ public abstract class PlatformDataModel
                 MethodInfo generic = info?.MakeGenericMethod(type);
                 generic?.Invoke(obj: CreateFromSmallestConstructor(type), null);
                 if (generic != null)
-                    Log.Local(Owner.Will, $"Registered {type.FullName} with Mongo");
+                    Log.Verbose(Owner.Will, $"Registered {type.FullName} with Mongo");
             }
             catch (Exception e)
             {

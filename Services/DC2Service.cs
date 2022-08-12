@@ -160,7 +160,7 @@ public class DC2Service : PlatformTimerService
     {
         if (string.IsNullOrWhiteSpace(PlatformEnvironment.RegistrationName))
         {
-            Log.Error(Owner.Default, $"In order to register this project with dynamic-config-v2, you must provide `{PlatformEnvironment.KEY_REGISTRATION_NAME}` in your CI settings.");
+            Log.Error(Owner.Default, $"In order to register this project with dynamic-config-v2, you must make a call to PlatformOptions.SetRegistrationName().");
             return;
         }
         
@@ -243,7 +243,7 @@ public class DC2Service : PlatformTimerService
                     case 405:
                         Log.Warn(Owner.Will, "HTTP method not recognized for DC2 registration", data: new
                         {
-                        url = response.RequestUrl
+                            url = response.RequestUrl
                         });
                     break;
                     default:

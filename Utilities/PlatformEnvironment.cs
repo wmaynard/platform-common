@@ -38,7 +38,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
     public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
     public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
-    public const string KEY_GITLAB_ENVIRONMENT_NAME = " GITLAB_ENVIRONMENT_NAME";
+    public const string KEY_GITLAB_ENVIRONMENT_NAME = "GITLAB_ENVIRONMENT_NAME";
 
     // Helper getter properties
     internal static GenericData VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
@@ -51,7 +51,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
     public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
     public static string ServiceName => Optional(KEY_COMPONENT);
-    public static string RegistrationName => Optional(KEY_REGISTRATION_NAME);
+    public static string RegistrationName { get; internal set; }
     public static string MongoConnectionString => Optional(KEY_MONGODB_URI);
     public static string MongoDatabaseName => Optional(KEY_MONGODB_NAME);
     public static string Graphite => Optional(KEY_GRAPHITE);
@@ -142,7 +142,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
             foreach (string key in common.Keys)
                 output[key] = common.Optional<GenericData>(key)?.Optional<object>(deployment)
-                    ?? common.Optional<GenericData>(key)?.Optional<object>("*");
+                    ?? common.Optional<GenericData>(key)?.Optional<object>("*"); // TODO: Issue warning here
 
             // Format the LOGGLY_URL.
             string root = output.Optional<string>(KEY_LOGGLY_ROOT);
@@ -273,6 +273,44 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     {
         Log.Local(Owner.Default, $"Environment terminated: {reason}");
         Environment.Exit(exitCode);
+    }
+
+    /// <summary>
+    /// This acts as a secondary check on the environment to help diagnose deployment issues.
+    /// TODO: Conversation with Eric: does this need censorship for prod?
+    /// </summary>
+    internal static void PrintToConsole()
+    {
+        if (IsLocal)
+            return;
+        BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        PropertyInfo[] props = typeof(PlatformEnvironment)
+            .GetProperties(bindingAttr: flags)
+            .Where(prop => prop.Name != nameof(VarDump))
+            .ToArray();
+        FieldInfo[] fields = typeof(PlatformEnvironment).GetFields(flags);
+        
+        int col1 = Math.Max(props.Max(prop => prop.Name.Length), fields.Max(field => field.Name.Length));
+        int col2 = Math.Max(props.Max(prop => prop.GetValue(null)?.ToString()?.Length ?? 0), fields.Max(field => field.GetValue(null)?.ToString()?.Length ?? 0));
+        int lineWidth = col1 + col2 + 1;
+        
+        Console.WriteLine("".PadLeft(lineWidth, '-'));
+        Console.WriteLine("PlatformEnvironment Validation");
+        Console.WriteLine($@"
+Below are the values of the PlatformEnvironment class as of startup for {ServiceName}.
+At this point, the environment has been configured and loaded; missing values may be indicative of issues that
+need fixing or fields that may be candidates for obsolescence / removal.");
+        Console.WriteLine("".PadLeft(lineWidth, '-'));
+        Console.WriteLine("PlatformEnvironment Properties");
+        Console.WriteLine("".PadLeft(lineWidth, '-'));
+        foreach (PropertyInfo prop in props.Where(i => i.Name != nameof(VarDump)))
+            Console.WriteLine($"{prop.Name.PadRight(totalWidth: col1, paddingChar: ' ')} {prop.GetValue(obj: null) ?? "(null)"}");
+        
+        Console.WriteLine("".PadLeft(lineWidth, '-'));
+        Console.WriteLine("PlatformEnvironment Fields & Constants");
+        Console.WriteLine("".PadLeft(lineWidth, '-'));
+        foreach (FieldInfo field in fields.Where(i => i.Name != nameof(VarDump)))
+            Console.WriteLine($"{field.Name.PadRight(totalWidth: col1, paddingChar: ' ')} {field.GetValue(obj: null) ?? "(null)"}");
     }
 };
 
