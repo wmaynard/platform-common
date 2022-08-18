@@ -341,4 +341,6 @@ public class GenericData : Dictionary<string, object>
             return default;
         }
     }
+
+    public override string ToString() => JSON;
 }

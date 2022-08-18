@@ -247,7 +247,10 @@ public class DC2Service : PlatformTimerService
                         });
                     break;
                     default:
-                        Log.Error(Owner.Will, "Unable to register service with dynamic config.");
+                        Log.Error(Owner.Will, "Unable to register service with dynamic config.", data: new
+                        {
+                            ErrorCode = (int)response
+                        });
                         break;
                 }
             })

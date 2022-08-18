@@ -94,6 +94,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 .OnSuccess((sender, response) =>
                 {
                     tokenInfo = response.AsGenericData.Require<TokenInfo>("tokenInfo");
+                    tokenInfo.Authorization = bearerToken;
                     _cacheService?.Store(bearerToken, tokenInfo, expirationMS: TOKEN_CACHE_EXPIRATION);
                     Graphite.Track(
                         name: Graphite.KEY_AUTHORIZATION_COUNT,
