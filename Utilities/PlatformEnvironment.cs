@@ -48,7 +48,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string GameSecret => Optional(KEY_GAME_ID);
     public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
     public static string Deployment => Optional(KEY_DEPLOYMENT);
-    public static string TokenValidation => Optional(KEY_TOKEN_VALIDATION);
+    public static string TokenValidation => Url(endpoint: "/token/validate"); // Optional(KEY_TOKEN_VALIDATION);
     public static string LogglyUrl => Optional(KEY_LOGGLY_URL);
     public static string ServiceName => Optional(KEY_COMPONENT);
     public static string RegistrationName { get; internal set; }
