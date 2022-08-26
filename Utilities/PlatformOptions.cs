@@ -32,6 +32,7 @@ public class PlatformOptions
     internal int LogThrottleThreshold { get; set; }
     internal int LogThrottlePeriodSeconds { get; set; }
     internal string RegistrationName { get; set; }
+    // internal bool StartupLogsSuppressed { get; private set; }
 
     internal PlatformOptions()
     {
@@ -175,6 +176,13 @@ public class PlatformOptions
     {
         LogThrottleThreshold = suppressAfter;
         LogThrottlePeriodSeconds = period;
+
+        return this;
+    }
+
+    public PlatformOptions SuppressStartupLogs()
+    {
+        Log.Suppressed = true;
 
         return this;
     }

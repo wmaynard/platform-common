@@ -41,6 +41,7 @@ public class Log : PlatformDataModel
     public enum LogType { NONE, VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL, THROTTLED }
 
     private LogType Emphasis { get; set; }
+    internal static bool Suppressed { get; set; }
 
     [JsonIgnore]
     private readonly Owner _owner;
@@ -215,6 +216,8 @@ public class Log : PlatformDataModel
 
     private static void PrettyPrint(string text, ConsoleColor color)
     {
+        if (Suppressed)
+            return;
         if (NoColor)
         {
             Console.WriteLine(text);
