@@ -12,6 +12,8 @@ namespace Rumble.Platform.Common.Interop;
 public class LogglyClient
 {
     public string URL { get; init; }
+    
+    public static bool Disabled { get; internal set; }
 
     public static bool UseThrottling { get; internal set; }
 
@@ -24,6 +26,8 @@ public class LogglyClient
     public void Send(Log log, out bool throttled)
     {
         throttled = false;
+        if (Disabled)
+            return;
 
         // We don't need to spam Loggly with VERBOSE local logs
         if (PlatformEnvironment.IsLocal && log.SeverityType == Log.LogType.VERBOSE)

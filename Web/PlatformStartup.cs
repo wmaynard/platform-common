@@ -111,6 +111,7 @@ public abstract class PlatformStartup
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
         Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
+        LogglyClient.Disabled = !Options.EnabledFeatures.HasFlag(CommonFeature.Loggly);
         LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
         LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
         LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
@@ -136,7 +137,8 @@ public abstract class PlatformStartup
         else if (UsingMongoServices && MongoConnection == null)
             Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
 
-        Graphite.Initialize(Options.ServiceName ?? ServiceName);
+        if (Options.EnabledFeatures.HasFlag(CommonFeature.Graphite))
+            Graphite.Initialize(Options.ServiceName ?? ServiceName);
     }
 
     /// <param name="services"></param>
