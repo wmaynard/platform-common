@@ -59,6 +59,12 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
     public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
+    internal static string[] ServiceUrls => Environment
+        .GetEnvironmentVariable("ASPNETCORE_URLS")
+        ?.Split(separator: ";")
+        .OrderBy(_string => _string.Length)
+        .ToArray()
+        ?? Array.Empty<string>();
 
     private static Dictionary<string, string> FallbackValues { get; set; }
 

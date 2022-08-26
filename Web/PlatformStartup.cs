@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Timers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -245,13 +247,17 @@ public abstract class PlatformStartup
         .Where(type => type.IsAssignableTo(typeof(PlatformService)))
         ?? Array.Empty<Type>();
 
-    protected static IEnumerable<PlatformController> PlatformControllers => Assembly
+    protected static Type[] PlatformControllers => Assembly
         .GetEntryAssembly()
         ?.GetExportedTypes()
-        .OfType<PlatformController>();
+        .Concat(Assembly.GetExecutingAssembly().GetExportedTypes()) // Add platform-common's types
+        .Where(type => !type.IsAbstract)
+        .Where(type => type.IsAssignableTo(typeof(PlatformController)))
+        .ToArray();
 
-    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
+    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider, IHostApplicationLifetime lifetime, IConfiguration confit)
     {
+        lifetime.ApplicationStarted.Register(Ready);
         Log.Local(Owner.Default, $"Environment url: {PlatformEnvironment.Url(endpoint: "/")}");
         string baseRoute = this.HasAttribute(out BaseRoute attribute)
             ? attribute.Route
@@ -311,8 +317,6 @@ public abstract class PlatformStartup
                 .UseAuthorization()
                 .UseEndpoints(endpoints => { endpoints.MapControllers(); })
                 .UseResponseCompression();
-
-            Ready();
             return;
         }
 
@@ -349,13 +353,40 @@ public abstract class PlatformStartup
                 ConfigureRoutes(builder);
             })
             .UseResponseCompression();
-        Ready();
     }
 
     private void Ready()
     {
+        string[] urls = PlatformEnvironment.ServiceUrls;
+        
         Log.Suppressed = false;
-        Log.Local(Owner.Default, "Application successfully started.", emphasis: Log.LogType.WARN);
+
+        if (Options.DisabledServices.Contains(typeof(ApiService)) || !urls.Any())
+        {
+            Log.Local(Owner.Default, "Application successfully started.", emphasis: Log.LogType.WARN);
+            return;
+        }
+
+        // Ping our /health endpoint; this proves we're ready for traffic.
+        Type top = PlatformControllers.FirstOrDefault(type => type.Name == "TopController");
+
+        if (top == null)
+        {
+            Log.Local(Owner.Default, "No TopController found.  It's standard to have one for Platform health checks.  /health can't be checked by Startup.", emphasis: Log.LogType.ERROR);
+            return;
+        }
+
+        RouteAttribute route = top.GetAttribute<RouteAttribute>();
+
+        ApiService.Instance
+            ?.Request(url: $"{Path.Combine(urls.First(), route?.Template ?? "/", "health")}", retries: 2)
+            .AddRumbleKeys()
+            .OnSuccess(response => Log.Local(Owner.Default, $"Application successfully started: {string.Join(", ", urls)}", emphasis: Log.LogType.WARN, data: new
+            {
+                Health = response.AsGenericData
+            }))
+            .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup."))
+            .Get(out GenericData json, out int code);
     }
 
     protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }

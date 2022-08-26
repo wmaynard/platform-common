@@ -23,8 +23,9 @@ public class ApiRequest
     internal string UrlWithQuery => Url + QueryString;
 
     internal string QueryString => Parameters.Any()
-    ? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
-    : "";
+        ? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
+        : "";
+
     internal GenericData Headers { get; private set; }
     internal GenericData Payload { get; private set; }
     internal GenericData Response { get; private set; }
@@ -38,7 +39,7 @@ public class ApiRequest
     private event EventHandler<ApiResponse> _onFailure;
     private bool FailureHandled { get; set; }
 
-    public ApiRequest(ApiService spawner, string url, int retries = DEFAULT_RETRIES)
+    internal ApiRequest(ApiService spawner, string url, int retries = DEFAULT_RETRIES, bool prependEnvironment = true)
     {
         _apiService = spawner;
         Headers = spawner.DefaultHeaders.Copy();
@@ -47,17 +48,17 @@ public class ApiRequest
         SetRetries(retries);
         Url = url;
 
-        if (Url.StartsWith('/'))
+        if (Url.StartsWith('/') && prependEnvironment)
             Url = PlatformEnvironment.Url(Url);
-        
+
         _onSuccess += (_, response) => { };
         _onFailure += (_, response) =>
         {
             int code = (int)response;
             object data = new
             {
-            url = url,
-            code = code
+                url = url,
+                code = code
             };
 
             // Don't infinitely log if failing to send to loggly
@@ -97,45 +98,46 @@ public class ApiRequest
     public ApiRequest AddAuthorization(string token)
     {
         if (token != null)
-            return AddHeader("Authorization", token.StartsWith("Bearer ") 
-                ? token 
+            return AddHeader("Authorization", token.StartsWith("Bearer ")
+                ? token
                 : $"Bearer {token}"
             );
 
         Log.Error(Owner.Default, "Null token added as authorization for an ApiRequest.");
         return this;
     }
-    
+
     public ApiRequest AddHeader(string key, string value) => AddHeaders(new GenericData() { { key, value } });
-    
+
     public ApiRequest AddHeaders(GenericData headers)
     {
         Headers.Combine(other: headers, prioritizeOther: true);
         return this;
     }
-    
+
     public ApiRequest AddRumbleKeys() => AddParameter("game", PlatformEnvironment.GameSecret)
         .AddParameter("secret", PlatformEnvironment.RumbleSecret);
 
     public ApiRequest AddParameter(string key, string value) => AddParameters(new GenericData { { key, value } });
-    
+
     public ApiRequest AddParameters(GenericData parameters)
     {
         Parameters.Combine(other: parameters, prioritizeOther: true);
         return this;
     }
-    
+
     public ApiRequest SetPayload(GenericData payload)
     {
         Payload.Combine(other: payload, prioritizeOther: true);
         return this;
     }
-    
+
     public ApiRequest SetRetries(int retries)
     {
         Retries = _originalRetries = retries;
         return this;
     }
+
     /// <summary>
     /// Invokes the OnSuccess / OnFailure events based on the HTTP status code returned.
     /// </summary>
@@ -153,7 +155,12 @@ public class ApiRequest
         _onSuccess += action;
         return this;
     }
-    
+
+    public ApiRequest OnSuccess(Action<ApiResponse> action) => OnSuccess((_, response) =>
+    {
+        action.Invoke(response);
+    });
+
     /// <summary>
     /// Adds error handling to the ApiRequest.  This triggers anytime the response is not a 2xx code.
     /// Note that by calling this method, the default error handling reverts to LOCAL-only logs.
@@ -164,6 +171,11 @@ public class ApiRequest
         _onFailure += action;
         return this;
     }
+
+    public ApiRequest OnFailure(Action<ApiResponse> action) => OnSuccess((_, response) =>
+    {
+        action.Invoke(response);
+    });
 
     private ApiRequest SetMethod(HttpMethod method)
     {
