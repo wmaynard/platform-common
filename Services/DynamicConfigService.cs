@@ -73,7 +73,7 @@ public class DynamicConfigService : PlatformTimerService
         .OnFailure((sender, response) =>
         {
             _healthService.Degrade(amount: 10);
-            Log.Error(Owner.Default, "Failed to fetch dynamic config.", data: new
+            Log.Error(Owner.Default, $"Failed to fetch dynamic config.  This may be a result of a missing CI var for '{PlatformEnvironment.KEY_CONFIG_SERVICE}'", data: new
             {
                 Url = response.RequestUrl
             });
