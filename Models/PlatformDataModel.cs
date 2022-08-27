@@ -76,6 +76,29 @@ public abstract class PlatformDataModel
             throw new ModelValidationException(this, errors);
     }
 
+    /// <summary>
+    /// Used by platform-common to dynamically call the Validate function.  This is used to validate on deserialization.
+    /// The parameter type is not a PlatformDataModel because this is called from generic types.
+    /// </summary>
+    /// <param name="model"></param>
+    internal static void Validate(object model)
+    {
+        try
+        {
+            model
+                ?.GetType()
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .First(method => method.Name == nameof(Validate))
+                .Invoke(obj: model, parameters: null);
+        }
+        catch (Exception e)
+        {
+            throw e.InnerException is ModelValidationException
+                ? e.InnerException
+                : e;
+        }
+    }
+
     // TODO: Use an interface or make this abstract to force its adoption?
     protected virtual void Validate(out List<string> errors) => errors = new List<string>();
 

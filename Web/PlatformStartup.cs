@@ -110,6 +110,7 @@ public abstract class PlatformStartup
     protected PlatformStartup(IConfiguration configuration = null)
     {
         Options = Configure(new PlatformOptions()).Validate();
+        GenericData.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
         Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);

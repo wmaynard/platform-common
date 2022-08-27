@@ -12,4 +12,5 @@ public enum CommonFeature
     LogglyThrottling                = 0b_0001_0000,
     MongoDB                         = 0b_0010_0000,
     Graphite                        = 0b_0100_0000,
+    ModelValidationOnDeserialize    = 0b_1000_0000
 }

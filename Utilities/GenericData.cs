@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization;
@@ -16,6 +17,7 @@ namespace Rumble.Platform.Common.Utilities;
 
 public class GenericData : Dictionary<string, object>
 {
+    internal static bool ValidateOnDeserialize { get; set; }
     public GenericData() { }
 
     public static GenericData FromDictionary(Dictionary<string, object> dict)
@@ -203,9 +205,29 @@ public class GenericData : Dictionary<string, object>
     public static bool operator ==(GenericData a, GenericData b) => a?.Equals(b) ?? b is null;
     public static bool operator !=(GenericData a, GenericData b) => !(a == b);
 
-    public T Require<T>(string key) => (T)Translate<T>(Require(key)) ?? throw new PlatformException(message: $"Unable to cast {GetType().Name} to {typeof(T).Name}.");
+    public T Require<T>(string key)
+    {
+        T output = (T)Translate<T>(Require(key)) ?? throw new PlatformException(message: $"Unable to cast {GetType().Name} to {typeof(T).Name}.");
 
-    public T Optional<T>(string key) => (T)Translate<T>(Optional(key));
+        ValidateDataModel<T>(output);
+        
+        return output;
+    }
+
+    private void ValidateDataModel<T>(object value)
+    {
+        if (ValidateOnDeserialize && typeof(T).IsAssignableTo(typeof(PlatformDataModel)))
+            PlatformDataModel.Validate(value);
+    }
+
+    public T Optional<T>(string key)
+    {
+        T output = (T)Translate<T>(Optional(key));
+        
+        ValidateDataModel<T>(output);
+
+        return output;
+    }
 
     public object Require(string key) => ContainsKey(key)
         ? this[key]
