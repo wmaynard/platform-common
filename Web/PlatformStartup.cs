@@ -109,7 +109,7 @@ public abstract class PlatformStartup
 
     protected PlatformStartup(IConfiguration configuration = null)
     {
-        Options = Configure(new PlatformOptions()).Validate();
+        Options = ConfigureOptions(new PlatformOptions()).Validate();
         GenericData.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
@@ -303,6 +303,11 @@ public abstract class PlatformStartup
                 Log.Warn(Owner.Default, $"There was an issue in resolving dependent services for {type.Name}.", exception: e);
             }
 
+        if (!Options.AspNetServicesEnabled)
+        {
+            return;
+        }
+
         // Separate the two modes of startup - either services or a website with services.
         // This is a necessary step to prevent microservices (the more common projects) from starting up a file server.
         // Since order matters for several methods in these chains, it is safer to create one chain per purpose, with every necessary
@@ -392,5 +397,5 @@ public abstract class PlatformStartup
 
     protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }
 
-    protected abstract PlatformOptions Configure(PlatformOptions options);
+    protected abstract PlatformOptions ConfigureOptions(PlatformOptions options);
 }
