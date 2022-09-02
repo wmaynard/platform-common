@@ -256,7 +256,7 @@ public abstract class PlatformStartup
         .Where(type => type.IsAssignableTo(typeof(PlatformController)))
         .ToArray();
 
-    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider, IHostApplicationLifetime lifetime, IConfiguration confit)
+    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider, IHostApplicationLifetime lifetime, IConfiguration config)
     {
         lifetime.ApplicationStarted.Register(Ready);
         Log.Local(Owner.Default, $"Environment url: {PlatformEnvironment.Url(endpoint: "/")}");
@@ -327,7 +327,7 @@ public abstract class PlatformStartup
 
         app
             .UseHttpsRedirection()
-            .UseForwardedHeaders(new ForwardedHeadersOptions()
+            .UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedProto
             })
@@ -379,15 +379,20 @@ public abstract class PlatformStartup
 
         RouteAttribute route = top.GetAttribute<RouteAttribute>();
 
-        ApiService.Instance
-            ?.Request(url: $"{Path.Combine(urls.First(), route?.Template ?? "/", "health")}", retries: 2)
-            .AddRumbleKeys()
-            .OnSuccess(response => Log.Local(Owner.Default, $"Application successfully started: {string.Join(", ", urls)}", emphasis: Log.LogType.WARN, data: new
-            {
-                Health = response.AsGenericData
-            }))
-            .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup."))
-            .Get(out GenericData json, out int code);
+        string message = $"Application successfully started: {string.Join(", ", urls)}";
+
+        if (Options.EnabledFeatures.HasFlag(CommonFeature.HealthCheckOnStartup))
+            ApiService.Instance
+                ?.Request(url: $"{Path.Combine(urls.First(), route?.Template ?? "/", "health")}", retries: 2)
+                .AddRumbleKeys()
+                .OnSuccess(response => Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN, data: new
+                {
+                    Health = response.AsGenericData
+                }))
+                .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup."))
+                .Get(out GenericData json, out int code);
+        else
+            Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN);
     }
 
     protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }
