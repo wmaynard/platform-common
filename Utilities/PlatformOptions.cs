@@ -33,6 +33,8 @@ public class PlatformOptions
     internal int LogThrottlePeriodSeconds { get; set; }
     internal string RegistrationName { get; set; }
     // internal bool StartupLogsSuppressed { get; private set; }
+    
+    internal bool AspNetServicesEnabled { get; set; }
 
     internal PlatformOptions()
     {
@@ -48,6 +50,7 @@ public class PlatformOptions
         ServiceName = null;
         LogThrottleThreshold = DEFAULT_THROTTLE_THRESHOLD;
         LogThrottlePeriodSeconds = DEFAULT_THROTTLE_PERIOD;
+        AspNetServicesEnabled = true;
     }
 
     private static T GetFullSet<T>() where T : Enum => ((T[])Enum.GetValues(typeof(T))).First().FullSet();
@@ -131,6 +134,12 @@ public class PlatformOptions
     public PlatformOptions DisableFeatures(CommonFeature features)
     {
         EnabledFeatures = (EnabledFeatures.Invert() | features).Invert();
+        return this;
+    }
+
+    public PlatformOptions DisableAspNetServices()
+    {
+        AspNetServicesEnabled = false;
         return this;
     }
 
