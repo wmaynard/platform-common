@@ -95,6 +95,8 @@ public class ApiResponse
     public async Task<GenericData> AsGenericDataAsync()
     {
         string asString = await AsStringAsync();
+        if (string.IsNullOrWhiteSpace(asString))
+            return new GenericData();
         try
         {
             return Success
