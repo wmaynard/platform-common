@@ -146,8 +146,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     }
 
     /// <summary>
-    /// This method is used for F# token validation.  F# can't make use of the filters appropriately, so this is an effective workaround.
-    /// It should not be used in C# services, however.
+    /// This method is used for token validation as a function instead of relying on asp.net filters.
     /// </summary>
     /// <param name="encryptedToken">The token from the Authorization Header.  It may either include or omit "Bearer ".</param>
     /// <returns>Decrypted TokenInfo.</returns>
@@ -158,8 +157,10 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         GetService(out ApiService api);
         GetService(out CacheService cache);
 
-        TokenInfo output;
-        if (cache.HasValue(encryptedToken, out output))
+        TokenInfo output = null;
+        
+        if (cache != null &&
+            cache.HasValue(encryptedToken, out output))
             return output;
 
         // If a token is provided and does not exist in the cache, we should validate it.
@@ -170,8 +171,17 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 .AddAuthorization(encryptedToken)
                 .OnFailure((sender, response) =>
                 {
-                    string message = response.OriginalResponse.Optional<string>("message") ?? "no message provided";
-                    string eventId = response.OriginalResponse.Optional<string>("eventId");
+                    string message = null;
+                    string eventId = null;
+
+                    try
+                    {
+                       message = response.OriginalResponse.Optional<string>("message") ?? "no message provided";
+                        eventId = response.OriginalResponse.Optional<string>("eventId");
+                    }
+                    catch (Exception)
+                    {
+                    }
                     
                     string errorMessage = $"Token auth failure: {message}";
                     Log.Error(Owner.Default, errorMessage, data: new
