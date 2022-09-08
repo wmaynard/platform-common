@@ -44,7 +44,8 @@ public abstract class PlatformStartup
     private static string MongoConnection { get; set; }
     private static bool MongoDisabled => MongoConnection == null;
     public const string CORS_SETTINGS_NAME = "_CORS_SETTINGS";
-    private bool WebServerEnabled { get; set; }
+    protected bool WebServerEnabled { get; private set; }
+    
 
     private static string PasswordlessMongoConnection
     {
@@ -219,20 +220,38 @@ public abstract class PlatformStartup
 
         Services.AddHttpContextAccessor(); // Required for classes in common (e.g. Log) to be able to access the HttpContext.
 
+        InitSingletonServices();
+
+        Log.Local(Owner.Default, "Adding forwarded headers");
+        services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor; });
+        
+        Log.Local(Owner.Default, "Service configuration complete.");
+    }
+
+    /// <summary>
+    /// @brief Inits all the singleton services
+    /// </summary>
+    protected void InitSingletonServices()
+    {
         Log.Verbose(Owner.Default, "Creating service singletons");
+        
         foreach (Type service in PlatformServices)
         {
             if (Options.DisabledServices.Contains(service))
                 continue;
             if (service.IsAssignableTo(typeof(IPlatformMongoService)) && MongoDisabled)
                 continue;
-            Services.AddSingleton(service);
+            
+            InitSingletonService(service);
         }
+    }
 
-        Log.Local(Owner.Default, "Adding forwarded headers");
-        services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor; });
-        
-        Log.Local(Owner.Default, "Service configuration complete.");
+    /// <summary>
+    /// @brief Inits a specific the singleton service
+    /// </summary>
+    protected void InitSingletonService(Type service)
+    {
+        Services.AddSingleton(service);
     }
 
     protected bool UsingMongoServices => PlatformServices.Any(type => type.IsAssignableTo(typeof(IPlatformMongoService)));
