@@ -12,7 +12,7 @@ Mongo services.  Your service will need a valid connection string and Mongo enab
 
 Previously, there was a `MasterService` in platform-common that attempted to track which node was the primary and which nodes were secondaries.  This service only allowed the primary node to process data, and if there was no active primary node, a secondary could promote itself after 30 seconds.  There was a problem, however.  The service itself was the authoritative source of its primary node status, and didn't have direct access to Mongo.  Instead, it relied on dependency injection and other services to achieve data persistence.  This introduced enough of a delay for multiple instances to collide as primary nodes.
 
-In prod, we had multiple instances of `leaderboards-service` that believes they were the primary node.  This resulted in the primary GUID flipping back and forth every few seconds, but no logs indicating that one node was confiscating the primary status.  Frustratingly, the services behaved for _months_ in dev and staging environments, which made the issue nearly impossible to reproduce and diagnose.
+In prod, we had multiple instances of `leaderboards-service` that believed they were the primary node.  This resulted in the primary GUID flipping back and forth every few seconds, but no logs indicating that one node was confiscating the primary status.  Frustratingly, the services behaved for _months_ in dev and staging environments, which made the issue nearly impossible to reproduce and diagnose.
 
 `QueueService` is fundamentally different from this approach.  Mongo is now the authoritative source of which node is primary, and the service can directly access the data.  On every tick of its timer, the `QueueService` attempts to update the config with its ID, given the following conditions:
 
@@ -164,11 +164,13 @@ Will    |     125,220ms | LOCAL     |               RolloverService_old.MoveNext
 
 9. But wait, there's more!  As one final feature, it's sometimes necessary to store a value between sessions, or, for example, if a service crashes or otherwise needs to be redeployed.  The `QueueService` contains two useful methods to aid with this `Get(string)` and `Set<T>(string, object)`.  The single config document in the `QueueService`'s collection has a `GenericData` object in it, and this data can hold whatever settings are needed for proper operation of the service.  In the case of Leaderboards, for example, this is necessary to track when leaderboards were last rolled over.
 
-## Further Considerations
+## FAQs
 
 ### What Happens if the Primary Node Gets Overtaken While Working?
 
-Well, ideally, nothing of consequence.  As long as you keep your processing light in `PrimaryNodeWork()`, even if a node loses its primary status, it should just be doing work on tasks, and will be demoted to a secondary node on its next `OnElapsed` cycle.  However, if the service needs 20 minutes to complete the logic in `PrimaryNodeWork()`, you may find yourself with a concurrency problem on your hands - so don't do this!  Leave all the heavy work to `ProcessTask(T)`!  
+Well, ideally, nothing of consequence.  As long as you keep your processing light in `PrimaryNodeWork()`, even if a node loses its primary status, it should just be doing work on tasks, and will be demoted to a secondary node on its next `OnElapsed` cycle.  This may mean that there's actually no consequence to letting the primary node try to handle a _ton_ of tasks.  Maybe it doesn't matter if the primary node is changing hands constantly.  This is simply untested at the moment.  
+
+However, if the service needs 20 minutes to complete the logic in `PrimaryNodeWork()`, you may find yourself with a problem on your hands of two primaries - so don't do this!  Leave all the heavy work to `ProcessTask(T)`!  
 
 There's only so much PEBKAC that can be prevented!
 
@@ -179,3 +181,7 @@ Tasks that hit exceptions are automatically retried up to 5 times.  After that, 
 ### What Happens if a Task is Claimed But Never Completes?
 
 Unfortunately, at this time, it'll end up as an orphan.  Stay tuned for a V2!
+
+### How Long do Tasks Persist in Mongo?
+
+7 days.  The primary node deletes any task that's older than that on every cycle.
