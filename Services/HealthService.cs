@@ -159,12 +159,7 @@ public class HealthService : PlatformTimerService
         }
 
         foreach (PlatformTimerService timer in services.OfType<PlatformTimerService>())
-        {
             output.Combine(timer.HealthStatus);
-
-            if ((timer is not MasterService master || master.IsPrimary) && !timer.IsRunning)
-                Degrade(amount: 5);
-        }
 
         long downTime = Timestamp.UnixTime - WarningTime;
 
