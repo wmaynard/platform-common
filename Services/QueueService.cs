@@ -66,7 +66,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             {
                 Task.Run(PrimaryNodeWork).Wait();
                 
-                Log.Local(Owner.Default, $"(Primary) Processing up to {PrimaryTaskCount} tasks");
                 for (int count = PrimaryTaskCount; count > 0; count--)
                     if (!WorkPerformed(StartNewTask()))
                         break;
@@ -79,13 +78,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             }
         }
         else
-        {
-            Log.Local(Owner.Will, "Ready to perform work.");
-
             for (int count = SecondaryTaskCount; count > 0; count--)
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
                     break;
-        }
     }
 
     /// <summary>
