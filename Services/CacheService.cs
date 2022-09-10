@@ -28,8 +28,8 @@ public class CacheService : PlatformTimerService
     /// <param name="expirationMS">The length of time to store the value in memory.</param>
     public void Store(string key, object value, long expirationMS = 5_000)
     {
-        if (expirationMS < IntervalMS)
-            Log.Warn(Owner.Default, $"Cache '{key}' is set to expire in {expirationMS}ms, but the interval for the cache is longer ({IntervalMS}).");
+        if (expirationMS < IntervalMs)
+            Log.Warn(Owner.Default, $"Cache '{key}' is set to expire in {expirationMS}ms, but the interval for the cache is longer ({IntervalMs}).");
 
         if (expirationMS > MAX_CACHE_TIME_MS)
         {

@@ -1,22 +1,23 @@
 using System;
 using System.Timers;
 using RCL.Logging;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformTimerService : PlatformService
+public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T> where T : PlatformCollectionDocument
 {
     private readonly Timer _timer;
-    protected readonly double IntervalMs;
+    protected double IntervalMs { get; init; }
     public bool IsRunning => _timer.Enabled;
     public string Status => IsRunning ? "running" : "stopped";
 
-    protected PlatformTimerService(double intervalMS, bool startImmediately = true)
+    protected PlatformMongoTimerService(string collection, double intervalMs, bool startImmediately = true) : base(collection)
     {
-        IntervalMs = intervalMS;
+        IntervalMs = intervalMs;
         _timer = new Timer(IntervalMs);
-        _timer.Elapsed += (sender, args) =>
+        _timer.Elapsed += (_, _) =>
         {
             Pause();
             try
@@ -26,6 +27,7 @@ public abstract class PlatformTimerService : PlatformService
             catch (Exception e)
             {
                 Log.Error(Owner.Default, $"{GetType().Name}.OnElapsed failed.", exception: e);
+                
             }
             Resume();
         };
@@ -34,9 +36,7 @@ public abstract class PlatformTimerService : PlatformService
     }
 
     protected void Pause() => _timer.Stop();
-
     protected void Resume() => _timer.Start();
-
     protected abstract void OnElapsed();
 
     public override GenericData HealthStatus => new GenericData

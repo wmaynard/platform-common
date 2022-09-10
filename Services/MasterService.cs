@@ -35,7 +35,7 @@ public abstract class MasterService : PlatformTimerService
 
     protected string ID { get; init; }
 
-    protected MasterService(ConfigService configService) : base(intervalMS: MS_INTERVAL, startImmediately: true)
+    protected MasterService(ConfigService configService) : base(intervalMS: MS_INTERVAL, startImmediately: false)
     {
         _config = configService;
         ID = Guid.NewGuid().ToString(); 
@@ -87,15 +87,18 @@ public abstract class MasterService : PlatformTimerService
     {
         _config.Update($"{Name}_{key}", value);
     });
+    
+    private long LastUpdated { get; set; }
 
     protected sealed override void OnElapsed()
     {
-        #if DEBUG
+#if DEBUG
         return;
-        #else
+#else
+        
         if (IsPrimary)
         {
-            _config.Update(LastActiveKey, UnixTimeMS);
+            _config.Update(LastActiveKey, LastUpdated);
 
             // We want the config to be updated regardless of whether or not our worker threads are processing.
             // If we don't update it and our service takes too long to work, another container will try to take over and
@@ -108,7 +111,7 @@ public abstract class MasterService : PlatformTimerService
             Confiscate();
         else
             _config.Refresh();
-        #endif
+#endif
     }
 
     public void Cancel() => _tokenSource?.Cancel();

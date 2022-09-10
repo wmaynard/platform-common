@@ -29,7 +29,7 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
         Find(config => true).FirstOrDefault() 
         ?? Create(new ServiceConfig());
 
-    public ConfigService() : base("serviceConfig") => Refresh();
+    public ConfigService() : base("config") => Refresh();
 
     public class ServiceConfig : PlatformCollectionDocument
     {

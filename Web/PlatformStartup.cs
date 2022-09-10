@@ -109,6 +109,7 @@ public abstract class PlatformStartup
 
     protected PlatformStartup(IConfiguration configuration = null)
     {
+        Timestamp.FromDynamicTimespan("dt_user_account_start+0-0+7-0+d | dt_user_account_start+14-0+21-0+d", out string name, out int start, out int end);
         Options = ConfigureOptions(new PlatformOptions()).Validate();
         GenericData.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
