@@ -18,7 +18,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     private const int MAX_FAILURE_COUNT = 5;
     private const int MS_TAKEOVER = 15 * 60 * 1000; // 15 minutes
     private const int RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-    private const string COLLECTION_PREFIX = "tasks_";
+    private const string COLLECTION_PREFIX = "queue_";
     protected string Id { get; init; }
     protected bool IsPrimary { get; private set; }
     
@@ -31,7 +31,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <summary>
     /// Creates and starts a new QueueService on startup.
     /// </summary>
-    /// <param name="collection">The collection for queued tasks.  This collection will be prepended with "tasks_".</param>
+    /// <param name="collection">The collection for queued tasks.  This collection will be prepended with "queue_".</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
     protected QueueService(string collection, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
