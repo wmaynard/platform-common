@@ -16,9 +16,10 @@ namespace Rumble.Platform.Common.Services;
 public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData> where T : PlatformDataModel
 {
     private const int MAX_FAILURE_COUNT = 5;
-    private const int MS_TAKEOVER = 30_000;
+    private const int MS_TAKEOVER = 15 * 60 * 1000; // 15 minutes
     private const int RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-    private string Id { get; init; }
+    private const string COLLECTION_PREFIX = "tasks_";
+    protected string Id { get; init; }
     protected bool IsPrimary { get; private set; }
     
     private int PrimaryTaskCount { get; init; }
@@ -30,20 +31,23 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <summary>
     /// Creates and starts a new QueueService on startup.
     /// </summary>
+    /// <param name="collection">The collection for queued tasks.  This collection will be prepended with "tasks_".</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
-    protected QueueService([Range(1, int.MaxValue)] int primaryNodeTaskCount, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
-        : base(collection: "tasks", intervalMs: 5_000, startImmediately: true)
+    protected QueueService(string collection, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
+        : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: 60_000, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
 
+        collection = $"{COLLECTION_PREFIX}{collection}";
+
         _config = new MongoClient(PlatformEnvironment.MongoConnectionString)
             .GetDatabase(PlatformEnvironment.MongoDatabaseName)
-            .GetCollection<QueueConfig>("tasks");
+            .GetCollection<QueueConfig>(collection);
         
         _work = new MongoClient(PlatformEnvironment.MongoConnectionString)
             .GetDatabase(PlatformEnvironment.MongoDatabaseName)
-            .GetCollection<QueuedTask>("tasks");
+            .GetCollection<QueuedTask>(collection);
 
         PrimaryTaskCount = Math.Max(1, primaryNodeTaskCount);
         SecondaryTaskCount = secondaryNodeTaskCount == 0
