@@ -159,8 +159,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
 
         TokenInfo output = null;
         
-        if (cache != null &&
-            cache.HasValue(encryptedToken, out output))
+        if (cache != null && cache.HasValue(encryptedToken, out output))
             return output;
 
         // If a token is provided and does not exist in the cache, we should validate it.
@@ -171,20 +170,10 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 .AddAuthorization(encryptedToken)
                 .OnFailure((sender, response) =>
                 {
-                    string message = null;
-                    string eventId = null;
-
-                    try
-                    {
-                       message = response.OriginalResponse.Optional<string>("message") ?? "no message provided";
-                        eventId = response.OriginalResponse.Optional<string>("eventId");
-                    }
-                    catch (Exception)
-                    {
-                    }
+                    string message = response?.OriginalResponse?.Optional<string>("message") ?? "no message provided";
+                    string eventId = response?.OriginalResponse?.Optional<string>("eventId");
                     
-                    string errorMessage = $"Token auth failure: {message}";
-                    Log.Error(Owner.Default, errorMessage, data: new
+                    Log.Error(Owner.Default, $"Token auth failure: {message}", data: new
                     {
                         ValidationUrl = PlatformEnvironment.TokenValidation,
                         Code = response.StatusCode,
