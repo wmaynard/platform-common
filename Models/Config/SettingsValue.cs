@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rumble.Platform.Common.Models.Config;
 
+[BsonIgnoreExtraElements]
 public class SettingsValue : PlatformDataModel
 {
     [BsonElement("value"), BsonIgnoreIfNull]

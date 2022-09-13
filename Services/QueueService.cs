@@ -32,10 +32,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// Creates and starts a new QueueService on startup.
     /// </summary>
     /// <param name="collection">The collection for queued tasks.  This collection will be prepended with "queue_".</param>
+    /// <param name="intervalMs">The length of time between PrimaryWork() calls.  The timer is paused while the thread is working.</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
-    protected QueueService(string collection, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
-        : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: 60_000, startImmediately: true)
+    protected QueueService(string collection, int intervalMs = 60_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
+        : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
 
