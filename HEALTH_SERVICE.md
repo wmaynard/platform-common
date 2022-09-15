@@ -120,7 +120,7 @@ If somehow the service has recovered - or perhaps you have an endpoint to acknow
 
 _Something isn't working as described here.  Help!_
 
-For the most part, the `HealthService` hasn't seen much battle.  It has only been minimally-tested within player-service, and most of the work was started on a Labs Day long ago.  Consequently it may have some rough edges; DM Will and help improve the service by describing your problem and what you need from it!
+For the most part, the `HealthService` hasn't seen much battle.  It has only been minimally-tested within player-service.  Consequently it may have some rough edges; DM Will and help improve the service by describing your problem and what you need from it!
 
 
 
