@@ -45,6 +45,7 @@ This endpoint would add 20 max HP just before execution enters this method.  If 
 #### Important Notes:
 
 * HP is not affected by unauthorized requests - the authorization filter executes before the health filter does.  Requesting this endpoint without an authorization token would not affect the `HealthService`.
+* HP is automatically degraded on health checks for _every_ Mongo service that is not connected to the database.
 * Until there are at least 10 datapoints, HP percentage is considered to be 100.
 
 ### Example
@@ -103,6 +104,14 @@ public FooService : PlatformTimerService
 ```
 
 Here we have a timer service that's performing some sort of work.  At the start of every elapsed cycle, we're adding 10 max HP, and every time we don't hit an Exception, the Health Service is granted the tentative HP.
+
+Similarly, it's equally possible to not deal with adding HP / Max HP, but rather just removing HP from the existing pool:
+
+```
+_health.Degrade(amount: 10);
+```
+
+This can be helpful if you only want to use the HealthService when handling exceptions. 
 
 #### Important Notes:
 
