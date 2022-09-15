@@ -185,3 +185,7 @@ Unfortunately, at this time, it'll end up as an orphan.  Stay tuned for a V2!
 ### How Long do Tasks Persist in Mongo?
 
 7 days.  The primary node deletes any task that's older than that on every cycle.
+
+## Next Steps
+
+1. If the primary node work limit can safely be removed / there's no downside of the primary node switching, we can remove the work limits altogether.

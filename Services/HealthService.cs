@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
@@ -66,8 +67,9 @@ public class HealthService : PlatformTimerService
 
     private bool Warning { get; set; }
     private long WarningTime { get; set; }
+    internal Reason FailureReason { get; private set; }
 
-    public bool IsFailing => Warning && Timestamp.UnixTime - WarningTime > GRACE_PERIOD;
+    public bool IsFailing => (FailureReason != Reason.None) || (Warning && Timestamp.UnixTime - WarningTime > GRACE_PERIOD);
 
     public float Health => Data.Count < MINIMUM_DATA_POINTS
         ? 100
@@ -97,6 +99,22 @@ public class HealthService : PlatformTimerService
     // This effectively adds a failure amount to our total health.
     public void Degrade([Range(1, int.MaxValue, ErrorMessage = "Amount must be positive.")] int amount) => 
         Data.Enqueue(Datapoint.ScoreOnly(-1 * amount));
+
+    public void Fail(Reason reason)
+    {
+        Log.Info(Owner.Default, "Service has been marked as failing.", data: new
+        {
+            Reason = reason.ToString()
+        });
+        FailureReason |= reason;
+    }
+
+    public void Recover()
+    {
+        Log.Info(Owner.Default, "Service has recovered from a failure.");
+        FailureReason = Reason.None;
+        // TODO: Only recover from one reason at a time?
+    }
 
     public void Score(int points)
     {

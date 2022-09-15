@@ -181,9 +181,11 @@ public abstract class PlatformController : Controller
         GenericData health = await _health.Evaluate(this);
         health.Combine(AdditionalHealthData);
 
-        return _health.IsFailing
-            ? Problem(health)
-            : Ok(health);
+        if (!_health.IsFailing)
+            return Ok(health);
+
+        health["failures"] = _health.FailureReason.ToString();
+        return Problem(health);
     }
 
     [HttpDelete, Route(template: "cachedToken"), RequireAuth(AuthType.ADMIN_TOKEN)]
