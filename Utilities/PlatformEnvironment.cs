@@ -326,8 +326,11 @@ need fixing or fields that may be candidates for obsolescence / removal.");
 
         void test(string key, string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                output.Add($"Missing '{key}'");
+            if (!string.IsNullOrWhiteSpace(value))
+                return;
+            string error = $"Missing '{key}'"; 
+            output.Add(error);
+            Log.Local(Owner.Default, error, emphasis: Log.LogType.ERROR);
         }
 
         void warn(string key, string value)
