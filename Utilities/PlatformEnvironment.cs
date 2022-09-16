@@ -320,14 +320,14 @@ need fixing or fields that may be candidates for obsolescence / removal.");
             Console.WriteLine($"{field.Name.PadRight(totalWidth: col1, paddingChar: ' ')} {field.GetValue(obj: null) ?? "(null)"}");
     }
 
-    internal static void Validate(PlatformOptions options, out List<string> _errors)
+    internal static void Validate(PlatformOptions options, out List<string> errors)
     {
-        List<string> errors = new List<string>();
+        List<string> output = new List<string>();
 
         void test(string key, string value)
         {
             if (string.IsNullOrWhiteSpace(value))
-                errors.Add($"Missing '{key}'");
+                output.Add($"Missing '{key}'");
         }
 
         void warn(string key, string value)
@@ -358,7 +358,7 @@ need fixing or fields that may be candidates for obsolescence / removal.");
         if (!Variables.ContainsKey(KEY_PLATFORM_COMMON))
             Log.Warn(Owner.Default, $"Missing '{KEY_PLATFORM_COMMON}; check the gitlab-ci.yml file.");
 
-        _errors = errors;
+        errors = output;
     }
 };
 

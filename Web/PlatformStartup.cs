@@ -388,7 +388,7 @@ public abstract class PlatformStartup
         Log.Suppressed = false;
         
         PlatformEnvironment.Validate(Options, out List<string> errors);
-        if (Options.EnabledFeatures.HasFlag(CommonFeature.ExitOnMissingEnvironmentVars) && errors.Any())
+        if (Options.EnabledFeatures.HasFlag(CommonFeature.ExitOnMissingEnvironmentVariables) && errors.Any())
         {
             Log.Error(Owner.Default, "The application is missing required environment variables and cannot complete startup.", data: new
             {
