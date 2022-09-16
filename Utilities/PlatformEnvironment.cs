@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 
 namespace Rumble.Platform.Common.Utilities;
@@ -317,6 +318,47 @@ need fixing or fields that may be candidates for obsolescence / removal.");
         Console.WriteLine("".PadLeft(lineWidth, '-'));
         foreach (FieldInfo field in fields.Where(i => i.Name != nameof(VarDump)))
             Console.WriteLine($"{field.Name.PadRight(totalWidth: col1, paddingChar: ' ')} {field.GetValue(obj: null) ?? "(null)"}");
+    }
+
+    internal static void Validate(PlatformOptions options, out List<string> _errors)
+    {
+        List<string> errors = new List<string>();
+
+        void test(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                errors.Add($"Missing '{key}'");
+        }
+
+        void warn(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                Log.Warn(Owner.Default, $"Missing non-critical environment variable some features may not work correctly.", data: new
+                {
+                    Key = key
+                });
+        }
+        
+        test(KEY_CONFIG_SERVICE, ConfigServiceUrl);
+        test(KEY_GAME_ID, GameSecret);
+        test(KEY_RUMBLE_SECRET, RumbleSecret);
+        test(KEY_DEPLOYMENT, Deployment);
+        test(KEY_LOGGLY_URL, LogglyUrl);
+        test(KEY_COMPONENT, ServiceName);
+        test(KEY_GITLAB_ENVIRONMENT_URL, ClusterUrl);
+        warn(KEY_SLACK_LOG_CHANNEL, SlackLogChannel);
+        warn(KEY_SLACK_LOG_BOT_TOKEN, SlackLogBotToken);
+
+        if (options.EnabledFeatures.HasFlag(CommonFeature.MongoDB))
+        {
+            test(KEY_MONGODB_URI, MongoConnectionString);
+            test(KEY_MONGODB_NAME, MongoDatabaseName);
+        }
+
+        if (!Variables.ContainsKey(KEY_PLATFORM_COMMON))
+            Log.Warn(Owner.Default, $"Missing '{KEY_PLATFORM_COMMON}; check the gitlab-ci.yml file.");
+
+        _errors = errors;
     }
 };
 

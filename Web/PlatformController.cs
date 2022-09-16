@@ -179,6 +179,8 @@ public abstract class PlatformController : Controller
             });
 
         GenericData health = await _health.Evaluate(this);
+        health["version"] = PlatformEnvironment.Version;
+        health["common"] = PlatformEnvironment.CommonVersion;
         health.Combine(AdditionalHealthData);
 
         if (!_health.IsFailing)
