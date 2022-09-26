@@ -152,6 +152,11 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     /// <returns>Decrypted TokenInfo.</returns>
     public static TokenInfo Validate(string encryptedToken)
     {
+        if (string.IsNullOrWhiteSpace(encryptedToken))
+        {
+            return null;
+        }
+        
         encryptedToken = encryptedToken?.Replace("Bearer ", "");
 
         GetService(out ApiService api);
