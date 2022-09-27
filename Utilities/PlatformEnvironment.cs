@@ -265,6 +265,10 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         if (!segments.Any())
             return null;
 
+        // Request is trying to hardcode a path.  Don't append environment to the beginning.
+        if (segments.Last().StartsWith("http://") || segments.Last().StartsWith("https://"))
+            return segments.Last();
+
         string output = segments.First();
 
         if (segments.Length == 1)

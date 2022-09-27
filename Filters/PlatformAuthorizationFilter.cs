@@ -153,11 +153,9 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     public static TokenInfo Validate(string encryptedToken)
     {
         if (string.IsNullOrWhiteSpace(encryptedToken))
-        {
             return null;
-        }
         
-        encryptedToken = encryptedToken?.Replace("Bearer ", "");
+        encryptedToken = encryptedToken.Replace("Bearer ", "");
 
         GetService(out ApiService api);
         GetService(out CacheService cache);
@@ -169,33 +167,32 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
 
         // If a token is provided and does not exist in the cache, we should validate it.
         // TODO: This is mostly copypasta from the event, so it's a little WET.
-        if (!string.IsNullOrWhiteSpace(encryptedToken))
-            api
-                .Request(PlatformEnvironment.TokenValidation)
-                .AddAuthorization(encryptedToken)
-                .OnFailure((sender, response) =>
+        api
+            .Request(PlatformEnvironment.TokenValidation)
+            .AddAuthorization(encryptedToken)
+            .OnFailure((sender, response) =>
+            {
+                string message = response?.OriginalResponse?.Optional<string>("message") ?? "no message provided";
+                string eventId = response?.OriginalResponse?.Optional<string>("eventId");
+                
+                Log.Error(Owner.Default, $"Token auth failure: {message}", data: new
                 {
-                    string message = response?.OriginalResponse?.Optional<string>("message") ?? "no message provided";
-                    string eventId = response?.OriginalResponse?.Optional<string>("eventId");
-                    
-                    Log.Error(Owner.Default, $"Token auth failure: {message}", data: new
-                    {
-                        ValidationUrl = PlatformEnvironment.TokenValidation,
-                        Code = response.StatusCode,
-                        EncryptedToken = encryptedToken,
-                        EventId = eventId
-                    });
-                })
-                .OnSuccess((sender, response) =>
-                {
-                    output = response.AsGenericData.Require<TokenInfo>("tokenInfo");
-                    cache?.Store(encryptedToken, output, expirationMS: TOKEN_CACHE_EXPIRATION);
-                    
-                    HttpContext context = new HttpContextAccessor()?.HttpContext;
-                    if (context != null)
-                        context.Items[KEY_TOKEN] = output;
-                })
-                .Get();
+                    ValidationUrl = PlatformEnvironment.TokenValidation,
+                    Code = response.StatusCode,
+                    EncryptedToken = encryptedToken,
+                    EventId = eventId
+                });
+            })
+            .OnSuccess((sender, response) =>
+            {
+                output = response.AsGenericData.Require<TokenInfo>("tokenInfo");
+                cache?.Store(encryptedToken, output, expirationMS: TOKEN_CACHE_EXPIRATION);
+                
+                HttpContext context = new HttpContextAccessor()?.HttpContext;
+                if (context != null)
+                    context.Items[KEY_TOKEN] = output;
+            })
+            .Get();
 
         return output;
     }

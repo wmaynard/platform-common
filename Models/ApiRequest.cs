@@ -146,6 +146,11 @@ public class ApiRequest
     {
         if (args.Success)
             _onSuccess?.DynamicInvoke(this, args);
+        else if (args.StatusCode.Between(200, 299))
+        {
+            Log.Error(Owner.Will, $"ApiResponse is detected as an error, but it has a code of {args.StatusCode}.");
+            _onSuccess?.DynamicInvoke(this, args);
+        }
         else
             _onFailure?.DynamicInvoke(this, args);
     }
