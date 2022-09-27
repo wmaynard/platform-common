@@ -177,7 +177,7 @@ public class ApiRequest
         return this;
     }
 
-    public ApiRequest OnFailure(Action<ApiResponse> action) => OnSuccess((_, response) =>
+    public ApiRequest OnFailure(Action<ApiResponse> action) => OnFailure((_, response) =>
     {
         action.Invoke(response);
     });
