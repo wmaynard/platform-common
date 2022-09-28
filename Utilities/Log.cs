@@ -66,6 +66,9 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; set; }
 
+    [JsonInclude, JsonPropertyName("log_source"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string Source => PlatformEnvironment.ServiceName;
+
     [JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object Data { get; set; }
 
