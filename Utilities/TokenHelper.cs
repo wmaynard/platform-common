@@ -1,12 +1,10 @@
-using System;
 using RCL.Logging;
 using RCL.Services;
-using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Interop;
-using Rumble.Platform.Common.Models;
 
 namespace Rumble.Platform.Common.Utilities;
 
+// TODO: this class should go away once dynamic config v2 is rolled out
 public class TokenHelper
 {
     public static string GetAdminToken()
@@ -29,16 +27,5 @@ public class TokenHelper
         }
 
         return token;
-    }
-
-    public static bool IsAdminTokenValid()
-    {
-        string adminToken = GetAdminToken();
-
-        TokenInfo tokenInfo = PlatformAuthorizationFilter.Validate(adminToken);
-
-        return tokenInfo != null &&
-               !tokenInfo.IsExpired &&
-               tokenInfo.IsAdmin;
     }
 }
