@@ -59,13 +59,11 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 Headers = context.HttpContext.Request.Headers
             });
 
-        string origin = context.GetEndpoint().ToString();
+        string origin = context.GetEndpoint();
         ValidationResult validationResult = Validate(authorization, context.HttpContext, origin, authOptional, adminTokenRequired);
 
         if (authOptional)
-        {
             return;
-        }
 
         //PlatformEnvironment.RumbleSecret;
         bool keyMismatch = false;
@@ -75,12 +73,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             context.HttpContext.Request.Query.TryGetValue(KEY_GAME_SECRET, out StringValues gameValues);
             context.HttpContext.Request.Query.TryGetValue(KEY_RUMBLE_SECRET, out StringValues secretValues);
 
-            keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault()
-                || PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
-            if (keyMismatch && PlatformEnvironment.IsDev)
-            {
-                
-            }
+            keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault() || PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
         }
         bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && validationResult.tokenInfo == null;
         bool requiredAdminTokenIsNotAdmin = adminTokenRequired && validationResult.tokenInfo != null && validationResult.tokenInfo.IsNotAdmin;
@@ -102,105 +95,6 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     }
 
     /// <summary>
-    /// This method is used for token validation as a function instead of relying on asp.net filters. If you should use
-    /// the filter if you can.
-    /// </summary>
-    /// <param name="encryptedToken">The token from the Authorization Header.  It may either include or omit "Bearer ".</param>
-    /// <param name="context">The http context</param>
-    /// <param name="isAuthOptional">if the validation is required or not</param>
-    /// <param name="requiresAdminToken">if the validation requires and admin token or not</param>
-    /// <returns>Decrypted TokenInfo.</returns>
-    public static ValidationResult Validate(string encryptedToken, HttpContext context, string origin, bool isAuthOptional = false, bool requiresAdminToken = false)
-    {
-        if (string.IsNullOrWhiteSpace(encryptedToken))
-        {
-            return new ValidationResult(){ errorMessage = "null or empty string", 
-                                           success = false, 
-                                           tokenInfo = null};
-        }
-
-        origin = HttpUtility.UrlEncode(origin);
-
-        context.Items[KEY_TOKEN] = null;
-        encryptedToken = encryptedToken.Replace("Bearer ", "");
-
-        GetService(out ApiService api);
-        GetService(out CacheService cache);
-        
-        TokenInfo output = null;
-
-        if (cache != null &&
-            cache.HasValue(encryptedToken, out output))
-        {
-            Log.Local(Owner.Will, "Token info is cached.");
-            return new ValidationResult(){ errorMessage = "null or empty string", 
-                                           success = true, 
-                                           tokenInfo = output};
-        }
-
-        string internalErrorMessage = null; // would use the our parameter but C# doesn't like that
-        TokenInfo tokenInfo = null;
-
-        // If a token is provided and does not exist in the cache, we should validate it.
-        api.Request(PlatformEnvironment.TokenValidation + $"?origin={origin}")
-           .AddAuthorization(encryptedToken)
-           .OnFailure((sender, response) =>
-              {
-                 string message = response.OriginalResponse?.Optional<string>("message") ?? "no message provided";
-                 string eventId = response.OriginalResponse?.Optional<string>("eventId");
-                    
-                 internalErrorMessage = $"Token failure: {message}";
-                 Log.Error(Owner.Default, internalErrorMessage, data: new
-                                                                       {
-                                                                           ValidationUrl = PlatformEnvironment.TokenValidation,
-                                                                           Code = response.StatusCode,
-                                                                           EncryptedToken = $"'{encryptedToken}'",
-                                                                           EventId = eventId
-                                                                       });
-                 if (!isAuthOptional)
-                 {
-                     Graphite.Track(
-                                    name: requiresAdminToken 
-                                              ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT
-                                              : Graphite.KEY_UNAUTHORIZED_COUNT,
-                                    value: 1,
-                                    endpoint: origin
-                                   );
-                 }
-              })
-           .OnSuccess((sender, response) =>
-                      {
-                          tokenInfo = response.AsGenericData.Require<TokenInfo>("tokenInfo");
-                          tokenInfo.Authorization = encryptedToken;
-                          if (cache != null)
-                          {
-                              cache.Store(encryptedToken, tokenInfo, expirationMS: TOKEN_CACHE_EXPIRATION);
-                          }
-
-                          Graphite.Track(
-                                         name: Graphite.KEY_AUTHORIZATION_COUNT,
-                                         value: 1,
-                                         endpoint: origin
-                                        );
-                      })
-           .Get();
-
-        context.Items[KEY_TOKEN] = tokenInfo;
-        
-        return new ValidationResult(){ errorMessage = internalErrorMessage,
-                                       success = tokenInfo != null, 
-                                       tokenInfo = tokenInfo};
-    }
-    
-
-    private static TokenInfo AddToContext(ref FilterContext context, TokenInfo info)
-    {
-        if (context != null)
-            context.HttpContext.Items[KEY_TOKEN] = info;
-        return info;
-    }
-
-    /// <summary>
     /// One additional protection added to the Authorization filter is to request an accountId with any important update.
     /// This helps prevent a scenario where the game server or any other client uses a different token than intended with
     /// a request body.  If the provided accountId does not match the provided token's, the operation fails and the work is
@@ -210,10 +104,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     /// </summary>
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        if (!context.HttpContext.Items.ContainsKey(PlatformResourceFilter.KEY_BODY) 
-            || !context.HttpContext.Items.ContainsKey(KEY_TOKEN)
-            || !context.ControllerHasAttribute<RequireAccountId>()
-        )
+        if (!context.HttpContext.Items.ContainsKey(PlatformResourceFilter.KEY_BODY) || !context.HttpContext.Items.ContainsKey(KEY_TOKEN) || !context.ControllerHasAttribute<RequireAccountId>())
             return;
         
         GenericData body = (GenericData)context.HttpContext.Items[PlatformResourceFilter.KEY_BODY];
@@ -249,4 +140,95 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     }
 
     public void OnActionExecuted(ActionExecutedContext context) { }
+    
+        /// <summary>
+    /// This method is used for token validation as a function instead of relying on asp.net filters. If you should use
+    /// the filter if you can.
+    /// </summary>
+    /// <param name="encryptedToken">The token from the Authorization Header.  It may either include or omit "Bearer ".</param>
+    /// <param name="context">The http context</param>
+    /// <param name="isAuthOptional">if the validation is required or not</param>
+    /// <param name="requiresAdminToken">if the validation requires and admin token or not</param>
+    /// <returns>Decrypted TokenInfo.</returns>
+    public static ValidationResult Validate(string encryptedToken, HttpContext context, string origin, bool isAuthOptional = false, bool requiresAdminToken = false)
+    {
+        if (string.IsNullOrWhiteSpace(encryptedToken))
+            return new ValidationResult
+            { 
+                errorMessage = "null or empty string", 
+                success = false, 
+                tokenInfo = null
+            };
+
+        origin = HttpUtility.UrlEncode(origin);
+
+        context.Items[KEY_TOKEN] = null;
+        encryptedToken = encryptedToken.Replace("Bearer ", "");
+
+        GetService(out ApiService api);
+        GetService(out CacheService cache);
+        
+        TokenInfo output = null;
+
+        if (cache != null && cache.HasValue(encryptedToken, out output))
+        {
+            Log.Local(Owner.Will, "Token info is cached.");
+            return new ValidationResult
+            { 
+                errorMessage = "null or empty string", 
+                success = true, 
+                tokenInfo = output
+            };
+        }
+
+        string internalErrorMessage = null; // would use the our parameter but C# doesn't like that
+        TokenInfo tokenInfo = null;
+
+        // If a token is provided and does not exist in the cache, we should validate it.
+        api
+            .Request(PlatformEnvironment.TokenValidation + $"?origin={origin}")
+            .AddAuthorization(encryptedToken)
+            .OnFailure((sender, response) =>
+            {
+                string message = response.OriginalResponse?.Optional<string>("message") ?? "no message provided";
+                string eventId = response.OriginalResponse?.Optional<string>("eventId");
+
+                internalErrorMessage = $"Token failure: {message}";
+                Log.Error(Owner.Default, internalErrorMessage, data: new
+                {
+                    ValidationUrl = PlatformEnvironment.TokenValidation,
+                    Code = response.StatusCode,
+                    EncryptedToken = $"'{encryptedToken}'",
+                    EventId = eventId
+                });
+                if (!isAuthOptional)
+                    Graphite.Track(
+                        name: requiresAdminToken ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT : Graphite.KEY_UNAUTHORIZED_COUNT,
+                        value: 1,
+                        endpoint: origin
+                    );
+            })
+            .OnSuccess((sender, response) =>
+            {
+                tokenInfo = response.AsGenericData.Require<TokenInfo>("tokenInfo");
+                tokenInfo.Authorization = encryptedToken;
+                cache?.Store(encryptedToken, tokenInfo, expirationMS: TOKEN_CACHE_EXPIRATION);
+
+                Graphite.Track(
+                    name: Graphite.KEY_AUTHORIZATION_COUNT,
+                    value: 1,
+                    endpoint: origin
+                );
+            })
+            .Get();
+
+        context.Items[KEY_TOKEN] = tokenInfo;
+        
+        return new ValidationResult
+        {
+            errorMessage = internalErrorMessage,
+            success = tokenInfo != null, 
+            tokenInfo = tokenInfo
+        };
+    }
 }

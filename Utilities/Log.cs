@@ -33,6 +33,8 @@ public class Log : PlatformDataModel
 
     public static bool PrintObjectsEnabled { get; internal set; }
     public static bool NoColor { get; internal set; }
+    
+    private static bool SwarmMessagePrinted { get; set; }
 
     private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
         ? null 
@@ -406,6 +408,17 @@ public class Log : PlatformDataModel
     /// <param name="exception">Any exception encountered, if available.</param>
     public static void Write(LogType type, Owner owner, string message, object data = null, Exception exception = null, LogType emphasis = LogType.NONE)
     {
+#if RELEASE
+        if (PlatformEnvironment.SwarmMode)
+        {
+            if (SwarmMessagePrinted)
+                return;
+            Console.WriteLine("Swarm mode is enabled; no logs will be printed.");
+            SwarmMessagePrinted = true;
+            return;
+        }
+#endif
+            
         Owner actual = owner == RCL.Logging.Owner.Default
             ? DefaultOwner
             : owner;
@@ -425,9 +438,9 @@ public class Log : PlatformDataModel
             Data = data,
             Message = message ?? exception?.Message,
             Token = token,
-            #pragma warning disable CS0618
+#pragma warning disable CS0618
             Endpoint = Converter.ContextToEndpoint(context),
-            #pragma warning restore CS0618,
+#pragma warning restore CS0618,
             Emphasis = emphasis
         }.Send();
     }
