@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Interop;
 

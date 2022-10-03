@@ -10,6 +10,7 @@ public enum ErrorCode
     [Display(Name = "0000"), Obsolete(message: "Avoid using unhelpful errors.  Consider adding an error code for what you need.")] NotSpecified,
     [Display(Name = "0001")] RuntimeException,
     [Display(Name = "0002")] ExtensionMethodFailure,
+    [Display(Name = "0003")] ExternalLibraryFailure,
       // 10: Serialization
       [Display(Name = "0010")] GenericDataConversion,
       [Display(Name = "0011")] SerializationFailure,

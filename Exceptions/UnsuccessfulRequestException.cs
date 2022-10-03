@@ -1,4 +1,5 @@
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Exceptions;
 

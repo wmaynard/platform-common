@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using RCL.Logging;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Filters;
 

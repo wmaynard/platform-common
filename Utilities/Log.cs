@@ -12,6 +12,7 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Utilities;
 

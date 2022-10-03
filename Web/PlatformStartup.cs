@@ -28,13 +28,14 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.Serializers;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
-
+using Rumble.Platform.Data;
+using Rumble.Platform.Data.Serializers;
+using Rumble.Platform.Data.Utilities;
 
 
 namespace Rumble.Platform.Common.Web;
@@ -110,7 +111,10 @@ public abstract class PlatformStartup
 
     protected PlatformStartup(IConfiguration configuration = null)
     {
-        Timestamp.FromDynamicTimespan("dt_user_account_start+0-0+7-0+d | dt_user_account_start+14-0+21-0+d", out string name, out int start, out int end);
+        GenericData.Initialize(
+            exception => throw new PlatformException("Exception in RumbleJson.", inner: exception, code: ErrorCode.ExternalLibraryFailure),
+            log => Log.Local(Owner.Default, log.Message, log.Data, log.Exception, emphasis: Log.LogType.WARN)
+        );
         Options = ConfigureOptions(new PlatformOptions()).Validate();
         GenericData.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
@@ -195,10 +199,7 @@ public abstract class PlatformStartup
         {
             BsonSerializer.RegisterSerializer(new BsonGenericConverter());
             Log.Local(Owner.Default, "BSON converters configured.");
-        
-            PlatformDataModel.RegisterModelsWithMongo();
         }
-        
 
         Log.Verbose(Owner.Default, "Adding CORS to services");
         services.AddCors(options =>

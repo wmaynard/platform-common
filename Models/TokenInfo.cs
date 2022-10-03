@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Models;
 

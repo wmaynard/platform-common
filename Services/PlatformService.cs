@@ -8,6 +8,7 @@ using RCL.Logging;
 using RCL.Services;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Services;
 

@@ -21,6 +21,8 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
+using Rumble.Platform.Data;
+using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Web;
 
