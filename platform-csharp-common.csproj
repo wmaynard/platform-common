@@ -33,8 +33,4 @@
 	  <Folder Include="Docs" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\rumble-json\rumble-json.csproj" />
-	</ItemGroup>
-
 </Project>
