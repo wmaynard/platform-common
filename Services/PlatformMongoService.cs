@@ -280,7 +280,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         internal string DatabaseKey { get; set; }
     }
 
-    public override GenericData HealthStatus => new GenericData
+    public override RumbleJson HealthStatus => new RumbleJson
     {
         { Name, IsHealthy ? "connected" : "disconnected" }
     };

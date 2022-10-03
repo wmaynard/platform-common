@@ -111,12 +111,12 @@ public abstract class PlatformStartup
 
     protected PlatformStartup(IConfiguration configuration = null)
     {
-        GenericData.Initialize(
+        RumbleJson.Initialize(
             exception => throw new PlatformException("Exception in RumbleJson.", inner: exception, code: ErrorCode.ExternalLibraryFailure),
             log => Log.Local(Owner.Default, log.Message, log.Data, log.Exception, emphasis: Log.LogType.WARN)
         );
         Options = ConfigureOptions(new PlatformOptions()).Validate();
-        GenericData.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
+        RumbleJson.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
         Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
@@ -423,10 +423,10 @@ public abstract class PlatformStartup
                 .AddRumbleKeys()
                 .OnSuccess(response => Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN, data: new
                 {
-                    Health = response.AsGenericData
+                    Health = response.AsRumbleJson
                 }))
                 .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup."))
-                .Get(out GenericData json, out int code);
+                .Get(out RumbleJson json, out int code);
         else
             Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN);
     }

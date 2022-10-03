@@ -46,7 +46,7 @@ public class RegisteredService : PlatformDataModel
   
     public ControllerInfo[] Controllers { get; set; }
 
-    // public GenericData Config { get; set; }
+    // public RumbleJson Config { get; set; }
 
     public RegisteredService()
     {

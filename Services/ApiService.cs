@@ -19,7 +19,7 @@ public class ApiService : PlatformService
 {
     internal static ApiService Instance { get; private set; }
     private HttpClient HttpClient { get; init; }
-    internal GenericData DefaultHeaders { get; init; }
+    internal RumbleJson DefaultHeaders { get; init; }
 
     private Dictionary<long, long> StatusCodes { get; init; }
 
@@ -33,7 +33,7 @@ public class ApiService : PlatformService
         });
 
         AssemblyName exe = Assembly.GetExecutingAssembly().GetName();
-        DefaultHeaders = new GenericData
+        DefaultHeaders = new RumbleJson
         {
             { "User-Agent", $"{exe.Name}/{exe.Version}" },
             { "Accept", "*/*" },
@@ -53,7 +53,7 @@ public class ApiService : PlatformService
 
     internal ApiRequest Request(string url, int retries, bool prependEnvironment) => new ApiRequest(this, url, retries, prependEnvironment);
 
-    internal GenericData Send(HttpRequestMessage message) => null;
+    internal RumbleJson Send(HttpRequestMessage message) => null;
 
     internal ApiResponse Send(ApiRequest request)
     {
@@ -122,9 +122,9 @@ public class ApiService : PlatformService
         }
     }
 
-    public override GenericData HealthStatus => new GenericData
+    public override RumbleJson HealthStatus => new RumbleJson
     {
-        { Name, new GenericData
+        { Name, new RumbleJson
             {
                 { "health", $"{SuccessPercentage} %" },
                 { "responses", StatusCodes.OrderBy(pair => pair.Value) }

@@ -108,7 +108,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         if (!context.HttpContext.Items.ContainsKey(PlatformResourceFilter.KEY_BODY) || !context.HttpContext.Items.ContainsKey(KEY_TOKEN) || !context.ControllerHasAttribute<RequireAccountId>())
             return;
         
-        GenericData body = (GenericData)context.HttpContext.Items[PlatformResourceFilter.KEY_BODY];
+        RumbleJson body = (RumbleJson)context.HttpContext.Items[PlatformResourceFilter.KEY_BODY];
         TokenInfo token = (TokenInfo)context.HttpContext.Items[KEY_TOKEN];
         
         // TODO: After an initial adoption period, this needs to be Require<T> rather than Optional<T>.
@@ -211,7 +211,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             })
             .OnSuccess((sender, response) =>
             {
-                tokenInfo = response.AsGenericData.Require<TokenInfo>("tokenInfo");
+                tokenInfo = response.AsRumbleJson.Require<TokenInfo>("tokenInfo");
                 tokenInfo.Authorization = encryptedToken;
                 cache?.Store(encryptedToken, tokenInfo, expirationMS: TOKEN_CACHE_EXPIRATION);
 

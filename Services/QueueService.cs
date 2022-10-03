@@ -120,7 +120,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             return;
         }
 
-        config.Settings ??= new GenericData();
+        config.Settings ??= new RumbleJson();
         config.Settings[key] = value;
         _config.ReplaceOne(filter: Builders<QueueConfig>.Filter.Eq(queue => queue.Id, config.Id), replacement: config);
     }
@@ -129,7 +129,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// Gets a value from the service's settings object.
     /// </summary>
     /// <param name="key">The key of the object to retrieve.</param>
-    /// <param name="require">If true, leverages the GenericData.Require() method; otherwise OptionalT().</param>
+    /// <param name="require">If true, leverages the RumbleJson.Require() method; otherwise OptionalT().</param>
     /// <typeparam name="U">The type to cast the object to on return.</typeparam>
     /// <returns>A value from the service's settings object.</returns>
     protected U Get<U>(string key, bool require = false)
@@ -296,7 +296,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             filter: Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
             update: Builders<QueueConfig>.Update.Combine(
                 Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMS),
-                Builders<QueueConfig>.Update.Set(config => config.Settings, new GenericData())
+                Builders<QueueConfig>.Update.Set(config => config.Settings, new RumbleJson())
             ),
             options: new UpdateOptions
             {
@@ -332,7 +332,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         internal long LastActive { get; set; }
         
         [BsonElement(KEY_SETTINGS)]
-        public GenericData Settings { get; set; }
+        public RumbleJson Settings { get; set; }
     }
     
     [BsonIgnoreExtraElements]

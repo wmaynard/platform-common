@@ -151,9 +151,9 @@ public class HealthService : PlatformTimerService
             Evaluate().Wait();
     }
 
-    internal async Task<GenericData> Evaluate(PlatformController controller = null)
+    internal async Task<RumbleJson> Evaluate(PlatformController controller = null)
     {
-        GenericData output = new GenericData();
+        RumbleJson output = new RumbleJson();
 
         float health = Math.Max(0, Data.Any() ? Health : 100);
         output["monitoredEndpointHealth"] = health;
@@ -192,7 +192,7 @@ public class HealthService : PlatformTimerService
         return output;
     }
 
-    private async Task Notify(float health, long downTime, GenericData data, bool directMessage = true)
+    private async Task Notify(float health, long downTime, RumbleJson data, bool directMessage = true)
     {
         TimeSpan ts = TimeSpan.FromSeconds(downTime);
         string duration = $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";

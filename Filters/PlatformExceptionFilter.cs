@@ -40,7 +40,7 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
             return;
 
         Exception ex = context.Exception;
-        GenericData data = new GenericData();
+        RumbleJson data = new RumbleJson();
         string origin = (string)context.HttpContext.Items[PlatformResourceFilter.KEY_REQUEST_ORIGIN];
 
         string message = ex switch

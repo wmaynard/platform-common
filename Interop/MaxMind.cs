@@ -20,7 +20,7 @@ public static class MaxMind
             IPAddress ip = IPAddress.Parse(ipAddress); 
 
             using Reader reader = new Reader(FILENAME);
-            GenericData data = GenericData.FromDictionary(reader.Find<Dictionary<string, object>>(ip));
+            RumbleJson data = RumbleJson.FromDictionary(reader.Find<Dictionary<string, object>>(ip));
             return new GeoIPData(ipAddress, data);
         }
         catch (Exception e)

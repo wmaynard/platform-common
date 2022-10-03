@@ -33,11 +33,11 @@ public class Section : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public GenericData AdminData => GenericData.FromDictionary(Data);
+    public RumbleJson AdminData => RumbleJson.FromDictionary(Data);
 
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public GenericData ClientData => GenericData.FromDictionary(Data.ToDictionary(keySelector: pair => pair.Key, elementSelector: pair => pair.Value.Value));
+    public RumbleJson ClientData => RumbleJson.FromDictionary(Data.ToDictionary(keySelector: pair => pair.Key, elementSelector: pair => pair.Value.Value));
   
     [BsonElement(DB_KEY_ADMIN_TOKEN)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_TOKEN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

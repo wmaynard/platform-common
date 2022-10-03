@@ -9,7 +9,7 @@ namespace Rumble.Platform.Common.Services;
 
 /// <summary>
 /// Useful when a service needs to store configuration values specific to itself between runs.
-/// This service uses its own MongoDB collection to store GenericData values.
+/// This service uses its own MongoDB collection to store RumbleJson values.
 /// </summary>
 public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceConfig>
 {
@@ -34,7 +34,7 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
 
     public class ServiceConfig : PlatformCollectionDocument
     {
-        public GenericData Data { get; set; }
-        internal ServiceConfig() => Data = new GenericData();
+        public RumbleJson Data { get; set; }
+        internal ServiceConfig() => Data = new RumbleJson();
     }
 }

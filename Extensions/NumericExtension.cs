@@ -33,7 +33,7 @@ public static class NumericExtension
     /// <param name="url">The URL the request was sent to.</param>
     /// <param name="response">The JSON data from the request.</param>
     /// <exception cref="UnsuccessfulRequestException"></exception>
-    public static void ValidateSuccessCode(this int code, string url, GenericData response)
+    public static void ValidateSuccessCode(this int code, string url, RumbleJson response)
     {
         if (!code.Between(200, 299))
             throw new UnsuccessfulRequestException(url, response, code);

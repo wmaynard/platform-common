@@ -25,7 +25,7 @@ public class ControllerInfo : PlatformDataModel
     public const string FRIENDLY_KEY_NAME = "controllerName";
     public const string FRIENDLY_KEY_ROUTES = "routes";
 
-    // TODO: Not necessary, but this throws serializer exceptions in GenericData if public / allowed to serialize.
+    // TODO: Not necessary, but this throws serializer exceptions in RumbleJson if public / allowed to serialize.
     // This is an opportunity to improve polish
     internal MethodInfo[] RoutingMethods { get; init; }
 

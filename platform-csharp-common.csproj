@@ -24,7 +24,7 @@
 	  <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
 	  <PackageReference Include="MongoDB.Driver.Core" Version="2.13.0" />
-	  <PackageReference Include="rumble-json" Version="1.0.0" />
+	  <PackageReference Include="rumble-json" Version="1.0.1" />
 	  <PackageReference Include="RumbleCore" Version="1.0.18" />
 	  <PackageReference Include="StackExchange.Redis" Version="2.2.79" />
 	</ItemGroup>

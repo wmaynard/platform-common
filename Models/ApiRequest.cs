@@ -27,11 +27,11 @@ public class ApiRequest
         ? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
         : "";
 
-    internal GenericData Headers { get; private set; }
-    internal GenericData Payload { get; private set; }
-    internal GenericData Response { get; private set; }
+    internal RumbleJson Headers { get; private set; }
+    internal RumbleJson Payload { get; private set; }
+    internal RumbleJson Response { get; private set; }
     internal HttpMethod Method { get; private set; }
-    internal GenericData Parameters { get; private set; }
+    internal RumbleJson Parameters { get; private set; }
     private readonly ApiService _apiService;
     public int Retries { get; internal set; }
     private int _originalRetries;
@@ -44,8 +44,8 @@ public class ApiRequest
     {
         _apiService = spawner;
         Headers = spawner.DefaultHeaders.Copy();
-        Payload = new GenericData();
-        Parameters = new GenericData();
+        Payload = new RumbleJson();
+        Parameters = new RumbleJson();
         SetRetries(retries);
         Url = url;
 
@@ -108,9 +108,9 @@ public class ApiRequest
         return this;
     }
 
-    public ApiRequest AddHeader(string key, string value) => AddHeaders(new GenericData() { { key, value } });
+    public ApiRequest AddHeader(string key, string value) => AddHeaders(new RumbleJson() { { key, value } });
 
-    public ApiRequest AddHeaders(GenericData headers)
+    public ApiRequest AddHeaders(RumbleJson headers)
     {
         Headers.Combine(other: headers, prioritizeOther: true);
         return this;
@@ -119,15 +119,15 @@ public class ApiRequest
     public ApiRequest AddRumbleKeys() => AddParameter("game", PlatformEnvironment.GameSecret)
         .AddParameter("secret", PlatformEnvironment.RumbleSecret);
 
-    public ApiRequest AddParameter(string key, string value) => AddParameters(new GenericData { { key, value } });
+    public ApiRequest AddParameter(string key, string value) => AddParameters(new RumbleJson { { key, value } });
 
-    public ApiRequest AddParameters(GenericData parameters)
+    public ApiRequest AddParameters(RumbleJson parameters)
     {
         Parameters.Combine(other: parameters, prioritizeOther: true);
         return this;
     }
 
-    public ApiRequest SetPayload(GenericData payload)
+    public ApiRequest SetPayload(RumbleJson payload)
     {
         Payload.Combine(other: payload, prioritizeOther: true);
         return this;
@@ -189,19 +189,19 @@ public class ApiRequest
         return this;
     }
 
-    private ApiResponse Send(HttpMethod method, out GenericData result, out int code)
+    private ApiResponse Send(HttpMethod method, out RumbleJson result, out int code)
     {
         Task<ApiResponse> task = SendAsync(method);
         task.Wait();
         ApiResponse output = task.Result;
-        result = output?.AsGenericData;
+        result = output?.AsRumbleJson;
         code = output?.StatusCode ?? 500;
         return output;
     }
 
     private ApiResponse Send<T>(HttpMethod method, out T model, out int code) where T : PlatformDataModel
     {
-        ApiResponse output = Send(method, out GenericData result, out code);
+        ApiResponse output = Send(method, out RumbleJson result, out code);
         model = result?.ToModel<T>();
         return output;
     }
@@ -218,23 +218,23 @@ public class ApiRequest
         }
     }
     
-    public ApiResponse Delete() => Delete(out GenericData unused);
-    public ApiResponse Get() => Get(out GenericData unused);
-    public ApiResponse Head() => Head(out GenericData unused);
-    public ApiResponse Options() => Options(out GenericData unused);
-    public ApiResponse Patch() => Patch(out GenericData unused);
-    public ApiResponse Post() => Post(out GenericData unused);
-    public ApiResponse Put() => Put(out GenericData unused);
-    public ApiResponse Trace() => Trace(out GenericData unused);
+    public ApiResponse Delete() => Delete(out RumbleJson unused);
+    public ApiResponse Get() => Get(out RumbleJson unused);
+    public ApiResponse Head() => Head(out RumbleJson unused);
+    public ApiResponse Options() => Options(out RumbleJson unused);
+    public ApiResponse Patch() => Patch(out RumbleJson unused);
+    public ApiResponse Post() => Post(out RumbleJson unused);
+    public ApiResponse Put() => Put(out RumbleJson unused);
+    public ApiResponse Trace() => Trace(out RumbleJson unused);
 
-    public ApiResponse Delete(out GenericData json) => Delete(out json, out int unused);
-    public ApiResponse Get(out GenericData json) => Get(out json, out int unused);
-    public ApiResponse Head(out GenericData json) => Head(out json, out int unused);
-    public ApiResponse Options(out GenericData json) => Options(out json, out int unused);
-    public ApiResponse Patch(out GenericData json) => Patch(out json, out int unused);
-    public ApiResponse Post(out GenericData json) => Post(out json, out int unused);
-    public ApiResponse Put(out GenericData json) => Put(out json, out int unused);
-    public ApiResponse Trace(out GenericData json) => Trace(out json, out int unused);
+    public ApiResponse Delete(out RumbleJson json) => Delete(out json, out int unused);
+    public ApiResponse Get(out RumbleJson json) => Get(out json, out int unused);
+    public ApiResponse Head(out RumbleJson json) => Head(out json, out int unused);
+    public ApiResponse Options(out RumbleJson json) => Options(out json, out int unused);
+    public ApiResponse Patch(out RumbleJson json) => Patch(out json, out int unused);
+    public ApiResponse Post(out RumbleJson json) => Post(out json, out int unused);
+    public ApiResponse Put(out RumbleJson json) => Put(out json, out int unused);
+    public ApiResponse Trace(out RumbleJson json) => Trace(out json, out int unused);
 
     public ApiResponse Delete<T>(out T model) where T : PlatformDataModel => Delete(out model, out int unused);
     public ApiResponse Get<T>(out T model) where T : PlatformDataModel => Get(out model, out int unused);
@@ -245,14 +245,14 @@ public class ApiRequest
     public ApiResponse Put<T>(out T model) where T : PlatformDataModel => Put(out model, out int unused);
     public ApiResponse Trace<T>(out T model) where T : PlatformDataModel => Trace(out model, out int unused);
 
-    public ApiResponse Delete(out GenericData json, out int code) => Send(HttpMethod.Delete, out json, out code);
-    public ApiResponse Get(out GenericData json, out int code) => Send(HttpMethod.Get, out json, out code);
-    public ApiResponse Head(out GenericData json, out int code) => Send(HttpMethod.Head, out json, out code);
-    public ApiResponse Options(out GenericData json, out int code) => Send(HttpMethod.Options, out json, out code);
-    public ApiResponse Patch(out GenericData json, out int code) => Send(HttpMethod.Patch, out json, out code);
-    public ApiResponse Post(out GenericData json, out int code) => Send(HttpMethod.Post, out json, out code);
-    public ApiResponse Put(out GenericData json, out int code) => Send(HttpMethod.Put, out json, out code);
-    public ApiResponse Trace(out GenericData json, out int code) => Send(HttpMethod.Trace, out json, out code);
+    public ApiResponse Delete(out RumbleJson json, out int code) => Send(HttpMethod.Delete, out json, out code);
+    public ApiResponse Get(out RumbleJson json, out int code) => Send(HttpMethod.Get, out json, out code);
+    public ApiResponse Head(out RumbleJson json, out int code) => Send(HttpMethod.Head, out json, out code);
+    public ApiResponse Options(out RumbleJson json, out int code) => Send(HttpMethod.Options, out json, out code);
+    public ApiResponse Patch(out RumbleJson json, out int code) => Send(HttpMethod.Patch, out json, out code);
+    public ApiResponse Post(out RumbleJson json, out int code) => Send(HttpMethod.Post, out json, out code);
+    public ApiResponse Put(out RumbleJson json, out int code) => Send(HttpMethod.Put, out json, out code);
+    public ApiResponse Trace(out RumbleJson json, out int code) => Send(HttpMethod.Trace, out json, out code);
 
     public ApiResponse Delete<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Delete, out model, out code);
     public ApiResponse Get<T>(out T model, out int code) where T : PlatformDataModel => Send(HttpMethod.Get, out model, out code);
@@ -292,7 +292,7 @@ public class ApiRequest
             if (NO_BODY.Contains(request.Method))
                 return output;
 
-            output.Content = new StringContent(request.Payload?.JSON ?? "{}");
+            output.Content = new StringContent(request.Payload?.Json ?? "{}");
             output.Content.Headers.Remove("Content-Type");
             output.Content.Headers.Add("Content-Type", "application/json");
 

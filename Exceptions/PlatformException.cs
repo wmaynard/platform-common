@@ -48,11 +48,11 @@ public class PlatformException : Exception // TODO: Should probably be an abstra
         }
     }
 
-    internal new GenericData Data
+    internal new RumbleJson Data
     {
         get
         {
-            GenericData output = new GenericData();
+            RumbleJson output = new RumbleJson();
             foreach (PropertyInfo info in GetType().GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 output[JsonNamingPolicy.CamelCase.ConvertName(info.Name)] = info.GetValue(this);
             return output;

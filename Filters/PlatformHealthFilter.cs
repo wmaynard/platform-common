@@ -28,7 +28,7 @@ public class PlatformHealthFilter : PlatformFilter, IActionFilter, IResultFilter
         if (monitor == null)
             return;
     
-        // Ignore RequiredFieldMissing issues.  This happens when GenericData, for example, fails a Require().
+        // Ignore RequiredFieldMissing issues.  This happens when RumbleJson, for example, fails a Require().
         if (context.Exception is not PlatformException ex)
           return;
     

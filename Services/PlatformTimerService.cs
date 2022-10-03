@@ -40,7 +40,7 @@ public abstract class PlatformTimerService : PlatformService
 
     protected abstract void OnElapsed();
 
-    public override GenericData HealthStatus => new GenericData
+    public override RumbleJson HealthStatus => new RumbleJson
     {
         { Name, Status }
     };

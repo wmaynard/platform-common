@@ -58,13 +58,13 @@ public class DC2Service : PlatformTimerService
     private readonly ApiService _apiService;
     private readonly HealthService _healthService;
     private bool IsUpdating { get; set; }
-    public GenericData AllValues { get; private set; }
-    public GenericData CommonValues => AllValues?.Optional<GenericData>(key: COMMON_SETTING_NAME)
-        ?? new GenericData();
-    public GenericData GlobalValues => AllValues?.Optional<GenericData>(key: GLOBAL_SETTING_NAME)
-        ?? new GenericData();
-    public GenericData ProjectValues => AllValues?.Optional<GenericData>(key: PlatformEnvironment.ServiceName)
-        ?? new GenericData();
+    public RumbleJson AllValues { get; private set; }
+    public RumbleJson CommonValues => AllValues?.Optional<RumbleJson>(key: COMMON_SETTING_NAME)
+        ?? new RumbleJson();
+    public RumbleJson GlobalValues => AllValues?.Optional<RumbleJson>(key: GLOBAL_SETTING_NAME)
+        ?? new RumbleJson();
+    public RumbleJson ProjectValues => AllValues?.Optional<RumbleJson>(key: PlatformEnvironment.ServiceName)
+        ?? new RumbleJson();
 
     public string AdminToken => ProjectValues?.Optional<string>(FRIENDLY_KEY_ADMIN_TOKEN);
     private string ID { get; set; }
@@ -109,7 +109,7 @@ public class DC2Service : PlatformTimerService
             {
                 try
                 {
-                    output = response.AsGenericData.Require<Section[]>(API_KEY_SECTIONS);
+                    output = response.AsRumbleJson.Require<Section[]>(API_KEY_SECTIONS);
                 }
                 catch (Exception e)
                 {
@@ -168,7 +168,7 @@ public class DC2Service : PlatformTimerService
         _apiService
             .Request(PlatformEnvironment.Url("/config/settings/new"))
             .AddRumbleKeys()
-            .SetPayload(new GenericData
+            .SetPayload(new RumbleJson
             {
                 { "name", COMMON_SETTING_NAME + "2" },
                 { "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
@@ -193,7 +193,7 @@ public class DC2Service : PlatformTimerService
 #else
                 Log.Error(Owner.Default, "Unable to create new dynamic config section.", data: new
                 {
-                    Response = response.AsGenericData
+                    Response = response.AsRumbleJson
                 });
 #endif
 
@@ -218,11 +218,11 @@ public class DC2Service : PlatformTimerService
             _apiService
             .Request(PlatformEnvironment.Url(endpoint: "/config/register"))
             .AddRumbleKeys()
-            .SetPayload(new GenericData
+            .SetPayload(new RumbleJson
             {
                 { PlatformEnvironment.KEY_COMPONENT, PlatformEnvironment.ServiceName },
                 { PlatformEnvironment.KEY_REGISTRATION_NAME, PlatformEnvironment.RegistrationName },
-                { "service", new GenericData
+                { "service", new RumbleJson
                 {
                     { KEY_CLIENT_ID, ID },
                     { "rootIngress", null }, // TODO
@@ -255,7 +255,7 @@ public class DC2Service : PlatformTimerService
                         break;
                 }
             })
-            .Patch(out GenericData _, out int code);
+            .Patch(out RumbleJson _, out int code);
         }
         catch (Exception e)
         {
@@ -279,7 +279,7 @@ public class DC2Service : PlatformTimerService
     {
         T output = default;
 
-        foreach (GenericData data in AllValues.Values)
+        foreach (RumbleJson data in AllValues.Values)
         {
             output ??= data.Optional<T>(key);
             if (output != null)

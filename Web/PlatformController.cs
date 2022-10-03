@@ -75,10 +75,10 @@ public abstract class PlatformController : Controller
 
     protected T Require<T>() where T : PlatformService => _services.GetRequiredService<T>();
 
-    protected ObjectResult Problem(GenericData data) => base.BadRequest(data);
+    protected ObjectResult Problem(RumbleJson data) => base.BadRequest(data);
     protected ObjectResult Problem(string detail) => Problem(data: new { DebugText = detail });
 
-    protected ObjectResult Problem(string detail, ErrorCode code) => Problem(new GenericData
+    protected ObjectResult Problem(string detail, ErrorCode code) => Problem(new RumbleJson
     {
         { "message", detail },
         { "errorCode", $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}" }
@@ -87,9 +87,9 @@ public abstract class PlatformController : Controller
     protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
 
     // TODO: Fix the serialization such that we are consistent to lowerCamelCase keys
-    // TODO: Remove all other Ok() / Problem() methods to force Platform over to a standard on GenericData
+    // TODO: Remove all other Ok() / Problem() methods to force Platform over to a standard on RumbleJson
     [NonAction]
-    public OkObjectResult Ok(GenericData data) => base.Ok(data);
+    public OkObjectResult Ok(RumbleJson data) => base.Ok(data);
 
     [NonAction]
     public new OkObjectResult Ok() => base.Ok(null);
@@ -102,7 +102,7 @@ public abstract class PlatformController : Controller
 
     [NonAction]
     public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
-    protected ObjectResult Ok(string detail, ErrorCode code) => Ok(new GenericData
+    protected ObjectResult Ok(string detail, ErrorCode code) => Ok(new RumbleJson
     {
         { "message", detail },
         { "errorCode", $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}" }
@@ -119,7 +119,7 @@ public abstract class PlatformController : Controller
         return output;
     }
 
-    // TODO: Now that GenericData is useful, can probably cut down on code bloat here by replacing ExpandoObjects with GenericData.
+    // TODO: Now that RumbleJson is useful, can probably cut down on code bloat here by replacing ExpandoObjects with RumbleJson.
     protected static object Merge(object foo, object bar)
     {
         if (foo == null || bar == null)
@@ -136,7 +136,7 @@ public abstract class PlatformController : Controller
             case ExpandoObject oof:
                 MergeExpando(ref result, oof);
             break;
-            case GenericData genericFoo:
+            case RumbleJson genericFoo:
                 foreach (string key in genericFoo.Keys)
                     result[JsonNamingPolicy.CamelCase.ConvertName(key)] = genericFoo[key];
                 break;
@@ -151,7 +151,7 @@ public abstract class PlatformController : Controller
             case ExpandoObject rab:
                 MergeExpando(ref result, rab);
                 break;
-            case GenericData genericBar:
+            case RumbleJson genericBar:
                 foreach (string key in genericBar.Keys)
                     result[JsonNamingPolicy.CamelCase.ConvertName(key)] = genericBar[key];
                 break;
@@ -180,7 +180,7 @@ public abstract class PlatformController : Controller
                 Warning = "HealthService unavailable."
             });
 
-        GenericData health = await _health.Evaluate(this);
+        RumbleJson health = await _health.Evaluate(this);
         health["version"] = PlatformEnvironment.Version;
         health["common"] = PlatformEnvironment.CommonVersion;
         health.Combine(AdditionalHealthData);
@@ -197,7 +197,7 @@ public abstract class PlatformController : Controller
     {
         string accountId = Require<string>("accountId");
 
-        return Ok(new GenericData
+        return Ok(new RumbleJson
         {
             { "tokensRemoved", _cacheService.ClearToken(accountId) }
         });
@@ -219,7 +219,7 @@ public abstract class PlatformController : Controller
         if (PlatformEnvironment.IsProd)
             Log.Warn(Owner.Will, "A request for an environment dump was made on prod.");
 
-        GenericData output = PlatformEnvironment.VarDump
+        RumbleJson output = PlatformEnvironment.VarDump
             .RemoveRecursive(key: "gukey", fuzzy: true)   // remove game gukeys
             .RemoveRecursive(key: "secret", fuzzy: true)  // remove any secrets 
             .RemoveRecursive(key: "pem_", fuzzy: true)    // remove crypto keys
@@ -233,7 +233,7 @@ public abstract class PlatformController : Controller
         return Ok(output.Sort());
     }
 
-    protected virtual GenericData AdditionalHealthData { get; }
+    protected virtual RumbleJson AdditionalHealthData { get; }
 
     public static object CollectionResponseObject(IEnumerable<object> objects)
     {
@@ -244,9 +244,9 @@ public abstract class PlatformController : Controller
         return output;
     }
 
-    protected object Optional(string key, GenericData json = null) => json?.Optional<object>(key);
+    protected object Optional(string key, RumbleJson json = null) => json?.Optional<object>(key);
 
-    protected T Optional<T>(string key, GenericData json = null)
+    protected T Optional<T>(string key, RumbleJson json = null)
     {
         json ??= Body;
         return json != null
@@ -254,17 +254,17 @@ public abstract class PlatformController : Controller
             : default;
     }
 
-    protected object Require(string key, GenericData json = null) => Require<object>(key);
+    protected object Require(string key, RumbleJson json = null) => Require<object>(key);
 
-    protected T Require<T>(string key, GenericData json = null)
+    protected T Require<T>(string key, RumbleJson json = null)
     {
-        GenericData data = json ?? Body;
+        RumbleJson data = json ?? Body;
         if (data == null)
             throw new ResourceFailureException("The current request is missing a JSON body or query parameters.  This can occur from malformed JSON or a serialization error.", new MissingJsonKeyException(key));
         return data.Require<T>(key);
     }
 
-    protected GenericData Body => FromContext<GenericData>(PlatformResourceFilter.KEY_BODY);
+    protected RumbleJson Body => FromContext<RumbleJson>(PlatformResourceFilter.KEY_BODY);
     protected TokenInfo Token => FromContext<TokenInfo>(PlatformAuthorizationFilter.KEY_TOKEN); // TODO: Is it possible to make this accessible to models?
     protected string IpAddress => FromContext<string>(PlatformResourceFilter.KEY_IP_ADDRESS);
     protected GeoIPData GeoIPData => FromContext<GeoIPData>(PlatformResourceFilter.KEY_GEO_IP_DATA, method: () => GeoIPData.FromAddress(IpAddress));

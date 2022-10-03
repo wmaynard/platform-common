@@ -30,14 +30,14 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
 
     public void OnResourceExecuted(ResourceExecutedContext context) { }
 
-    // Read the query parameters and request body and place them into a GenericData for later use in the endpoint.
+    // Read the query parameters and request body and place them into a RumbleJson for later use in the endpoint.
     private static void ReadBody(ActionContext context)
     {
         string json = "";
         try
         {
-            GenericData query = new GenericData();
-            GenericData body = null;
+            RumbleJson query = new RumbleJson();
+            RumbleJson body = null;
             foreach (KeyValuePair<string, StringValues> pair in context.HttpContext.Request.Query)
                 query[pair.Key] = pair.Value.ToString();
 
@@ -46,7 +46,7 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
                 if (context.HttpContext.Request.HasFormContentType) // Request is using form-data or x-www-form-urlencoded
                 {
                     Log.Warn(Owner.Default, "Incoming request is using form-data, which converts all fields to a string.  JSON is strongly preferred.");
-                    body = new GenericData();
+                    body = new RumbleJson();
                     foreach (string key in context.HttpContext.Request.Form.Keys)
                         body[key] = context.HttpContext.Request.Form[key].ToString();
                 }
@@ -67,11 +67,11 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "The request body or query parameters could not be parsed into GenericData, probably as a result of incomplete or invalid JSON.", data: new
+            Log.Error(Owner.Default, "The request body or query parameters could not be parsed into RumbleJson, probably as a result of incomplete or invalid JSON.", data: new
             {
                 Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
             }, exception: e);
-            SlackDiagnostics.Log("Request body failed to read.", "Unable to deserialize GenericData")
+            SlackDiagnostics.Log("Request body failed to read.", "Unable to deserialize RumbleJson")
                 .Attach($"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path.ToString().Replace("/", "_")}.txt", string.IsNullOrEmpty(json) ? "(no json)" : json)
                 .DirectMessage(Owner.Will)
                 .Wait();

@@ -72,15 +72,15 @@ public class SlackMessageClient
             .AddAuthorization(Token)
             .OnSuccess((_, response) =>
             {
-                foreach (GenericData memberData in response.AsGenericData.Require<GenericData[]>(key: "members"))
+                foreach (RumbleJson memberData in response.AsRumbleJson.Require<RumbleJson[]>(key: "members"))
                     Users.Add(memberData);
                 Log.Local(Owner.Default, "Slack member data loaded.");
             }).GetAsync();
     }
 
-    private async Task<GenericData> Send(SlackMessage message, string channel)
+    private async Task<RumbleJson> Send(SlackMessage message, string channel)
     {
-        GenericData response = null;
+        RumbleJson response = null;
 
         try
         {
@@ -92,10 +92,10 @@ public class SlackMessageClient
                     .Request(POST_MESSAGE)
                     .AddAuthorization(Token)
                     .SetPayload(message.JSON)
-                    .OnFailure((_, apiResponse) => response = apiResponse.AsGenericData ?? new GenericData())
+                    .OnFailure((_, apiResponse) => response = apiResponse.AsRumbleJson ?? new RumbleJson())
                     .OnSuccess((_, apiResponse) =>
                     {
-                        response = apiResponse.AsGenericData ?? new GenericData();
+                        response = apiResponse.AsRumbleJson ?? new RumbleJson();
                         if (!response.Require<bool>("ok"))
                             throw new FailedRequestException(POST_MESSAGE, message.JSON);
                     })
@@ -118,11 +118,11 @@ public class SlackMessageClient
         return response;
     }
 
-    public async Task<GenericData> Send(SlackMessage message)
+    public async Task<RumbleJson> Send(SlackMessage message)
     {
         message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
-        GenericData response = null;
+        RumbleJson response = null;
 
         foreach (string channel in Channels)
             response = await Send(message, channel);
@@ -130,7 +130,7 @@ public class SlackMessageClient
         return response;
     }
 
-    public async Task<GenericData> DirectMessage(SlackMessage message, Owner owner)
+    public async Task<RumbleJson> DirectMessage(SlackMessage message, Owner owner)
     {
         SlackUser info = UserSearch(owner).FirstOrDefault();
         return info == null
@@ -138,9 +138,9 @@ public class SlackMessageClient
             : await Send(message, info.ID);
     }
 
-    public async Task<GenericData> TryUpload(string path)
+    public async Task<RumbleJson> TryUpload(string path)
     {
-        GenericData response = null;
+        RumbleJson response = null;
         foreach (string channel in Channels)
         {
             try

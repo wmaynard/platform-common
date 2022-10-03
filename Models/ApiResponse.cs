@@ -17,7 +17,7 @@ public class ApiResponse
     public readonly int StatusCode;
     internal HttpResponseMessage Response;
 
-    internal GenericData OriginalResponse
+    internal RumbleJson OriginalResponse
     {
         get
         {
@@ -74,7 +74,7 @@ public class ApiResponse
     {
         get
         {
-            string code = AsGenericData?.Optional<string>("errorCode")?.GetDigits();
+            string code = AsRumbleJson?.Optional<string>("errorCode")?.GetDigits();
             if (code == null)
                 return ErrorCode.None;
 
@@ -91,9 +91,9 @@ public class ApiResponse
         }
     }
 
-    private GenericData _generic;
-    public GenericData AsGenericData => _generic ??= Await(AsGenericDataAsync()); // If this gets called multiple times, prevent the conversion after the first instance.
-    public async Task<GenericData> AsGenericDataAsync()
+    private RumbleJson _generic;
+    public RumbleJson AsRumbleJson => _generic ??= Await(AsGenericDataAsync()); // If this gets called multiple times, prevent the conversion after the first instance.
+    public async Task<RumbleJson> AsGenericDataAsync()
     {
         string asString = await AsStringAsync();
         try
@@ -101,12 +101,12 @@ public class ApiResponse
             if (!Success)
                 return OriginalResponse;
             return string.IsNullOrWhiteSpace(asString)
-                ? new GenericData()
+                ? new RumbleJson()
                 : await AsStringAsync();
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Could not cast response to GenericData.", data: new
+            Log.Error(Owner.Default, "Could not cast response to RumbleJson.", data: new
             {
                 Response = Response
             }, exception: e);
@@ -136,7 +136,7 @@ public class ApiResponse
     }
 
     public static implicit operator string(ApiResponse args) => args.AsString;
-    public static implicit operator GenericData(ApiResponse args) => args.AsGenericData;
+    public static implicit operator RumbleJson(ApiResponse args) => args.AsRumbleJson;
     public static implicit operator byte[](ApiResponse args) => args.AsByteArray;
     public static implicit operator int(ApiResponse args) => args.StatusCode;
 }

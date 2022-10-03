@@ -13,7 +13,7 @@ public class DynamicConfigService : PlatformTimerService
     public string Url { get; init; }
     public string GameId { get; init; }
     public string RumbleKey { get; init; }
-    public GenericData Values { get; private set; }
+    public RumbleJson Values { get; private set; }
     private bool IsUpdating { get; set; }
     private string GameScope => $"game:{GameId}";
     private readonly ApiService _apiService;
@@ -28,7 +28,7 @@ public class DynamicConfigService : PlatformTimerService
         Url = PlatformEnvironment.ConfigServiceUrl;
         GameId = PlatformEnvironment.GameSecret;
 
-        Values = new GenericData();
+        Values = new RumbleJson();
 
         if (string.IsNullOrEmpty(Url) || string.IsNullOrEmpty(RumbleKey))
         {
@@ -43,7 +43,7 @@ public class DynamicConfigService : PlatformTimerService
         Resume();
     }
 
-    public GenericData GameConfig => Values.Optional<GenericData>(GameScope);
+    public RumbleJson GameConfig => Values.Optional<RumbleJson>(GameScope);
     public string PlatformUrl => PlatformEnvironment.ClusterUrl
     ?? GameConfig?.Optional<string>("platformUrl_C#") 
     ?? GameConfig?.Optional<string>("platformUrl");
@@ -68,7 +68,7 @@ public class DynamicConfigService : PlatformTimerService
 
     private Task UpdateAsync() => IsUpdating ? null : Task.Run(Update);
 
-    private GenericData Fetch(string scope) => _apiService
+    private RumbleJson Fetch(string scope) => _apiService
         .Request(PlatformEnvironment.Url(PlatformEnvironment.ConfigServiceUrl, $"/config/{scope}"))
         .AddHeader("RumbleKey", RumbleKey)
         .OnFailure((sender, response) =>
@@ -81,5 +81,5 @@ public class DynamicConfigService : PlatformTimerService
         })
         .Get();
 
-    private GenericData Fetch(string scope, out GenericData output) => output = Fetch(scope);
+    private RumbleJson Fetch(string scope, out RumbleJson output) => output = Fetch(scope);
 }

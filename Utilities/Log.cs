@@ -111,7 +111,7 @@ public class Log : PlatformDataModel
     public string CommonVersion { get; init; }
 
     [JsonInclude, JsonPropertyName("throttleDetails")]
-    public GenericData ThrottleDetails { get; private set; }
+    public RumbleJson ThrottleDetails { get; private set; }
 
     private Log(LogType type, Owner owner, Exception exception = null)
     {
@@ -323,14 +323,14 @@ public class Log : PlatformDataModel
                 OriginalData = data,
                 OriginalException = exception
             });
-            GenericData details = new GenericData()
+            RumbleJson details = new RumbleJson()
             {
                 { "Data", data },
                 { "Exception", exception }
             };
             await SlackDiagnostics.Log("Improper Dev log call!", newMessage)
                 .Tag(owner)
-                .Attach("details.txt", details.JSON)
+                .Attach("details.txt", details.Json)
                 .Send();
         }
         catch (Exception e)
@@ -387,7 +387,7 @@ public class Log : PlatformDataModel
     {
         Write(LogType.CRITICAL, owner, message, data, exception);
 
-        GenericData details = new GenericData()
+        RumbleJson details = new RumbleJson()
         {
             { "Data", data },
             { "Exception", exception }
@@ -395,7 +395,7 @@ public class Log : PlatformDataModel
 
         await SlackDiagnostics.Log(message, "A critical error has been reported.")
             .Tag(owner)
-            .Attach("details.txt", details.JSON)
+            .Attach("details.txt", details.Json)
             .Send();
     }
 
@@ -452,7 +452,7 @@ public class Log : PlatformDataModel
 
         long seconds = Timestamp.UnixTime - timestamp;
 
-        ThrottleDetails = new GenericData
+        ThrottleDetails = new RumbleJson
         {
             { "message", $"Suppressed {count} logs with the same message over the last {seconds} seconds."},
             { "suppressed", count },

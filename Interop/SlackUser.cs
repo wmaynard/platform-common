@@ -30,11 +30,11 @@ public class SlackUser : PlatformDataModel
     private Dictionary<string, long> SearchScores { get; init; }
 
     public SlackUser() => SearchScores = new Dictionary<string, long>();
-    public static implicit operator SlackUser(GenericData data)
+    public static implicit operator SlackUser(RumbleJson data)
     {
         if (data == null)
             return null;
-        GenericData profile = data.Optional<GenericData>("profile");
+        RumbleJson profile = data.Optional<RumbleJson>("profile");
         return new SlackUser
         {
             ID = NullIfEmpty(data.Optional<string>("id")),
@@ -109,7 +109,7 @@ public class SlackUser : PlatformDataModel
             .AddAuthorization(PlatformEnvironment.SlackLogBotToken)
             .OnSuccess((_, response) =>
             {
-                users.AddRange(response.AsGenericData.Require<GenericData[]>(key: "members").Select(memberData => (SlackUser)memberData));
+                users.AddRange(response.AsRumbleJson.Require<RumbleJson[]>(key: "members").Select(memberData => (SlackUser)memberData));
             })
             .OnFailure((_, _) =>
             {
@@ -133,7 +133,7 @@ public class SlackUser : PlatformDataModel
                 .AddAuthorization(PlatformEnvironment.SlackLogBotToken)
                 .OnSuccess((_, response) =>
                 {
-                    Users.AddRange(response.AsGenericData.Require<GenericData[]>(key: "members").Select(memberData => (SlackUser)memberData));
+                    Users.AddRange(response.AsRumbleJson.Require<RumbleJson[]>(key: "members").Select(memberData => (SlackUser)memberData));
                 }).Get();
         return owners
             .Select(owner => UserSearch(OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())

@@ -12,12 +12,12 @@ namespace Rumble.Platform.Common.Services;
 public class CacheService : PlatformTimerService
 {
     private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
-    private GenericData Values { get; set; }
+    private RumbleJson Values { get; set; }
     private Dictionary<string, long> Expirations { get; set; }
 
     public CacheService() : base(intervalMS: 5_000, true)
     {
-        Values = new GenericData();
+        Values = new RumbleJson();
         Expirations = new Dictionary<string, long>();
     }
 
@@ -72,7 +72,7 @@ public class CacheService : PlatformTimerService
     /// </summary>
     /// <param name="key">The cached key to fetch.</param>
     /// <param name="value">The cached value, if the key exists.</param>
-    /// <typeparam name="T">Forwarded to GenericData.Optional(key).</typeparam>
+    /// <typeparam name="T">Forwarded to RumbleJson.Optional(key).</typeparam>
     /// <returns>True if the fetch is successful, otherwise false.</returns>
     public bool HasValue<T>(string key, out T value)
     {

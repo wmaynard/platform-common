@@ -40,7 +40,7 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T> whe
     protected void Resume() => _timer.Start();
     protected abstract void OnElapsed();
 
-    public override GenericData HealthStatus => new GenericData
+    public override RumbleJson HealthStatus => new RumbleJson
     {
         { Name, Status }
     };

@@ -16,7 +16,7 @@ public class GeoIPData : PlatformDataModel
     internal const string KEY_NAMES = "names";
     internal const string KEY_CODE = "code";
     internal const string KEY_ISO_CODE = "iso_code";
-    private GenericData Data { get; init; }
+    private RumbleJson Data { get; init; }
 
     public string Continent { get; init; }
     public string ContinentCode { get; init; }
@@ -29,28 +29,28 @@ public class GeoIPData : PlatformDataModel
 
     public string IPAddress { get; init; }
 
-    internal GeoIPData(string ipAddress, GenericData data = null)
+    internal GeoIPData(string ipAddress, RumbleJson data = null)
     {
         IPAddress = ipAddress;
         Data = data;
 
-        GenericData continent = Data?.Optional<GenericData>(KEY_CONTINENT);
-        GenericData country = Data?.Optional<GenericData>(KEY_COUNTRY);
-        GenericData registered = Data?.Optional<GenericData>(KEY_REGISTERED_COUNTRY);
+        RumbleJson continent = Data?.Optional<RumbleJson>(KEY_CONTINENT);
+        RumbleJson country = Data?.Optional<RumbleJson>(KEY_COUNTRY);
+        RumbleJson registered = Data?.Optional<RumbleJson>(KEY_REGISTERED_COUNTRY);
 
         ContinentCode = continent?.Optional<string>(KEY_CODE);
         Continent = continent
-            ?.Optional<GenericData>(KEY_NAMES)
+            ?.Optional<RumbleJson>(KEY_NAMES)
             ?.Optional<string>(KEY_ENGLISH);
 
         CountryCode = country?.Optional<string>(KEY_ISO_CODE);
         Country = country
-            ?.Optional<GenericData>(KEY_NAMES)
+            ?.Optional<RumbleJson>(KEY_NAMES)
             ?.Optional<string>(KEY_ENGLISH);
 
         RegisteredCountryCode = registered?.Optional<string>(KEY_CODE);
         RegisteredCountry = registered
-            ?.Optional<GenericData>(KEY_NAMES)
+            ?.Optional<RumbleJson>(KEY_NAMES)
             ?.Optional<string>(KEY_ENGLISH);
     }
 

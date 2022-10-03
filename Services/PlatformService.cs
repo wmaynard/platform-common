@@ -90,7 +90,7 @@ public abstract class PlatformService : IService, IPlatformService
         return output;
     }
 
-    public virtual GenericData HealthStatus => new GenericData
+    public virtual RumbleJson HealthStatus => new RumbleJson
     {
         { Name, "unimplemented" }
     };

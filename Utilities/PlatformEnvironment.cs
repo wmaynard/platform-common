@@ -16,7 +16,7 @@ namespace Rumble.Platform.Common.Utilities;
 /// appsettings.json file, but secrets (e.g. connection strings) are supposed to be handled in the .NET user secrets
 /// tool.  After a couple hours of unsuccessful fiddling to get it to cooperate in Rider, I decided to do it the
 /// old-fashioned way, by parsing a local file and ignoring it in .gitignore.  This class operates in much the same way
-/// that GenericData does, allowing developers to take advantage of Require<T>() and Optional<T>().  It also contains custom
+/// that RumbleJson does, allowing developers to take advantage of Require<T>() and Optional<T>().  It also contains custom
 /// environment variable serialization for common platform environment variables, allowing us to configure any number of services
 /// from a group-level CI variable in gitlab.
 /// </summary>
@@ -43,9 +43,9 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_GITLAB_ENVIRONMENT_NAME = "GITLAB_ENVIRONMENT_NAME";
 
     // Helper getter properties
-    internal static GenericData VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
-        ? new GenericData { { "environment", Variables.Copy() } }
-        : new GenericData();
+    internal static RumbleJson VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
+        ? new RumbleJson { { "environment", Variables.Copy() } }
+        : new RumbleJson();
     public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
     public static string GameSecret => Optional(KEY_GAME_ID);
     public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
@@ -78,7 +78,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
 
     private static bool Initialized => Variables != null;
-    private static GenericData Variables { get; set; }
+    private static RumbleJson Variables { get; set; }
 
     public static readonly string Version = Assembly
         .GetEntryAssembly()
@@ -98,9 +98,9 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
             : "Unknown";
     }
 
-    private static GenericData Initialize()
+    private static RumbleJson Initialize()
     {
-        Variables ??= new GenericData();
+        Variables ??= new RumbleJson();
 
         // Local secrets are stored in environment.json when developers are working locally.
         // These are low priority, and will return an empty dataset when deployed.
@@ -128,14 +128,14 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         return Variables;
     }
 
-    private static GenericData LoadCommonVariables()
+    private static RumbleJson LoadCommonVariables()
     {
         try
         {
-            GenericData output = new GenericData();
+            RumbleJson output = new RumbleJson();
 
             string deployment = Variables.Require<string>(KEY_DEPLOYMENT);
-            GenericData common = Variables?.Optional<GenericData>(KEY_PLATFORM_COMMON);
+            RumbleJson common = Variables?.Optional<RumbleJson>(KEY_PLATFORM_COMMON);
 
             if (common == null)
             {
@@ -149,8 +149,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
             }
 
             foreach (string key in common.Keys)
-                output[key] = common.Optional<GenericData>(key)?.Optional<object>(deployment)
-                    ?? common.Optional<GenericData>(key)?.Optional<object>("*"); // TODO: Issue warning here
+                output[key] = common.Optional<RumbleJson>(key)?.Optional<object>(deployment)
+                    ?? common.Optional<RumbleJson>(key)?.Optional<object>("*"); // TODO: Issue warning here
 
             // Format the LOGGLY_URL.
             string root = output.Optional<string>(KEY_LOGGLY_ROOT);
@@ -178,15 +178,15 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
             {
                 StackTrace = e.StackTrace
             }, exception: e);
-            return new GenericData();
+            return new RumbleJson();
         }
     }
 
-    private static GenericData LoadEnvironmentVariables()
+    private static RumbleJson LoadEnvironmentVariables()
     {
         try
         {
-            GenericData output = new GenericData();
+            RumbleJson output = new RumbleJson();
             IDictionary vars = Environment.GetEnvironmentVariables();
             foreach (string key in vars.Keys)
                 output[key] = vars[key];
@@ -195,23 +195,23 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         catch (Exception e)
         {
             Log.Warn(Owner.Will, "Could not read environment variables.", exception: e);
-            return new GenericData();
+            return new RumbleJson();
         }
     }
 
-    private static GenericData LoadLocalSecrets()
+    private static RumbleJson LoadLocalSecrets()
     {
         try
         {
-            GenericData output = File.Exists(LOCAL_SECRETS_JSON)
+            RumbleJson output = File.Exists(LOCAL_SECRETS_JSON)
                 ? File.ReadAllText(LOCAL_SECRETS_JSON)
-                : new GenericData();
+                : new RumbleJson();
             return output;
         }
         catch (Exception e)
         {
             Log.Warn(Owner.Will, "Could not read local secrets file.", exception: e);
-            return new GenericData();
+            return new RumbleJson();
         }
     }
 
