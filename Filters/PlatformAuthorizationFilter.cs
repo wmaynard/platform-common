@@ -169,11 +169,10 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         GetService(out ApiService api);
         GetService(out CacheService cache);
         
-        TokenInfo output = null;
-
-        if (cache != null && cache.HasValue(encryptedToken, out output))
+        if (cache?.HasValue(encryptedToken, out TokenInfo output) ?? false)
         {
             Log.Local(Owner.Will, "Token info is cached.");
+            context.Items[KEY_TOKEN] = output;
             return new ValidationResult
             { 
                 errorMessage = "null or empty string", 
