@@ -434,13 +434,25 @@ public class Log : PlatformDataModel
         }
         catch { }
 
+        // The try catch here is necessary for thread safety; occasionally the context gets disposed before we've hit this point.
+        string endpoint = null;
+        try
+        {
+            endpoint = context?.Request.Path.Value;
+        }
+        catch (ObjectDisposedException)
+        {
+            endpoint = "Unknown (HttpContext disposed)";
+        }
+        
+        
         new Log(type, actual, exception)
         {
             Data = data,
             Message = message ?? exception?.Message,
             Token = token,
 #pragma warning disable CS0618
-            Endpoint = Converter.ContextToEndpoint(context),
+            Endpoint = endpoint,
 #pragma warning restore CS0618,
             Emphasis = emphasis
         }.Send();

@@ -69,6 +69,9 @@ public class FutileService : QueueService<MyData>
     // secondaryNodeTaskCount : The number of tasks a secondary node can attempt in one pass; 0 for int.MaxValue.
     public FutileService() : base(collection: "test", primaryNodeTaskCount: 10, secondaryNodeTaskCount: 0) { }
     
+    // This fires after all of the tracked tasks are completed.
+    protected override void OnTasksCompleted(MyData[] data) { }
+    
     // This can only be executed by the primary node.  Create tasks here.
     protected override void PrimaryNodeWork() { }
     
@@ -163,6 +166,21 @@ Will    |     125,220ms | LOCAL     |               RolloverService_old.MoveNext
 ```
 
 9. But wait, there's more!  As one final feature, it's sometimes necessary to store a value between sessions, or, for example, if a service crashes or otherwise needs to be redeployed.  The `QueueService` contains two useful methods to aid with this `Get(string)` and `Set<T>(string, object)`.  The single config document in the `QueueService`'s collection has a `GenericData` object in it, and this data can hold whatever settings are needed for proper operation of the service.  In the case of Leaderboards, for example, this is necessary to track when leaderboards were last rolled over.
+
+## Tracked vs. Untracked Tasks
+
+While it's nice to be able to delegate tasks out to other servers with a queue, sometimes there's a need to perform some sort of cleanup action when those tasks are completed.  Introduced in platform-common-1.2.2, we now have the capability of doing exactly this.  Enter the concept of tracking:
+
+* When a tracked task is created, a hashset in the config is appended with the task's ID.
+* As tasks are completed, their IDs are removed from the hashset.
+* Once the hashset has been emptied and at least one cycle has passed, the primary node:
+  * Marks all successful tasks as "acknowledged".
+  * Fires off `OnTasksCompleted(T[] data)`, with `data` being the same task data from all of the acknowledged tasks.
+* The next time a tracked task is added, this process repeats.
+
+Tasks can be either **tracked** or **untracked**.
+
+There are two methods of creating tasks for processing.  The first is to use `CreateTask()`; this is the default option and is used elsewhere in this readme.  The second is to use `CreateUntrackedTask()`; this is a situational workaround to ignore the default flow above.  Untracked quests will not trigger the `OnTasksCompleted()` callback.
 
 ## FAQs
 

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
@@ -36,7 +38,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="intervalMs">The length of time between PrimaryWork() calls.  The timer is paused while the thread is working.</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
-    protected QueueService(string collection, int intervalMs = 60_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
+    protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
         : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
@@ -59,7 +61,27 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         UpsertConfig();
     }
 
-    protected override void OnElapsed()
+    private T[] AcknowledgeTasks()
+    {
+        //.Project<string>(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+        
+        T[] data = _work
+            .Find(filter: task => task.Status == QueuedTask.TaskStatus.Succeeded)
+            .Project<T>(Builders<QueuedTask>.Projection.Expression(task => task.Data))
+            .ToList()
+            .ToArray();
+        
+        long affected = _work.UpdateMany(
+            filter: task => task.Status == QueuedTask.TaskStatus.Succeeded,
+            update: Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Acknowledged)
+        ).ModifiedCount;
+        
+        Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
+
+        return data;
+    }
+
+    protected sealed override void OnElapsed()
     {
         IsPrimary = TryUpdateConfig();
         if (IsPrimary)
@@ -72,6 +94,25 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     if (!WorkPerformed(StartNewTask()))
                         break;
 
+                bool completed = _config.UpdateOne(
+                    filter: Builders<QueueConfig>.Filter.And(
+                        Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
+                        Builders<QueueConfig>.Filter.SizeLte(config => config.Waitlist, 0)
+                    ),
+                    update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
+                ).ModifiedCount > 0;
+                
+                if (completed)
+                    try
+                    {
+                        OnTasksCompleted(AcknowledgeTasks());
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(Owner.Default, "Could not successfully execute OnTasksCompleted().", exception: e);
+                    }
+                
+                AbandonOldTrackedTasks();
                 DeleteOldTasks();
             }
             catch (Exception e)
@@ -86,10 +127,22 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     }
 
     /// <summary>
-    /// Creates a task that a worker thread can then claim and process.
+    /// Creates a task that a worker thread can then claim and process.  Once all tasks are completed, the next Primary
+    /// cycle will execute OnTasksCompleted().
     /// </summary>
     /// <param name="data">The data object necessary to perform work on the task.</param>
-    protected void CreateTask(T data) => InsertTask(data);
+    protected void CreateTask(T data) => InsertTask(data, track: true);
+    
+    /// <summary>
+    /// Creates a task that a worker thread can then claim and process.  This does not trigger OnTasksCompleted();
+    /// </summary>
+    /// <param name="data">The data object necessary to perform work on the task.</param>
+    protected void CreateUntrackedTask(T data) => InsertTask(data, track: false);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected abstract void OnTasksCompleted(T[] data);
 
     /// <summary>
     /// Actions to perform on the primary - and only the primary - node.  Secondary nodes will not perform this work.
@@ -181,17 +234,47 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
     private bool FailTask(QueuedTask queuedTask) => UpdateTaskStatus(queuedTask, success: false);
-    
+
     /// <summary>
     /// Creates a task that can then be claimed by worker threads.
     /// </summary>
     /// <param name="data">The data needed to perform work on the task.</param>
-    private void InsertTask(T data = null) => _work.InsertOneAsync(new QueuedTask
+    /// <param name="track">If true, the config will execute OnTasksCompleted() once all tracked tasks are processed.</param>
+    private async void InsertTask(T data = null, bool track = false)
     {
-        Data = data,
-        Type = TaskData.TaskType.Work,
-        Status = QueuedTask.TaskStatus.NotStarted
-    });
+        QueuedTask document = new QueuedTask
+        {
+            Data = data,
+            Type = TaskData.TaskType.Work,
+            Status = QueuedTask.TaskStatus.NotStarted,
+            Tracked = track
+        };
+        await _work.InsertOneAsync(document);
+
+        if (!track)
+            return;
+        
+        // Add the tracked task's ID to the config's waitlist.
+        // Set the minimum OnCompleteTime for the next Primary cycle.  
+        QueueConfig config = await _config.FindOneAndUpdateAsync<QueueConfig>(
+            filter: config => config.OnCompleteTime <= 0,
+            update: Builders<QueueConfig>.Update
+                .Push(config => config.Waitlist, document.Id)
+                .Set(config => config.OnCompleteTime, Timestamp.UnixTime + (IntervalMs / 1_000)),
+            options: new FindOneAndUpdateOptions<QueueConfig>
+            {
+                ReturnDocument = ReturnDocument.After
+            }
+        ) ?? await _config.FindOneAndUpdateAsync<QueueConfig>(                                      // If config is null, the update didn't take
+            filter: config => true,                                                                 // effect; this is because the OnCompleteTime
+            update: Builders<QueueConfig>.Update.Push(config => config.Waitlist, document.Id),  // was set by a previous task
+            options: new FindOneAndUpdateOptions<QueueConfig>
+            {
+                ReturnDocument = ReturnDocument.After
+            }
+        );
+        Log.Local(Owner.Default, $"Tracked tasks: {config.Waitlist.Count}");
+    }
     
     /// <summary>
     /// Attempts to start a previously failed task.
@@ -264,7 +347,24 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMS)
         )
     ).ModifiedCount > 0;
-    
+
+    private void AbandonOldTrackedTasks()
+    {
+        long affected = _config.UpdateMany(
+            filter: Builders<QueueConfig>.Filter.And(
+                Builders<QueueConfig>.Filter.Lte(config => config.LastTrackingTime, Timestamp.UnixTime - 1_800),
+                Builders<QueueConfig>.Filter.SizeGt(config => config.Waitlist, 0)
+            ),
+            update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, new HashSet<string>())
+        ).ModifiedCount;
+        
+        if (affected > 0)
+            Log.Error(Owner.Default, "Abandoned old tracked quests.  Processed tasks were unable to update the queue config properly.", data: new
+            {
+                DroppedTasks = affected
+            });
+    }
+
     /// <summary>
     /// Marks a task as completed or failed.  If failed, the failure count is incremented.
     /// </summary>
@@ -272,18 +372,33 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="success">Determines whether or not the task is marked as successful or failed, along with the failure increment.</param>
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
-    private bool UpdateTaskStatus(QueuedTask queuedTask, bool success) => _work.UpdateOne(
-        filter: Builders<QueuedTask>.Filter.And(
-            Builders<QueuedTask>.Filter.Eq(task => task.Id, queuedTask.Id),
-            Builders<QueuedTask>.Filter.Eq(task => task.ClaimedBy, Id)
-        ),
-        update: success
-            ? Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Succeeded)
-            : Builders<QueuedTask>.Update.Combine(
-                Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Failed),
-                Builders<QueuedTask>.Update.Inc(task => task.Failures, 1)
-            )
-    ).ModifiedCount > 0;
+    private bool UpdateTaskStatus(QueuedTask queuedTask, bool success)
+    {
+        // Update the config node and remove the task Id.
+        _config.FindOneAndUpdate<QueueConfig>(
+            filter: config => true,
+            update: Builders<QueueConfig>.Update
+                .Pull(config => config.Waitlist, queuedTask.Id)
+                .Set(config => config.LastTrackingTime, Timestamp.UnixTime),
+            options: new FindOneAndUpdateOptions<QueueConfig>
+            {
+                ReturnDocument = ReturnDocument.After
+            }
+        );
+
+        return _work.UpdateOne(
+            filter: Builders<QueuedTask>.Filter.And(
+                Builders<QueuedTask>.Filter.Eq(task => task.Id, queuedTask.Id),
+                Builders<QueuedTask>.Filter.Eq(task => task.ClaimedBy, Id)
+            ),
+            update: success
+                ? Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Succeeded)
+                : Builders<QueuedTask>.Update.Combine(
+                    Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Failed),
+                    Builders<QueuedTask>.Update.Inc(task => task.Failures, 1)
+                )
+        ).ModifiedCount > 0;
+    }
 
     /// <summary>
     /// Updates the config on startup, regardless of node status.
@@ -324,6 +439,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_PRIMARY_ID = "primary";
         private const string KEY_ACTIVITY = "updated";
         private const string KEY_SETTINGS = "settings";
+        private const string KEY_WAITLIST = "wait";
+        private const string KEY_MINIMUM_WAIT_TIME = "waitTime";
+        private const string KEY_LAST_TRACK_TIME = "lastTrackTime";
         
         [BsonElement(KEY_PRIMARY_ID)]
         internal string PrimaryServiceId { get; set; }
@@ -331,8 +449,20 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [BsonElement(KEY_ACTIVITY)]
         internal long LastActive { get; set; }
         
+        [BsonElement(KEY_MINIMUM_WAIT_TIME)]
+        internal long OnCompleteTime { get; set; }
+        
         [BsonElement(KEY_SETTINGS)]
         public RumbleJson Settings { get; set; }
+        
+        [BsonElement(KEY_WAITLIST)]
+        public HashSet<string> Waitlist { get; set; }
+        
+        [BsonElement(KEY_LAST_TRACK_TIME)]
+        public long LastTrackingTime { get; set; }
+
+        public QueueConfig() => Waitlist = new HashSet<string>();
+        
     }
     
     [BsonIgnoreExtraElements]
@@ -343,6 +473,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_DATA = "data";
         private const string KEY_FAILURES = "failures";
         private const string KEY_STATUS = "status";
+        private const string KEY_TRACKED = "tracked";
         
         [BsonElement(KEY_CLAIMED_BY)]
         public string ClaimedBy { get; set; }
@@ -352,6 +483,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         [BsonElement(KEY_STATUS)]
         internal TaskStatus Status { get; set; }
+        
+        [BsonElement(KEY_TRACKED)]
+        internal bool Tracked { get; set; }
         
         [BsonElement(KEY_DATA)]
         internal T Data { get; set; }
@@ -364,6 +498,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             NotStarted = 0,
             Claimed = 100,
             Succeeded = 200,
+            Acknowledged = 300,
             Failed = 400
         }
     }
@@ -390,4 +525,4 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     }
 
 #endregion Collection Documents
-}
+}  // TODO: add link to health degraded slack message 

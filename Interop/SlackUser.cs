@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -27,9 +28,9 @@ public class SlackUser : PlatformDataModel
 
     public string Tag => $"<@{ID}|{Name}>";
 
-    private Dictionary<string, long> SearchScores { get; init; }
+    private ConcurrentDictionary<string, long> SearchScores { get; init; }
 
-    public SlackUser() => SearchScores = new Dictionary<string, long>();
+    public SlackUser() => SearchScores = new ConcurrentDictionary<string, long>();
     public static implicit operator SlackUser(RumbleJson data)
     {
         if (data == null)

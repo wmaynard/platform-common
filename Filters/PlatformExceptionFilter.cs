@@ -17,6 +17,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Data;
+using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Filters;
 
@@ -57,6 +58,8 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
         {
             code = platEx.Code;
             data = platEx.Data;
+            if (platEx.InnerException is ModelValidationException modelEx)
+                platEx.Data["errors"] = modelEx.Errors;
         }
 
         data["endpoint"] = context.GetEndpoint();

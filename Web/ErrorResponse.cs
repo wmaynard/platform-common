@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Web;
 
@@ -18,6 +19,9 @@ internal class ErrorResponse : StandardResponse
 
     [JsonInclude, JsonPropertyName("errorCode"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Code { get; set; }
+    
+    // [JsonInclude, JsonPropertyName("errors"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    // public string[] Errors { get; set; }
 
     internal ErrorResponse(string message, Exception data, ErrorCode code) : base(new { Exception = Clean(data) })
     {
@@ -38,7 +42,12 @@ internal class ErrorResponse : StandardResponse
 
         Dictionary<string, object> output = new Dictionary<string, object>();
         if (ex is PlatformException platEx)
+        {
             output["details"] = platEx.Data;
+            if (platEx.InnerException is ModelValidationException modelEx)
+                output["errors"] = modelEx.Errors;
+        }
+            
         output["message"] = ex.Message;
         output["type"] = ex.GetType().Name;
         output["stackTrace"] = ex.StackTrace;
