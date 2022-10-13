@@ -171,7 +171,6 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         
         if (cache?.HasValue(encryptedToken, out TokenInfo output) ?? false)
         {
-            Log.Local(Owner.Will, "Token info is cached.");
             context.Items[KEY_TOKEN] = output;
             return new ValidationResult
             { 

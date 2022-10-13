@@ -75,7 +75,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static readonly bool IsStaging = Deployment?.NumericBetween(min: 200, max: 299) ?? false;
     public static readonly bool IsProd = Deployment?.NumericBetween(min: 300, max: 399) ?? false;
 
-    public static readonly bool SwarmMode = Optional("SWARM_MODE") == "true";
+    public static readonly bool SwarmMode = Optional<bool>("SWARM_MODE");
 
     private static bool Initialized => Variables != null;
     private static RumbleJson Variables { get; set; }
