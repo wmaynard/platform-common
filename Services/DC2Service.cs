@@ -262,6 +262,7 @@ public class DC2Service : PlatformTimerService
     }
 
     public T Optional<T>(string key) => ProjectValues.Optional<T>(key) ?? GlobalValues.Optional<T>(key);
+    public T Require<T>(string key) => ProjectValues.Require<T>(key);
 
     /// <summary>
     /// Searches for a config value.  The hierarchy for scope is Project > Common > Global > (everything else). 
