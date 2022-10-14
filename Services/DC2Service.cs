@@ -180,8 +180,6 @@ public class DC2Service : PlatformTimerService
                 // TODO: This relies on dynamic-config being updated for those error codes to match; might need to parse error codes by reflection / name instead.
                 if (response.ErrorCode == ErrorCode.Unnecessary)
                     Log.Verbose(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
-                else
-                    Log.Info(Owner.Default, $"Created a new dynamic config section: '{COMMON_SETTING_NAME}'");
             })
             .OnFailure((sender, response) =>
             {

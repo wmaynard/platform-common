@@ -63,8 +63,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
     private T[] AcknowledgeTasks()
     {
-        //.Project<string>(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
-        
         T[] data = _work
             .Find(filter: task => task.Status == QueuedTask.TaskStatus.Succeeded)
             .Project<T>(Builders<QueuedTask>.Projection.Expression(task => task.Data))
@@ -273,7 +271,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 ReturnDocument = ReturnDocument.After
             }
         );
-        Log.Local(Owner.Default, $"Tracked tasks: {config.Waitlist.Count}");
     }
     
     /// <summary>
