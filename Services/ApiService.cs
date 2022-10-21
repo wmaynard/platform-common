@@ -7,8 +7,13 @@ using System.Net.Http;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Filters;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -131,4 +136,157 @@ public class ApiService : PlatformService
             }
         }
     };
+    
+    public string GenerateToken(string accountId, string screenname, string email, int discriminator, Audience audiences = Audience.All)
+    {
+        if (accountId == null || screenname == null || discriminator < 0)
+            throw new TokenGenerationException("Insufficient user information for token generation.");
+
+        Get(out DC2Service dc2);
+        if (dc2 == null)
+            throw new TokenGenerationException("Dynamic config is null; token generation is impossible.");
+        
+        string adminToken = dc2.AdminToken;
+        if (adminToken == null)
+            throw new TokenGenerationException("No admin token present in dynamic config.");
+
+        GeoIPData geoData = null;
+        try
+        {
+            geoData = GeoIPData.FromAddress((string)new HttpContextAccessor().HttpContext.Items[PlatformResourceFilter.KEY_IP_ADDRESS]);
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Default, $"Unable to load GeoIPData for token generation", exception: e);
+        }
+
+        string[] audience = audiences == Audience.All
+            ? new string[] { audiences.GetDisplayName() }
+            : audiences
+                .GetFlags()
+                .Select(en => en.GetDisplayName())
+                .ToArray();
+        
+#if LOCAL
+        string url = PlatformEnvironment.Url("http://localhost:5031/secured/token/generate");
+#else
+        string url = PlatformEnvironment.Url("/secured/token/generate");
+#endif
+        
+        RumbleJson payload = new RumbleJson
+        {
+            { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
+            { TokenInfo.FRIENDLY_KEY_SCREENNAME, screenname },
+            { TokenInfo.FRIENDLY_KEY_REQUESTER, PlatformEnvironment.ServiceName },
+            { TokenInfo.FRIENDLY_KEY_EMAIL_ADDRESS, email },
+            { TokenInfo.FRIENDLY_KEY_DISCRIMINATOR, discriminator },
+            { TokenInfo.FRIENDLY_KEY_IP_ADDRESS, geoData?.IPAddress },
+            { TokenInfo.FRIENDLY_KEY_COUNTRY_CODE, geoData?.CountryCode },
+            { TokenInfo.FRIENDLY_KEY_AUDIENCE, audience },
+            { "days", PlatformEnvironment.IsLocal ? 3650 : 5 }
+        };
+
+        Request(url)
+            .AddAuthorization(adminToken)
+            .SetPayload(payload)
+            .OnFailure(response =>
+                Log.Error(Owner.Will, "Unable to generate token.", data: new
+                {
+                    Payload = payload,
+                    Response = response,
+                    Url = response.RequestUrl
+                })
+            ).Post(out RumbleJson json);
+
+        try
+        {
+            return json.Require<RumbleJson>("authorization").Require<string>("token");
+        }
+        catch (KeyNotFoundException)
+        {
+            throw new TokenGenerationException(json?.Optional<string>("message"));
+        }
+        catch (NullReferenceException)
+        {
+            throw new TokenGenerationException("Response was null.");
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, "An unexpected error occurred when generating a token.", data: new
+            {
+                Url = url,
+                Response = json
+            }, exception: e);
+            throw;
+        }
+    }
+
+    public TokenInfo ValidateToken(string encryptedToken, string endpoint) => ValidateToken(encryptedToken, endpoint, context: null).Token;
+
+    /// <summary>
+    /// Validates .
+    /// </summary>
+    /// <param name="encryptedToken">The token from the Authorization Header.  It may either include or omit "Bearer ".</param>
+    /// <param name="endpoint">The endpoint asking for authorization.  This is very helpful in diagnosing auth issues in Loggly.</param>
+    /// <param name="context">The HTTP context</param>
+    /// <returns>A TokenValidationResult, containing the token, any errors in the validation, and a success flag.</returns>
+    public TokenValidationResult ValidateToken(string encryptedToken, string endpoint, HttpContext context)
+    {
+        encryptedToken = encryptedToken?.Replace("Bearer ", "");
+        
+        if (string.IsNullOrWhiteSpace(encryptedToken))
+            return new TokenValidationResult
+            {
+                Error = "Token is empty or null.",
+                Success = false,
+                Token = null
+            };
+        
+        TokenInfo output = null;
+        string message = null;
+        Get(out CacheService cache);
+        
+
+        if (!(cache?.HasValue(encryptedToken, out output) ?? false))
+#if LOCAL
+            Request(PlatformEnvironment.Url($"http://localhost:5031/token/validate?origin={PlatformEnvironment.ServiceName}&endpoint={endpoint}"))
+#else
+            Request(PlatformEnvironment.Url($"/token/validate?origin={PlatformEnvironment.ServiceName}&endpoint={endpoint}"))
+#endif
+                .AddAuthorization(encryptedToken)
+                .SetRetries(0)
+                .OnFailure(response =>
+                {
+                    message = response?.AsRumbleJson?.Optional<string>("message");
+                })
+                .OnSuccess(response =>
+                {
+                    RumbleJson json = response.AsRumbleJson;
+                    message = json.Optional<string>("message");
+                    output = json.Require<TokenInfo>("tokenInfo");
+                    
+                    output.Authorization = encryptedToken;
+                    
+                    // Store only valid tokens
+                    cache?.Store(encryptedToken, output, expirationMS: TokenInfo.CACHE_EXPIRATION);
+
+                    Graphite.Track(
+                        name: Graphite.KEY_AUTHORIZATION_COUNT,
+                        value: 1,
+                        endpoint: endpoint
+                    );
+                })
+                .Get();
+        
+        context ??= new HttpContextAccessor().HttpContext;
+        if (context != null)
+            context.Items[PlatformAuthorizationFilter.KEY_TOKEN] = output;
+
+        return new TokenValidationResult
+        {
+            Error = message ?? "No message provided",
+            Success = output != null,
+            Token = output
+        };
+    }
 }

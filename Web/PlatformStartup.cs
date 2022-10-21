@@ -244,16 +244,8 @@ public abstract class PlatformStartup
             if (service.IsAssignableTo(typeof(IPlatformMongoService)) && MongoDisabled)
                 continue;
             
-            InitSingletonService(service);
+            Services.AddSingleton(service);
         }
-    }
-
-    /// <summary>
-    /// @brief Inits a specific the singleton service
-    /// </summary>
-    protected void InitSingletonService(Type service)
-    {
-        Services.AddSingleton(service);
     }
 
     protected bool UsingMongoServices => PlatformServices.Any(type => type.IsAssignableTo(typeof(IPlatformMongoService)));
@@ -384,6 +376,8 @@ public abstract class PlatformStartup
 
     private void Ready()
     {
+        Options.ExitIfInvalid();
+        
         string[] urls = PlatformEnvironment.ServiceUrls;
         
         Log.Suppressed = false;

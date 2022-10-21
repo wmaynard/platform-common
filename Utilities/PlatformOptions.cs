@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Filters;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 
@@ -78,9 +82,9 @@ public class PlatformOptions
     /// <summary>
     /// Override the default service name, which is obtained via reflection and uses the project's base namespace.
     /// </summary>
-    public PlatformOptions SetServiceName(string name)
+    public PlatformOptions SetTokenAudience(Audience name)
     {
-        ServiceName = name;
+        ServiceName = name.GetDisplayName();
         return this;
     }
 
@@ -229,8 +233,37 @@ public class PlatformOptions
             Log.Warn(Owner.Default, "No registration name set for dynamic config.  Set one in PlatformOptions.SetRegistrationName().");
             RegistrationName = PlatformEnvironment.ServiceName;
         }
-
         // TODO: Add more logs / protection here
+        return this;
+    }
+
+    internal PlatformOptions ExitIfInvalid()
+    {
+        if (string.IsNullOrWhiteSpace(ServiceName))
+        {
+            SlackDiagnostics
+                .Log(title: "Invalid startup options.", message:
+                    @"Audience has not yet been set in ConfigureOptions().  This is a security requirement.  As part of token hardening, every service must initialize itself with a token audience.
+In your Startup.cs file, call:
+
+```
+protected override PlatformOptions ConfigureOptions(PlatformOptions options) => options
+    ...
+    .SetTokenAudience(Audience.{Your project})    // Needed for security hardening
+    ...
+```
+
+*Why is this important?*
+
+Introducing this as a breaking change is a necessary step towards limiting the reach of tokens.
+
+For more information see https://gitlab.cdrentertainment.com/platform-services/token-service/-/blob/main/README.md#regarding-audiences.
+")
+                .DirectMessage(Owner.Default)
+                .Wait();
+            PlatformEnvironment.Exit("Invalid startup options.", exitCode: 1);
+        }
+
         return this;
     }
 

@@ -4,13 +4,15 @@
 		<RootNamespace>Rumble.Platform.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.2.5</PackageVersion>
+		<PackageVersion>1.2.6</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 	  <LangVersion>10</LangVersion>
 	  <TargetFramework>net6.0</TargetFramework>
-	  <AssemblyVersion>1.2.5</AssemblyVersion>
+	  <AssemblyVersion>1.2.6</AssemblyVersion>
 	  <Company>Rumble Entertainment</Company>
+	  <Configurations>Debug;Release;Local</Configurations>
+	  <Platforms>AnyCPU</Platforms>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -24,13 +26,17 @@
 	  <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
 	  <PackageReference Include="MongoDB.Driver.Core" Version="2.13.0" />
-	  <PackageReference Include="rumble-json" Version="1.0.1" />
+	  <PackageReference Include="rumble-json" Version="1.0.3" />
 	  <PackageReference Include="RumbleCore" Version="1.0.18" />
 	  <PackageReference Include="StackExchange.Redis" Version="2.2.79" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="Docs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\rumble-json\rumble-json.csproj" />
 	</ItemGroup>
 
 </Project>

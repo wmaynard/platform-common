@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Interop;
@@ -210,9 +211,10 @@ public class SlackDiagnostics
         CheckSentStatus();
         AdditionalChannels ??= new List<string>();
 
+        HashSet<string> channels = Client.Channels.Copy();
+
         // If we're sending a DM, ignore the default log channel.
-        if (!string.IsNullOrWhiteSpace(PlatformEnvironment.SlackLogChannel) && Client.Channels.Contains(PlatformEnvironment.SlackLogChannel))
-            Client.Channels.Remove(PlatformEnvironment.SlackLogChannel);
+        Client.Channels = new HashSet<string>();
 
         foreach (Owner owner in owners.Distinct())
         {
@@ -222,6 +224,9 @@ public class SlackDiagnostics
         }
 
         await Send();
+
+        Client.Channels = channels;
+        AdditionalChannels = new List<string>();
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public class SlackMessageClient
     public static readonly string GET_USER_LIST = PlatformEnvironment.Optional("SLACK_ENDPOINT_USER_LIST");
     public const int SLACK_BLOCK_LIMIT = 50;
 
-    internal HashSet<string> Channels { get; private set; }
+    internal HashSet<string> Channels { get; set; }
     // public string Channel { get; private set; }
     public string Token { get; private set; }
 

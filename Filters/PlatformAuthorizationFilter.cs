@@ -19,16 +19,10 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Filters;
 
-public struct ValidationResult
-{
-    public bool      success;
-    public string    errorMessage;
-    public TokenInfo tokenInfo;
-}
 
 public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter, IActionFilter
 {
-    private const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
+    // internal const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
     public const string KEY_TOKEN = "PlatformToken";
     public const string KEY_GAME_SECRET = "game";
     public const string KEY_RUMBLE_SECRET = "secret";
@@ -60,11 +54,20 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 Headers = context.HttpContext.Request.Headers
             });
 
-        string origin = context.GetEndpoint();
-        ValidationResult validationResult = Validate(authorization, context.HttpContext, origin, authOptional, adminTokenRequired);
+        string endpoint = context.GetEndpoint();
+        
+        GetService(out ApiService api);
+        TokenValidationResult result = api.ValidateToken(authorization, endpoint, context.HttpContext);
 
         if (authOptional)
             return;
+        
+        if (!result.Success)
+            Graphite.Track(
+                name: adminTokenRequired ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT : Graphite.KEY_UNAUTHORIZED_COUNT,
+                value: 1,
+                endpoint: endpoint
+            );
 
         //PlatformEnvironment.RumbleSecret;
         bool keyMismatch = false;
@@ -76,21 +79,33 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
 
             keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault() || PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
         }
-        bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && validationResult.tokenInfo == null;
-        bool requiredAdminTokenIsNotAdmin = adminTokenRequired && validationResult.tokenInfo != null && validationResult.tokenInfo.IsNotAdmin;
+        bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && result.Token == null;
+        bool requiredAdminTokenIsNotAdmin = adminTokenRequired && result.Token != null && result.Token.IsNotAdmin;
         
         // Verify that the token has the appropriate privileges.  If it doesn't, change the result so that we don't 
         // continue to the endpoint and instead exit out early.
         if (keyMismatch)
             context.Result = new BadRequestObjectResult(new ErrorResponse(
                 message: "unauthorized",
-                data: new PlatformException(validationResult.errorMessage, code: ErrorCode.KeyValidationFailed),
+                data: new PlatformException("Key mismatch.", code: ErrorCode.KeyValidationFailed),
                 code: ErrorCode.KeyValidationFailed
             ));
-        else if (requiredTokenNotProvided || requiredAdminTokenIsNotAdmin)
+        else if (result.Error != null)
             context.Result = new BadRequestObjectResult(new ErrorResponse(
                 message: "unauthorized",
-                data: new PlatformException(validationResult.errorMessage, code: ErrorCode.TokenValidationFailed),
+                data: new PlatformException(result.Error, code: ErrorCode.TokenValidationFailed),
+                code: ErrorCode.TokenValidationFailed
+            ));
+        else if (requiredTokenNotProvided)
+            context.Result = new BadRequestObjectResult(new ErrorResponse(
+                message: "unauthorized",
+                data: new PlatformException("Required token was not provided", code: ErrorCode.TokenValidationFailed),
+                code: ErrorCode.TokenValidationFailed
+            ));
+        else if (requiredAdminTokenIsNotAdmin)
+            context.Result = new BadRequestObjectResult(new ErrorResponse(
+                message: "unauthorized",
+                data: new PlatformException("Required token lacks permission to act on this resource.", code: ErrorCode.TokenValidationFailed),
                 code: ErrorCode.TokenValidationFailed
             ));
     }
@@ -141,93 +156,4 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     }
 
     public void OnActionExecuted(ActionExecutedContext context) { }
-    
-        /// <summary>
-    /// This method is used for token validation as a function instead of relying on asp.net filters. If you should use
-    /// the filter if you can.
-    /// </summary>
-    /// <param name="encryptedToken">The token from the Authorization Header.  It may either include or omit "Bearer ".</param>
-    /// <param name="context">The http context</param>
-    /// <param name="isAuthOptional">if the validation is required or not</param>
-    /// <param name="requiresAdminToken">if the validation requires and admin token or not</param>
-    /// <returns>Decrypted TokenInfo.</returns>
-    public static ValidationResult Validate(string encryptedToken, HttpContext context, string origin, bool isAuthOptional = false, bool requiresAdminToken = false)
-    {
-        if (string.IsNullOrWhiteSpace(encryptedToken))
-            return new ValidationResult
-            { 
-                errorMessage = "null or empty string", 
-                success = false, 
-                tokenInfo = null
-            };
-
-        origin = HttpUtility.UrlEncode(origin);
-
-        context.Items[KEY_TOKEN] = null;
-        encryptedToken = encryptedToken.Replace("Bearer ", "");
-
-        GetService(out ApiService api);
-        GetService(out CacheService cache);
-        
-        if (cache?.HasValue(encryptedToken, out TokenInfo output) ?? false)
-        {
-            context.Items[KEY_TOKEN] = output;
-            return new ValidationResult
-            { 
-                errorMessage = "null or empty string", 
-                success = true, 
-                tokenInfo = output
-            };
-        }
-
-        string internalErrorMessage = null; // would use the our parameter but C# doesn't like that
-        TokenInfo tokenInfo = null;
-
-        // If a token is provided and does not exist in the cache, we should validate it.
-        api
-            .Request(PlatformEnvironment.TokenValidation + $"?origin={origin}")
-            .AddAuthorization(encryptedToken)
-            .OnFailure((sender, response) =>
-            {
-                string message = response.OriginalResponse?.Optional<string>("message") ?? "no message provided";
-                string eventId = response.OriginalResponse?.Optional<string>("eventId");
-
-                internalErrorMessage = $"Token failure: {message}";
-                Log.Error(Owner.Default, internalErrorMessage, data: new
-                {
-                    ValidationUrl = PlatformEnvironment.TokenValidation,
-                    Code = response.StatusCode,
-                    EncryptedToken = $"'{encryptedToken}'",
-                    EventId = eventId
-                });
-                if (!isAuthOptional)
-                    Graphite.Track(
-                        name: requiresAdminToken ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT : Graphite.KEY_UNAUTHORIZED_COUNT,
-                        value: 1,
-                        endpoint: origin
-                    );
-            })
-            .OnSuccess((sender, response) =>
-            {
-                tokenInfo = response.AsRumbleJson.Require<TokenInfo>("tokenInfo");
-                tokenInfo.Authorization = encryptedToken;
-                cache?.Store(encryptedToken, tokenInfo, expirationMS: TOKEN_CACHE_EXPIRATION);
-
-                Graphite.Track(
-                    name: Graphite.KEY_AUTHORIZATION_COUNT,
-                    value: 1,
-                    endpoint: origin
-                );
-            })
-            .Get();
-
-        context.Items[KEY_TOKEN] = tokenInfo;
-        
-        return new ValidationResult
-        {
-            errorMessage = internalErrorMessage,
-            success = tokenInfo != null, 
-            tokenInfo = tokenInfo
-        };
-    }
 }

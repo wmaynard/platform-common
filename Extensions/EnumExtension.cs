@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
@@ -72,5 +74,16 @@ public static class EnumExtension
             type = obj.GetType()
         });
         throw new PlatformException("Attempted to check flags on an enum, but the enum does not have a FlagsAttribute.", code: ErrorCode.ExtensionMethodFailure);
+    }
+
+    public static string GetDisplayName<T>(this T obj) where T : Enum
+    {
+        DisplayAttribute att = obj
+            .GetType()
+            .GetMember(obj.ToString())
+            .First()
+            .GetCustomAttribute<DisplayAttribute>();
+
+        return att?.Name ?? obj.ToString();
     }
 }

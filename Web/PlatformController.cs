@@ -101,7 +101,21 @@ public abstract class PlatformController : Controller
     private new OkObjectResult Ok(object value) => base.Ok(Merge(new { Success = true }, value));
 
     [NonAction]
+    public OkObjectResult Ok(params PlatformDataModel[] objects)
+    {
+        RumbleJson output = new RumbleJson
+        {
+            { "success", true } // TODO: This should be removed and consumers should use HTTP status codes.
+        };
+        foreach (PlatformDataModel model in objects)
+            output.Combine(model.ResponseObject);
+        return Ok(output);
+    }
+
+    [NonAction, Obsolete("Use OkObjectResult(params PlatformDataModel[] models) instead.")]
     public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
+    
+    [Obsolete("Use OkObjectResult(params PlatformDataModel[] models) instead.")]
     protected ObjectResult Ok(string detail, ErrorCode code) => Ok(new RumbleJson
     {
         { "message", detail },
