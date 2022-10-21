@@ -48,8 +48,15 @@ public class DC2Service : PlatformTimerService
         public long LastActivity { get; set; }
     }
 
+    public const string CLIENT_SETTING_NAME = "game-client";
+    public const string CLIENT_SETTING_FRIENDLY_NAME = "Game Client";
+
+    public const string SERVER_SETTING_NAME = "game-server";
+    public const string SERVER_SETTING_FRIENDLY_NAME = "Game Server";
+
     public const string GLOBAL_SETTING_NAME = "global-config";
     public const string GLOBAL_SETTING_FRIENDLY_NAME = "Global";
+    
     public const string KEY_CLIENT_ID = "dynamicConfigClientID";
 
     public const string COMMON_SETTING_NAME = "platform-common";
@@ -157,6 +164,8 @@ public class DC2Service : PlatformTimerService
         IsUpdating = false;
     }
 
+    public RumbleJson GetValuesFor(Audience audience) => AllValues.Optional<RumbleJson>(audience.GetDisplayName());
+
     public void Register()
     {
         if (string.IsNullOrWhiteSpace(PlatformEnvironment.RegistrationName))
@@ -170,7 +179,7 @@ public class DC2Service : PlatformTimerService
             .AddRumbleKeys()
             .SetPayload(new RumbleJson
             {
-                { "name", COMMON_SETTING_NAME + "2" },
+                { "name", COMMON_SETTING_NAME },
                 { "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
             })
             .OnSuccess((sender, response) =>
