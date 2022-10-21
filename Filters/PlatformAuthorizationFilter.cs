@@ -92,7 +92,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 data: new PlatformException("Key mismatch.", code: ErrorCode.KeyValidationFailed),
                 code: ErrorCode.KeyValidationFailed
             ));
-        else if (tokenRequired && result.Error != null)
+        else if (tokenRequired && !result.Success)
             context.Result = new BadRequestObjectResult(new ErrorResponse(
                 message: "unauthorized",
                 data: new PlatformException(result.Error, code: ErrorCode.TokenValidationFailed),
