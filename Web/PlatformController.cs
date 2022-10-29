@@ -107,7 +107,7 @@ public abstract class PlatformController : Controller
         {
             { "success", true } // TODO: This should be removed and consumers should use HTTP status codes.
         };
-        foreach (PlatformDataModel model in objects)
+        foreach (PlatformDataModel model in objects.Where(obj => obj != null))
             output.Combine(model.ResponseObject);
         return Ok(output);
     }
