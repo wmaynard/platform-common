@@ -97,6 +97,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             Builders<QueuedTask>.Filter.Lte(task => task.Status, QueuedTask.TaskStatus.Claimed)
         ));
 
+    public bool WaitingOnTaskCompletion() => _config.CountDocuments(Builders<QueueConfig>.Filter.Gt(config => config.OnCompleteTime, -1)) > 0;
+
     protected sealed override void OnElapsed()
     {
         IsPrimary = TryUpdateConfig();
