@@ -79,6 +79,14 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         return data;
     }
 
+    /// <summary>
+    /// Immediately updates the queue's config so that this service becomes the primary node.
+    /// </summary>
+    protected void Confiscate() => _config.UpdateOne(
+        filter: config => config.Type == TaskData.TaskType.Config,
+        update: Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id)
+    );
+
     protected sealed override void OnElapsed()
     {
         IsPrimary = TryUpdateConfig();
@@ -459,7 +467,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         public long LastTrackingTime { get; set; }
 
         public QueueConfig() => Waitlist = new HashSet<string>();
-        
     }
     
     [BsonIgnoreExtraElements]
