@@ -84,8 +84,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// </summary>
     protected void Confiscate() => _config.UpdateOne(
         filter: config => config.Type == TaskData.TaskType.Config,
-        update: Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id)
+        update: Builders<QueueConfig>.Update
+            .Set(config => config.PrimaryServiceId, Id)
+            .Set(config => config.LastActive, Timestamp.UnixTimeMS)
     );
+
+    protected void DeleteAcknowledgedTasks() => _work.DeleteMany(task => task.Status == QueuedTask.TaskStatus.Acknowledged);
 
     public long TasksRemaining() => _work.CountDocuments(filter:
         Builders<QueuedTask>.Filter.And(
@@ -105,6 +109,10 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 for (int count = PrimaryTaskCount; count > 0; count--)
                     if (!WorkPerformed(StartNewTask()))
                         break;
+
+                AcknowledgeOrphanedTasks();
+                RemoveWaitlistOrphans();
+                CheckSuccessfulTasks();
 
                 bool completed = _config.UpdateOne(
                     filter: Builders<QueueConfig>.Filter.And(
@@ -136,6 +144,77 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             for (int count = SecondaryTaskCount; count > 0; count--)
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
                     break;
+    }
+    
+    private string[] GetWaitlist() => _config
+        .Find(config => true)
+        .Project(Builders<QueueConfig>.Projection.Expression(config => config.Waitlist))
+        .FirstOrDefault()
+        .ToArray();
+
+    public void CheckSuccessfulTasks()
+    {
+        string[] successes = _work
+            .Find(Builders<QueuedTask>.Filter.And(
+                Builders<QueuedTask>.Filter.Eq(task => task.Tracked, true),
+                Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Succeeded))
+            )
+            .Project(Builders<QueuedTask>.Projection.Expression(task => task.Id))
+            .ToList()
+            .ToArray();
+        
+        long affected = _config
+            .UpdateOne(
+                filter: config => true,
+                update: Builders<QueueConfig>.Update.PullFilter(
+                    field: config => config.Waitlist,
+                    filter: Builders<string>.Filter.Where(id => successes.Contains(id))
+                )
+            ).ModifiedCount;
+        
+        if (affected > 0)
+            Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
+    }
+    private void AcknowledgeOrphanedTasks()
+    {
+        long affected = _work
+            .UpdateMany(
+                filter: Builders<QueuedTask>.Filter.And(
+                    Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Succeeded),
+                    Builders<QueuedTask>.Filter.Eq(task => task.Tracked, true),
+                    Builders<QueuedTask>.Filter.Nin(task => task.Id, GetWaitlist())
+                ),
+                update: Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Acknowledged)
+            ).ModifiedCount;
+        
+        if (affected > 0)
+            Log.Warn(Owner.Will, "Acknowledged orphaned queued tasks.");
+    }
+
+    private void RemoveWaitlistOrphans()
+    {
+        string[] waitlist = GetWaitlist();
+        List<string> ids = _work
+            .Find(Builders<QueuedTask>.Filter.In(task => task.Id, waitlist))
+            .Project(Builders<QueuedTask>.Projection.Expression(task => task.Id))
+            .ToList();
+
+        string[] orphans = waitlist
+            .Except(ids)
+            .ToArray();
+
+        if (!orphans.Any())
+            return;
+        
+        _config
+            .UpdateOne(
+                filter: config => true,
+                update: Builders<QueueConfig>.Update.PullFilter(
+                    field: config => config.Waitlist,
+                    filter: Builders<string>.Filter.Where(id => orphans.Contains(id))
+                )
+            );
+        Log.Warn(Owner.Will, "Found orphaned tasks in the waitlist.", data: new { Orphans = orphans });
     }
 
     /// <summary>
