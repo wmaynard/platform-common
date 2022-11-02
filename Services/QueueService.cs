@@ -87,6 +87,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         update: Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id)
     );
 
+    public long TasksRemaining() => _work.CountDocuments(filter:
+        Builders<QueuedTask>.Filter.And(
+            Builders<QueuedTask>.Filter.Eq(task => task.Tracked, true),
+            Builders<QueuedTask>.Filter.Lte(task => task.Status, QueuedTask.TaskStatus.Claimed)
+        ));
+
     protected sealed override void OnElapsed()
     {
         IsPrimary = TryUpdateConfig();

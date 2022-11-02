@@ -112,6 +112,8 @@ public abstract class PlatformController : Controller
         return Ok(output);
     }
 
+    public OkObjectResult Ok(IEnumerable<PlatformDataModel> objects) => Ok(objects.ToArray());
+
     [NonAction, Obsolete("Use OkObjectResult(params PlatformDataModel[] models) instead.")]
     public OkObjectResult Ok(params object[] objects) => Ok(value: Merge(objects));
     
