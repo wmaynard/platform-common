@@ -118,26 +118,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     if (!WorkPerformed(StartNewTask()))
                         break;
 
-                AcknowledgeOrphanedTasks();
+                // AcknowledgeOrphanedTasks();
                 RemoveWaitlistOrphans();
                 long affected = CheckSuccessfulTasks();
-
-                // QueueConfig config = GetConfig();
-                // string status = $"complete {config.OnCompleteTime} | waitingOn {config.Waitlist.Count} | id {Id}";
-                // Log.Info(Owner.Will, "Config status before", data: new
-                // {
-                //     status = status
-                // });
-                //
-                // bool fireOnComplete = TryEmptyWaitlist();
-                //
-                // config = GetConfig();
-                // string status2 = $"complete {config.OnCompleteTime} | waitingOn {config.Waitlist.Count} | id {Id}";
-                // Log.Info(Owner.Will, "Config status after", data: new
-                // {
-                //     status = status2,
-                //     fireOnComplete = fireOnComplete
-                // });
 
                 if (TryEmptyWaitlist())
                     try
