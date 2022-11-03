@@ -74,7 +74,13 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             update: Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Acknowledged)
         ).ModifiedCount;
         
-        Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
+        if (PlatformEnvironment.IsLocal)
+            Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
+        else
+            Log.Info(Owner.Default, "Acknowledged tasks.", data: new
+            {
+                affected = affected
+            });
 
         return data;
     }
@@ -127,6 +133,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 if (completed)
                     try
                     {
+                        Log.Info(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
                         OnTasksCompleted(AcknowledgeTasks());
                     }
                     catch (Exception e)
