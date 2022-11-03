@@ -74,13 +74,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             update: Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Acknowledged)
         ).ModifiedCount;
         
-        if (PlatformEnvironment.IsLocal)
-            Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
-        else
-            Log.Info(Owner.Default, "Acknowledged tasks.", data: new
-            {
-                affected = affected
-            });
+        Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
 
         return data;
     }
@@ -118,16 +112,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     if (!WorkPerformed(StartNewTask()))
                         break;
 
-                // AcknowledgeOrphanedTasks();
-                RemoveWaitlistOrphans();
-                long affected = CheckSuccessfulTasks();
-
                 if (TryEmptyWaitlist())
                     try
                     {
-                        Log.Info(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
+                        Log.Verbose(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
                         OnTasksCompleted(AcknowledgeTasks());
-                        Log.Info(Owner.Will, "OnTasksCompleted executed successfully.");
                     }
                     catch (Exception e)
                     {
@@ -147,14 +136,25 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
                     break;
     }
-    
-    private bool TryEmptyWaitlist() => _config.UpdateOne(
-        filter: Builders<QueueConfig>.Filter.And(
-            Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
-            Builders<QueueConfig>.Filter.Size(config => config.Waitlist, 0)
-        ),
-        update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
-    ).ModifiedCount > 0;
+
+    /// <summary>
+    /// Attempts to clear tasks from the waitlist.  Removes orphans (tasks that were deleted) and tasks that have been
+    /// completed.
+    /// </summary>
+    /// <returns>A boolean indicating whether or not the waitlist has been emptied and the OnTasksCompleted event should fire.</returns>
+    private bool TryEmptyWaitlist()
+    {
+        RemoveWaitlistOrphans();
+        ClearSuccessfulTasks();
+        
+        return _config.UpdateOne(
+            filter: Builders<QueueConfig>.Filter.And(
+                Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
+                Builders<QueueConfig>.Filter.Size(config => config.Waitlist, 0)
+            ),
+            update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
+        ).ModifiedCount > 0;
+    } 
 
     private QueueConfig GetConfig() => _config.Find(config => true).FirstOrDefault();
     
@@ -164,7 +164,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         .FirstOrDefault()
         .ToArray();
 
-    public long CheckSuccessfulTasks()
+    public void ClearSuccessfulTasks()
     {
         string[] successes = _work
             .Find(Builders<QueuedTask>.Filter.And(
@@ -186,22 +186,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         if (affected > 0)
             Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
-        return affected;
-    }
-    private void AcknowledgeOrphanedTasks()
-    {
-        long affected = _work
-            .UpdateMany(
-                filter: Builders<QueuedTask>.Filter.And(
-                    Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Succeeded),
-                    Builders<QueuedTask>.Filter.Eq(task => task.Tracked, true),
-                    Builders<QueuedTask>.Filter.Nin(task => task.Id, GetWaitlist())
-                ),
-                update: Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Acknowledged)
-            ).ModifiedCount;
-        
-        if (affected > 0)
-            Log.Warn(Owner.Will, "Acknowledged orphaned queued tasks.");
     }
 
     private void RemoveWaitlistOrphans()
