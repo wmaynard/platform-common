@@ -120,7 +120,17 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
                 AcknowledgeOrphanedTasks();
                 RemoveWaitlistOrphans();
-                CheckSuccessfulTasks();
+                long affected = CheckSuccessfulTasks();
+
+                if (affected > 0)
+                {
+                    QueueConfig config = GetConfig();
+                    Log.Info(Owner.Will, "Removed tasks from the waitlist.", data: new
+                    {
+                        config = config,
+                        waitCount = config.Waitlist.Count
+                    });
+                }
 
                 bool completed = _config.UpdateOne(
                     filter: Builders<QueueConfig>.Filter.And(
@@ -154,6 +164,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
                     break;
     }
+
+    private QueueConfig GetConfig() => _config.Find(config => true).FirstOrDefault();
     
     private string[] GetWaitlist() => _config
         .Find(config => true)
@@ -161,7 +173,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         .FirstOrDefault()
         .ToArray();
 
-    public void CheckSuccessfulTasks()
+    public long CheckSuccessfulTasks()
     {
         string[] successes = _work
             .Find(Builders<QueuedTask>.Filter.And(
@@ -183,6 +195,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         if (affected > 0)
             Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
+        return affected;
     }
     private void AcknowledgeOrphanedTasks()
     {
