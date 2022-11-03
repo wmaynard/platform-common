@@ -122,25 +122,24 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 RemoveWaitlistOrphans();
                 long affected = CheckSuccessfulTasks();
 
-                if (affected > 0)
+                QueueConfig config = GetConfig();
+                string status = $"complete {config.OnCompleteTime} | waitingOn {config.Waitlist.Count} | id {Id}";
+                Log.Info(Owner.Will, "Config status before", data: new
                 {
-                    QueueConfig config = GetConfig();
-                    Log.Info(Owner.Will, "Removed tasks from the waitlist.", data: new
-                    {
-                        config = config,
-                        waitCount = config.Waitlist.Count
-                    });
-                }
+                    status = status
+                });
 
-                bool completed = _config.UpdateOne(
-                    filter: Builders<QueueConfig>.Filter.And(
-                        Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
-                        Builders<QueueConfig>.Filter.SizeLte(config => config.Waitlist, 0)
-                    ),
-                    update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
-                ).ModifiedCount > 0;
-                
-                if (completed)
+                bool fireOnComplete = TryEmptyWaitlist();
+
+                config = GetConfig();
+                string status2 = $"complete {config.OnCompleteTime} | waitingOn {config.Waitlist.Count} | id {Id}";
+                Log.Info(Owner.Will, "Config status after", data: new
+                {
+                    status = status2,
+                    fireOnComplete = fireOnComplete
+                });
+
+                if (fireOnComplete)
                     try
                     {
                         Log.Info(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
@@ -164,6 +163,14 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
                     break;
     }
+    
+    private bool TryEmptyWaitlist() => _config.UpdateOne(
+        filter: Builders<QueueConfig>.Filter.And(
+            Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
+            Builders<QueueConfig>.Filter.Size(config => config.Waitlist, 0)
+        ),
+        update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
+    ).ModifiedCount > 0;
 
     private QueueConfig GetConfig() => _config.Find(config => true).FirstOrDefault();
     
