@@ -274,10 +274,10 @@ public abstract class PlatformController : Controller
 
     protected T Require<T>(string key, RumbleJson json = null)
     {
-        RumbleJson data = json ?? Body;
-        if (data == null)
-            throw new ResourceFailureException("The current request is missing a JSON body or query parameters.  This can occur from malformed JSON or a serialization error.", new MissingJsonKeyException(key));
-        return data.Require<T>(key);
+        json ??= Body;
+        return json != null
+            ? json.Require<T>(key)
+            : throw new ResourceFailureException("The current request is missing a JSON body or query parameters.  This can occur from malformed JSON or a serialization error.", new MissingJsonKeyException(key));
     }
 
     protected RumbleJson Body => FromContext<RumbleJson>(PlatformResourceFilter.KEY_BODY);

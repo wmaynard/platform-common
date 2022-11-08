@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using RCL.Logging;
@@ -178,46 +180,175 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         return output;
     }
 
+    /// <summary>
+    /// Recursively pulls indexes from PlatformCollectionDocuments and PlatformDataModels.
+    /// </summary>
+    /// <param name="property">The property to draw indexes from.  May not necessarily have indexes.</param>
+    /// <param name="parentName">The parent's friendly key, for logging purposes.</param>
+    /// <param name="parentDbKey">The parent's database key, required to create indexes.</param>
+    /// <param name="depth">The maximum depth to create keys for.</param>
+    /// <returns>An array of indexes to create.</returns>
+    private PlatformMongoIndex[] ExtractIndexes(PropertyInfo property, string parentName = null, string parentDbKey = null, int depth = 5)
+    {
+        if (depth <= 0)
+        {
+            Log.Error(Owner.Default, "Maximum depth exceeded for Mongo indexes.");
+            return Array.Empty<PlatformMongoIndex>();
+        }
+
+        BsonElementAttribute bson = property.GetCustomAttribute<BsonElementAttribute>();
+        string dbName = bson?.ElementName;
+        string friendlyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? property.Name;
+
+        parentDbKey = string.IsNullOrWhiteSpace(parentDbKey)
+            ? dbName
+            : $"{parentDbKey}.{dbName}";
+        parentName = string.IsNullOrWhiteSpace(parentName)
+            ? friendlyName
+            : $"{parentName}.{friendlyName}";
+        
+        List<PlatformMongoIndex> output = property
+            .GetCustomAttributes()
+            .Where(attribute => attribute.GetType().IsAssignableTo(typeof(PlatformMongoIndex)))
+            .Select(attribute => ((PlatformMongoIndex)attribute)
+                .SetPropertyName(parentName)
+                .SetDatabaseKey(parentDbKey)
+            )
+            .ToList();
+        
+        if (property.PropertyType.IsAssignableTo(typeof(PlatformDataModel)))
+        {
+            foreach (PropertyInfo nested in GetIndexCandidates(property.PropertyType))
+                output.AddRange(ExtractIndexes(nested, property.Name, parentDbKey, depth - 1));
+        }
+
+        if (!output.Any())
+            return Array.Empty<PlatformMongoIndex>();
+
+        if (bson == null)
+        {
+            Log.Warn(Owner.Default, "Unable to create indexes without a BsonElement attribute also present on a property.", data: new
+            {
+                Name = property.Name
+            });
+            return Array.Empty<PlatformMongoIndex>();
+        }
+        
+        return output.ToArray();
+    }
+
+    /// <summary>
+    /// Pulls PlatformMongoIndexes out of a PlatformCollectionDocument.
+    /// </summary>
+    /// <returns>Returns all SimpleIndexes, one CompoundIndex per group name, and a maximum of one TextIndex.</returns>
+    private PlatformMongoIndex[] ExtractIndexes()
+    {
+        List<PlatformMongoIndex> indexes = new List<PlatformMongoIndex>();
+        
+        foreach (PropertyInfo property in GetIndexCandidates(typeof(Model)))
+            indexes.AddRange(ExtractIndexes(property));
+
+        List<PlatformMongoIndex> output = new List<PlatformMongoIndex>();
+        
+        output.AddRange(indexes.OfType<SimpleIndex>());
+
+        // Per Mongo restrictions we can only have one TextIndex on any given collection.
+        TextIndex[] texts = indexes.OfType<TextIndex>().ToArray();
+        if (texts.Any())
+            output.Add(new TextIndex
+            {
+                Name = "text",
+                DatabaseKeys = texts.Select(text => text.DatabaseKey).ToArray()
+            });
+
+        CompoundIndex[] compounds = indexes.OfType<CompoundIndex>().ToArray();
+        if (compounds.Any()) 
+            output.AddRange(compounds
+                .Select(compound => compound.GroupName)
+                .Distinct()
+                .Select(group => CompoundIndex.Combine(compounds
+                    .Where(compound => compound.GroupName == group)
+                    .ToArray())
+                )
+            );
+
+        return output.ToArray();
+    }
+    
+    /// <summary>
+    /// Limits properties that can have indexes on them.  Properties must be public.  BsonIgnore attributes also disqualify properties;
+    /// otherwise, infinite recursion is possible.
+    /// </summary>
+    /// <param name="type">The data model or collection document to get indexes from.</param>
+    /// <returns>An array of property reflection data.</returns>
+    private PropertyInfo[] GetIndexCandidates(Type type) => type
+        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        .Where(prop => !prop.GetCustomAttributes().Any(att => att.GetType().IsAssignableTo(typeof(BsonIgnoreAttribute))))
+        .ToArray();
+
     public void CreateIndexes()
     {
-        List<BsonDocument> docs = _collection.Indexes.List().ToList();
-        MongoIndex[] dbIndexes = docs.Select(doc => new MongoIndex
-        {
-            IndexName = doc.GetElement("name").Value.ToString(),
-            DatabaseKey = ((BsonDocument)doc.GetElement("key").Value).Elements.FirstOrDefault().Name
-        }).ToArray();
+        PlatformMongoIndex[] indexes = ExtractIndexes();
 
-        SimpleIndex[] modelIndexes = typeof(Model)
-            .GetProperties()
-            .Select(property => ((SimpleIndex)property
-                .GetCustomAttributes()
-                .FirstOrDefault(attribute => attribute is SimpleIndex))
-                ?.SetPropertyName(property.Name)
-            )
-            .Where(attribute => attribute != null)
-            .Select(attribute => (SimpleIndex)attribute)
-            .ToArray();
-
-        if (!modelIndexes.Any())
+        if (!indexes.Any())
             return;
 
-        foreach (SimpleIndex modelIndex in modelIndexes)
+        MongoIndexModel[] existing = MongoIndexModel.FromCollection(_collection);
+        foreach (PlatformMongoIndex index in indexes)
         {
-            string name = $"{_database.DatabaseNamespace.DatabaseName}.{_collection.CollectionNamespace.CollectionName}.{modelIndex.DatabaseKey}";
-            MongoIndex dbIndex = dbIndexes.FirstOrDefault(index => index.DatabaseKey == modelIndex.DatabaseKey);
-            if (dbIndex == null)
+            switch (index)
             {
-                Log.Info(Owner.Will, $"Creating index '{modelIndex.Name}' on '{name}'.");
-                #pragma warning disable CS0618
-                _collection.Indexes.CreateOne(Builders<Model>.IndexKeys.Ascending(modelIndex.DatabaseKey), new CreateIndexOptions()
-                #pragma warning restore CS0618
-                {
-                    Name = modelIndex.Name,
-                    Unique = modelIndex.Unique
-                });
+                case TextIndex when existing.Any(mim => mim.IsText):
+                case SimpleIndex when existing.Any(mim => mim.IsSimple && mim.KeyInformation.ContainsKey(index.DatabaseKey)):
+                case CompoundIndex compound when existing.Any(mim => mim.Name == compound.GroupName): // TODO: Replace index if the keys change
+                    continue;
+                default:
+                    CreateIndexModel<Model> model = index switch
+                    {
+                        CompoundIndex compound => new CreateIndexModel<Model>(
+                            keys: compound.BuildKeysDefinition<Model>(),
+                            options: new CreateIndexOptions<Model>
+                            {
+                                Name = compound.GroupName,
+                                Background = true
+                            }
+                        ),
+                        TextIndex text => new CreateIndexModel<Model>(
+                            keys: Builders<Model>.IndexKeys.Combine(
+                                text.DatabaseKeys.Select(dbKey => Builders<Model>.IndexKeys.Text(dbKey))
+                            ),
+                            options: new CreateIndexOptions<Model>
+                            {
+                                Name = text.Name,
+                                Background = true,
+                                Sparse = false
+                            }
+                        ),
+                        SimpleIndex simple => new CreateIndexModel<Model>(
+                            keys: simple.Ascending
+                                ? Builders<Model>.IndexKeys.Ascending(simple.DatabaseKey)
+                                : Builders<Model>.IndexKeys.Descending(simple.DatabaseKey),
+                            options: new CreateIndexOptions<Model>
+                            {
+                                Name = simple.Name,
+                                Background = true
+                            }
+                        ),
+                        _ => null
+                    };
+
+                    try
+                    {
+                        if (model != null)
+                            _collection.Indexes.CreateOne(model);
+                    }
+                    catch (MongoCommandException e)
+                    {
+                        Log.Local(Owner.Will, $"Unable to create index {index.DatabaseKey}", emphasis: Log.LogType.CRITICAL);
+                    }
+
+                    break;
             }
-            else if (dbIndex.IndexName != modelIndex.Name)
-                Log.Verbose(Owner.Will, $"An index already exists on '{name}' ({dbIndex.IndexName}).  Manually assigned indexes have priority, so the model's is ignored.");
         }
     }
 

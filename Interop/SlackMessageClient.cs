@@ -91,7 +91,7 @@ public class SlackMessageClient
                 await ApiService.Instance
                     .Request(POST_MESSAGE)
                     .AddAuthorization(Token)
-                    .SetPayload(message.JSON)
+                    .SetPayload(message)
                     .OnFailure((_, apiResponse) => response = apiResponse.AsRumbleJson ?? new RumbleJson())
                     .OnSuccess((_, apiResponse) =>
                     {

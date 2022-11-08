@@ -133,6 +133,12 @@ public class ApiRequest
         return this;
     }
 
+    public ApiRequest SetPayload(PlatformDataModel model)
+    {
+        Payload.Combine(other: model.JSON, prioritizeOther: true);
+        return this;
+    }
+
     public ApiRequest SetRetries(int retries)
     {
         Retries = _originalRetries = retries;
