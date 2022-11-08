@@ -55,7 +55,11 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
                     using Stream stream = context.HttpContext.Request.BodyReader.AsStream();
                     using StreamReader reader = new StreamReader(stream);
 
-                    body = json = reader.ReadToEnd();
+                    json = reader.ReadToEnd();
+
+                    body = string.IsNullOrWhiteSpace(json)
+                        ? "{}"
+                        : json;
                 }
             }
 
