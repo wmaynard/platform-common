@@ -21,12 +21,17 @@ public sealed class CompoundIndex : PlatformMongoIndex
     /// <param name="ascending"></param>
     public CompoundIndex(string group, int priority = 1, bool ascending = true)
     {
+        Name = group;
         GroupName = group;
         Priority = priority;
         Ascending = ascending;
     }
     
     private CompoundIndex[] Members { get; set; }
+    public string[] Keys => Members?
+        .Select(member => member.DatabaseKey)
+        .ToArray()
+        ?? new [] { DatabaseKey };
     
     internal static PlatformMongoIndex Combine(CompoundIndex[] indexes)
     {

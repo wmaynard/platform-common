@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography.Xml;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -26,7 +27,8 @@ public class MongoIndexModel : PlatformDataModel
     public RumbleJson KeyInformation { get; set; }
 
     public bool IsText => KeyInformation?.Optional<string>("_fts") == "text";
-    public bool IsSimple => KeyInformation?.Optional<string>("_fts") != "text";
+    public bool IsSimple => KeyInformation?.Optional<string>("_fts") != "text" && KeyInformation?.Keys.Count == 1;
+    public bool IsCompound => !IsText && (KeyInformation?.Keys.Count ?? 0) > 1;
 
     internal static MongoIndexModel[] FromCollection<T>(IMongoCollection<T> collection)
     {

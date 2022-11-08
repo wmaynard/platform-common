@@ -293,61 +293,103 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (!indexes.Any())
             return;
 
-        MongoIndexModel[] existing = MongoIndexModel.FromCollection(_collection);
+        MongoIndexModel[] dbIndexes = MongoIndexModel.FromCollection(_collection);
+
         foreach (PlatformMongoIndex index in indexes)
         {
+            CreateIndexModel<Model> model = null;
+            bool drop = false;
+            
             switch (index)
             {
-                case TextIndex when existing.Any(mim => mim.IsText):
-                case SimpleIndex when existing.Any(mim => mim.IsSimple && mim.KeyInformation.ContainsKey(index.DatabaseKey)):
-                case CompoundIndex compound when existing.Any(mim => mim.Name == compound.GroupName): // TODO: Replace index if the keys change
-                    continue;
-                default:
-                    CreateIndexModel<Model> model = index switch
+                case CompoundIndex compound:
+                    MongoIndexModel existingCompound = dbIndexes.FirstOrDefault(dbIndex => dbIndex.IsCompound && dbIndex.Name == compound.GroupName);
+                    if (existingCompound != null)
                     {
-                        CompoundIndex compound => new CreateIndexModel<Model>(
-                            keys: compound.BuildKeysDefinition<Model>(),
-                            options: new CreateIndexOptions<Model>
-                            {
-                                Name = compound.GroupName,
-                                Background = true
-                            }
-                        ),
-                        TextIndex text => new CreateIndexModel<Model>(
-                            keys: Builders<Model>.IndexKeys.Combine(
-                                text.DatabaseKeys.Select(dbKey => Builders<Model>.IndexKeys.Text(dbKey))
-                            ),
-                            options: new CreateIndexOptions<Model>
-                            {
-                                Name = text.Name,
-                                Background = true,
-                                Sparse = false
-                            }
-                        ),
-                        SimpleIndex simple => new CreateIndexModel<Model>(
-                            keys: simple.Ascending
-                                ? Builders<Model>.IndexKeys.Ascending(simple.DatabaseKey)
-                                : Builders<Model>.IndexKeys.Descending(simple.DatabaseKey),
-                            options: new CreateIndexOptions<Model>
-                            {
-                                Name = simple.Name,
-                                Background = true
-                            }
-                        ),
-                        _ => null
-                    };
+                        string[] keys = compound.Keys;
+                        string[] existingKeys = existingCompound.KeyInformation.Select(pair => pair.Key).ToArray();
 
-                    try
-                    {
-                        if (model != null)
-                            _collection.Indexes.CreateOne(model);
-                    }
-                    catch (MongoCommandException e)
-                    {
-                        Log.Local(Owner.Will, $"Unable to create index {index.DatabaseKey}", emphasis: Log.LogType.CRITICAL);
+                        drop = keys.Except(existingKeys).Any() || existingKeys.Except(keys).Any();
+                        if (!drop)
+                            continue;
                     }
 
+                    model = new CreateIndexModel<Model>(
+                        keys: compound.BuildKeysDefinition<Model>(),
+                        options: new CreateIndexOptions<Model>
+                        {
+                            Name = compound.GroupName,
+                            Background = true
+                        }
+                    );
                     break;
+                case SimpleIndex simple:
+                    MongoIndexModel existingSimple = dbIndexes.FirstOrDefault(dbIndex => dbIndex.IsSimple && dbIndex.KeyInformation.ContainsKey(index.DatabaseKey));
+
+                    if (existingSimple != null)
+                    {
+                        drop = existingSimple.KeyInformation.Select(pair => pair.Key).FirstOrDefault() != simple.DatabaseKey;
+                        if (!drop)
+                            continue;
+                    }
+
+                    model = new CreateIndexModel<Model>(
+                        keys: simple.Ascending
+                            ? Builders<Model>.IndexKeys.Ascending(simple.DatabaseKey)
+                            : Builders<Model>.IndexKeys.Descending(simple.DatabaseKey),
+                        options: new CreateIndexOptions<Model>
+                        {
+                            Name = simple.Name,
+                            Background = true
+                        }
+                    );
+                    break;
+                case TextIndex text:
+                    if (dbIndexes.Any(model => model.IsText))
+                        continue;
+                    model = new CreateIndexModel<Model>(
+                        keys: Builders<Model>.IndexKeys.Combine(
+                            text.DatabaseKeys.Select(dbKey => Builders<Model>.IndexKeys.Text(dbKey))
+                        ),
+                        options: new CreateIndexOptions<Model>
+                        {
+                            Name = text.Name,
+                            Background = true,
+                            Sparse = false
+                        }
+                    );
+                    break;
+            }
+            if (drop)
+                try
+                {
+                    _collection.Indexes.DropOne(index.Name);
+                    Log.Warn(Owner.Will, "Mongo index dropped.  If this is not rare, treat it as an error.", new
+                    {
+                        Name = index.Name,
+                        Collection = _collection.CollectionNamespace
+                    });
+                }
+                catch (MongoCommandException e)
+                {
+                    Log.Error(Owner.Default, "Unable to drop index.", data: new
+                    {
+                        Name = index.Name,
+                        Collection = _collection.CollectionNamespace
+                    }, exception: e);
+                }
+            try
+            {
+                if (model != null)
+                    _collection.Indexes.CreateOne(model);
+            }
+            catch (MongoCommandException e)
+            {
+                Log.Error(Owner.Will, $"Unable to create index.", data: new
+                {
+                    Name = index.Name,
+                    Collection = _collection.CollectionNamespace
+                }, exception: e);
             }
         }
     }
