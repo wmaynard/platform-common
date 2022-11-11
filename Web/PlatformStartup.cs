@@ -116,6 +116,19 @@ public abstract class PlatformStartup
             log => Log.Local(Owner.Default, log.Message, log.Data, log.Exception, emphasis: Log.LogType.WARN)
         );
         Options = ConfigureOptions(new PlatformOptions()).Validate();
+        try
+        {
+            if (Options.BeforeStartup != null)
+            {
+                Log.Local(Owner.Will, "Executing startup method.");
+                Options.BeforeStartup?.Invoke().Wait();
+                Log.Local(Owner.Will, "Finished startup method.");
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Local(Owner.Default, e.Message, emphasis: Log.LogType.ERROR);
+        }
         RumbleJson.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);

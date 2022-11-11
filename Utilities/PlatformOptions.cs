@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Filters;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
@@ -36,6 +37,7 @@ public class PlatformOptions
     internal int LogThrottleThreshold { get; set; }
     internal int LogThrottlePeriodSeconds { get; set; }
     internal string RegistrationName { get; set; }
+    internal Func<Task> BeforeStartup { get; set; }
     // internal bool StartupLogsSuppressed { get; private set; }
     
     internal bool AspNetServicesEnabled { get; set; }
@@ -66,6 +68,12 @@ public class PlatformOptions
     public PlatformOptions SetProjectOwner(Owner owner) 
     {
         ProjectOwner = owner;
+        return this;
+    }
+
+    public PlatformOptions OnBeforeStartup(Func<Task> action)
+    {
+        BeforeStartup = action;
         return this;
     }
 
