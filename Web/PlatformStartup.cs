@@ -112,7 +112,7 @@ public abstract class PlatformStartup
     protected PlatformStartup(IConfiguration configuration = null)
     {
         RumbleJson.Initialize(
-            exception => throw new PlatformException($"{exception.Message}", inner: exception, code: ErrorCode.ExternalLibraryFailure),
+            exception => throw new PlatformException($"{exception.InnerException?.Message ?? exception.Message}", inner: exception, code: ErrorCode.ExternalLibraryFailure),
             log => Log.Local(Owner.Default, log.Message, log.Data, log.Exception, emphasis: Log.LogType.WARN)
         );
         Options = ConfigureOptions(new PlatformOptions()).Validate();
