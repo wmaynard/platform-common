@@ -423,15 +423,27 @@ public abstract class PlatformStartup
         RouteAttribute route = top.GetAttribute<RouteAttribute>();
 
         string message = $"Application successfully started: {string.Join(", ", urls)}";
+
+        // TD-14518
+        // When working locally, this will be something like "http://localhost:{port}/{base}/health".
+        // When deployed, this will be "http://+:80/{base}/health".  We need to sanitize this for our requests,
+        // because the deployed URL is invalid and causes errors on startup.
         string healthCheck = Path.Combine(urls.First(), route?.Template ?? "/", "health");
+        
+        int badIndex = healthCheck.IndexOf("+:", StringComparison.Ordinal);
+        if (badIndex > -1)
+        {
+            healthCheck = healthCheck[badIndex..];
+            healthCheck = healthCheck[healthCheck.IndexOf('/')..];
+        }
 
         if (Options.EnabledFeatures.HasFlag(CommonFeature.HealthCheckOnStartup))
             ApiService.Instance
-                ?.Request(url: healthCheck, retries: 2)
+                ?.Request(url: PlatformEnvironment.Url(healthCheck), retries: 2)
                 .AddRumbleKeys()
                 .OnSuccess(response => Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN, data: new
                 {
-                    Health = response.AsRumbleJson
+                    Health = response?.AsRumbleJson
                 }))
                 .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup.", data: new
                 {
