@@ -308,7 +308,9 @@ public class ApiRequest
         {
             Log.Error(Owner.Default, "Could not create HttpRequestMessage.", data: new
             {
-                APIRequest = request
+                ApiRequest = request,
+                Method = request?.Method,
+                Url = request?.UrlWithQuery
             }, exception: e);
             throw;
         }
