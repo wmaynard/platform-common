@@ -423,17 +423,22 @@ public abstract class PlatformStartup
         RouteAttribute route = top.GetAttribute<RouteAttribute>();
 
         string message = $"Application successfully started: {string.Join(", ", urls)}";
+        string healthCheck = Path.Combine(urls.First(), route?.Template ?? "/", "health");
 
         if (Options.EnabledFeatures.HasFlag(CommonFeature.HealthCheckOnStartup))
             ApiService.Instance
-                ?.Request(url: $"{Path.Combine(urls.First(), route?.Template ?? "/", "health")}", retries: 2)
+                ?.Request(url: healthCheck, retries: 2)
                 .AddRumbleKeys()
                 .OnSuccess(response => Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN, data: new
                 {
                     Health = response.AsRumbleJson
                 }))
-                .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup."))
-                .Get(out RumbleJson json, out int code);
+                .OnFailure(response => Log.Warn(Owner.Default, "/health endpoint was unavailable after Startup.", data: new
+                {
+                    url = healthCheck,
+                    urlArray = urls
+                }))
+                .Get();
         else
             Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN);
     }
