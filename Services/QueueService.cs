@@ -162,7 +162,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         .Find(config => true)
         .Project(Builders<QueueConfig>.Projection.Expression(config => config.Waitlist))
         .FirstOrDefault()
-        .ToArray();
+        ?.ToArray()
+        ?? new string[] { };
 
     public void ClearSuccessfulTasks()
     {
