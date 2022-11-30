@@ -15,20 +15,26 @@ public class ApiResponse
 {
     public bool Success => StatusCode.ToString().StartsWith("2");
     public readonly int StatusCode;
-    internal HttpResponseMessage Response;
+    internal readonly HttpResponseMessage Response;
 
     internal RumbleJson OriginalResponse
     {
         get
         {
+            string content = null;
             try
             {
-                return Await(Response.Content.ReadAsStringAsync());
+                content = Await(Response.Content.ReadAsStringAsync());
+                return content;
             }
             catch (Exception e)
             {
-                Log.Warn(Owner.Default, "Unable to read response.", exception: e);
-                return null;
+                Log.Warn(Owner.Default, "Unable to read response, or cast to a RumbleJson object.", data: new
+                {
+                    Url = RequestUrl,
+                    StringContent = content
+                }, exception: e);
+                return new RumbleJson();
             }
         }
     }
@@ -92,8 +98,8 @@ public class ApiResponse
     }
 
     private RumbleJson _generic;
-    public RumbleJson AsRumbleJson => _generic ??= Await(AsGenericDataAsync()); // If this gets called multiple times, prevent the conversion after the first instance.
-    public async Task<RumbleJson> AsGenericDataAsync()
+    public RumbleJson AsRumbleJson => _generic ??= Await(AsRumbleJsonAsync()); // If this gets called multiple times, prevent the conversion after the first instance.
+    public async Task<RumbleJson> AsRumbleJsonAsync()
     {
         string asString = await AsStringAsync();
         try
@@ -108,9 +114,11 @@ public class ApiResponse
         {
             Log.Error(Owner.Default, "Could not cast response to RumbleJson.", data: new
             {
-                Response = Response
+                Response = Response,
+                Url = RequestUrl,
+                
             }, exception: e);
-            return null;
+            return new RumbleJson();
         }
     }
     public byte[] AsByteArray => Await(AsByteArrayAsync());
