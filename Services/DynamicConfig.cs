@@ -17,6 +17,7 @@ using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
+using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Services;
 
@@ -284,18 +285,24 @@ public class DynamicConfig : PlatformTimerService
         }
     }
 
-    public T Optional<T>(string key) => ProjectValues.Optional<T>(key) ?? GlobalValues.Optional<T>(key);
-    public T Require<T>(string key) => ProjectValues.Require<T>(key);
-
     /// <summary>
     /// Searches for a config value.  The hierarchy for scope is Project > Common > Global > (everything else). 
     /// </summary>
     /// <param name="key">The key of the value to look for.</param>
     /// <returns>A value of a specified type.</returns>
-    public T Value<T>(string key) => ProjectValues.Optional<T>(key)
+    public T Optional<T>(string key) => ProjectValues.Optional<T>(key)
         ?? CommonValues.Optional<T>(key)
         ?? GlobalValues.Optional<T>(key)
         ?? Search<T>(key);
+
+    public T Require<T>(string key)
+    {
+        T output = Optional<T>(key);
+
+        if (!EqualityComparer<T>.Default.Equals(output, default))
+            return output;
+        throw new MissingJsonKeyException(key);
+    }
 
     private T Search<T>(string key)
     {

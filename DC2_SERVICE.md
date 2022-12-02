@@ -37,11 +37,11 @@ Usage within Platform projects is designed to be very simple and straightforward
 ### Design Intent
 
 ```
-string myVar = _dc2Service.Value<string>("myVar");
+string myVar = _dc2Service.Optional<string>("myVar"); // Require<T>() also works; will throw an exception if it's not found.
 string adminToken = _dc2Service.AdminToken;
 ```
 
-That's it.  No bells, no whistles.  Two methods should be sufficient for all use cases.  However, it's important to note what's happening when you call `Value<T>()`:
+That's it.  No bells, no whistles.  Two methods should be sufficient for all use cases.  However, it's important to note what's happening when you call `Optional<T>()`:
 
 * First, the current project's **Section** is scanned for the key you asked for.
 * If nothing is found, the Common section is used.
