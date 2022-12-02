@@ -30,7 +30,7 @@ public class DynamicConfig : PlatformTimerService
     
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
     
-    internal static DynamicConfig Instance { get; private set; }
+    public static DynamicConfig Instance { get; private set; }
 
     public class DC2ClientInformation : PlatformDataModel
     {
