@@ -117,7 +117,7 @@ public class PlatformOptions
             {
             case CommonService.ApiService:
                 disabled.Add(typeof(ApiService));
-                disabled.Add(typeof(DC2Service));
+                disabled.Add(typeof(DynamicConfig));
                 break;
             case CommonService.Cache:
                 disabled.Add(typeof(CacheService));
@@ -126,7 +126,7 @@ public class PlatformOptions
                 disabled.Add(typeof(ConfigService));
                 break;
             case CommonService.DynamicConfig:
-                disabled.Add(typeof(DC2Service));
+                disabled.Add(typeof(DynamicConfig));
                 break;
             case CommonService.HealthService:
                 disabled.Add(typeof(HealthService));

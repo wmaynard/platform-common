@@ -51,7 +51,7 @@ public class Section : PlatformCollectionDocument
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FRIENDLY_NAME)]
     public string FriendlyName { get; set; }
   
-    public List<DC2Service.DC2ClientInformation> ActiveClients { get; set; }
+    public List<DynamicConfig.DC2ClientInformation> ActiveClients { get; set; }
 
     [JsonConstructor, BsonConstructor]
     public Section(){}
@@ -63,6 +63,6 @@ public class Section : PlatformCollectionDocument
         Data = new Dictionary<string, SettingsValue>();
         Services = new List<RegisteredService>();
         AdminToken = null;
-        ActiveClients = new List<DC2Service.DC2ClientInformation>();
+        ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
     }
 }

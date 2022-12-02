@@ -41,7 +41,7 @@ public class RegisteredService : PlatformDataModel
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROOT_INGRESS)]
     public string RootIngress { get; set; }
   
-    [JsonInclude, JsonPropertyName(DC2Service.KEY_CLIENT_ID)]
+    [JsonInclude, JsonPropertyName(DynamicConfig.KEY_CLIENT_ID)]
     public string DynamicConfigClientId { get; set; }
   
     public ControllerInfo[] Controllers { get; set; }

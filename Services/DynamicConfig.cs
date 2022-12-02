@@ -22,14 +22,14 @@ namespace Rumble.Platform.Common.Services;
 
 // TODO: This will be renamed to DynamicConfigService after removing the previous one, as well as the DynamicConfigClient
 // TODO: Value promotion to other environments
-public class DC2Service : PlatformTimerService
+public class DynamicConfig : PlatformTimerService
 {
     // Used by the dynamic config service to return all values for the admin portal
     public const string API_KEY_SECTIONS = "sections";
     
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
     
-    internal static DC2Service Instance { get; private set; }
+    internal static DynamicConfig Instance { get; private set; }
 
     public class DC2ClientInformation : PlatformDataModel
     {
@@ -80,7 +80,7 @@ public class DC2Service : PlatformTimerService
 
     public long LastUpdated { get; private set; }
 
-    public DC2Service(ApiService apiService, HealthService healthService, IHostApplicationLifetime lifetime) : base(intervalMS: 300_000, startImmediately: true)
+    public DynamicConfig(ApiService apiService, HealthService healthService, IHostApplicationLifetime lifetime) : base(intervalMS: 300_000, startImmediately: true)
     {
         ID = Guid.NewGuid().ToString();
         _apiService = apiService;

@@ -229,8 +229,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         if (!EqualityComparer<T>.Default.Equals(output, default))
             return output;
         
-        if (DC2Service.Instance != null)
-            output = DC2Service.Instance.Optional<T>(key);
+        if (DynamicConfig.Instance != null)
+            output = DynamicConfig.Instance.Optional<T>(key);
         
         if (!EqualityComparer<T>.Default.Equals(output, default) || optional)
             return output;

@@ -36,7 +36,7 @@ public abstract class PlatformController : Controller
     #pragma warning disable
     protected readonly HealthService _health;
     protected readonly CacheService _cacheService;
-    protected readonly DC2Service _dc2Service;
+    protected readonly DynamicConfig DynamicConfig;
     protected readonly ApiService _apiService;
     #pragma warning restore
 
@@ -224,7 +224,7 @@ public abstract class PlatformController : Controller
     {
         Log.Local(Owner.Will, "Refreshing DC2");
 
-        await _dc2Service.Refresh();
+        await DynamicConfig.Refresh();
 
         return Ok();
     }

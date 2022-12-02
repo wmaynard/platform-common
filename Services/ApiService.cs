@@ -142,7 +142,7 @@ public class ApiService : PlatformService
         if (accountId == null || screenname == null || discriminator < 0)
             throw new TokenGenerationException("Insufficient user information for token generation.");
 
-        Get(out DC2Service dc2);
+        Get(out DynamicConfig dc2);
         if (dc2 == null)
             throw new TokenGenerationException("Dynamic config is null; token generation is impossible.");
         

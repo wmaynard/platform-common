@@ -18,6 +18,7 @@ using WebRequest = System.Net.WebRequest;
 
 namespace Rumble.Platform.Common.Interop;
 
+[Obsolete(message: "Use the Rumble.Platform.Common.Services.DynamicConfig singleton instead to move to DynamicConfigV2.")]
 public class DynamicConfigClient : IService
 {
     private string _configServiceUrl;
