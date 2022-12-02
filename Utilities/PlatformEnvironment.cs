@@ -6,8 +6,11 @@ using System.Linq;
 using System.Reflection;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Data;
+using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -67,8 +70,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         .OrderBy(_string => _string.Length)
         .ToArray()
         ?? Array.Empty<string>();
-
-    private static Dictionary<string, string> FallbackValues { get; set; }
 
     public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || (Deployment?.NumericBetween(min: 0, max: 99) ?? false);
     public static readonly bool IsDev = Deployment?.NumericBetween(min: 100, max: 199) ?? false;
@@ -215,12 +216,26 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         }
     }
 
+    /// <summary>
+    /// Attempts to get a value from the environment.  Dynamic config is used as a fallback.  If no value is found
+    /// and optional is set, this will throw an exception when a default value is found.
+    /// </summary>
     private static T Fetch<T>(string key, bool optional)
     {
         Variables ??= Initialize();
-        return optional
-            ? Variables.Optional<T>(key)
-            : Variables.Require<T>(key);
+
+        T output = Variables.Optional<T>(key);
+
+        if (!EqualityComparer<T>.Default.Equals(output, default))
+            return output;
+        
+        if (DC2Service.Instance != null)
+            output = DC2Service.Instance.Optional<T>(key);
+        
+        if (!EqualityComparer<T>.Default.Equals(output, default) || optional)
+            return output;
+
+        throw new MissingJsonKeyException(key);
     }
 
     public static T Require<T>(string key) => Fetch<T>(key, optional: false);

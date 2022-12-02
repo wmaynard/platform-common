@@ -28,6 +28,8 @@ public class DC2Service : PlatformTimerService
     public const string API_KEY_SECTIONS = "sections";
     
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
+    
+    internal static DC2Service Instance { get; private set; }
 
     public class DC2ClientInformation : PlatformDataModel
     {
@@ -84,12 +86,24 @@ public class DC2Service : PlatformTimerService
         _apiService = apiService;
         _healthService = healthService;
 
-        // This allows the service to run code at startup so that we don't hit our API before we're ready for it.
-        lifetime.ApplicationStarted.Register(() =>
+        try
         {
             Register();
             Refresh().Wait();
-        });
+            Log.Local(Owner.Default, "Dynamic config values loaded.");
+        }
+        catch
+        {
+            // This allows the service to run code at startup so that we don't hit our API before we're ready for it.
+            lifetime.ApplicationStarted.Register(() =>
+            {
+                Register();
+                Refresh().Wait();
+                Log.Local(Owner.Default, "Dynamic config values loaded.");
+            });
+        }
+
+        Instance = this;
     }
 
     protected override void OnElapsed() => Refresh().Wait();
