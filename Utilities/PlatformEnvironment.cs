@@ -117,16 +117,19 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
         if (LogglyUrl != null)
             return Variables;
-
-        string loggly = Variables.Optional<string>(KEY_LOGGLY_ROOT);
-        string tag = Variables.Optional<string>(KEY_COMPONENT);
-
-        if (loggly == null || tag == null)
-            return Variables;
-
-        Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
+        
+        LoadLogglyUrl();
 
         return Variables;
+    }
+
+    private static void LoadLogglyUrl()
+    {
+        string loggly = Optional<string>(KEY_LOGGLY_ROOT);
+        string tag = Optional<string>(KEY_COMPONENT);
+
+        if (loggly != null && tag != null)
+            Variables[KEY_LOGGLY_URL] = string.Format(loggly, tag);
     }
 
     private static RumbleJson LoadCommonVariables()
@@ -366,6 +369,8 @@ need fixing or fields that may be candidates for obsolescence / removal.");
         test(KEY_GAME_ID, GameSecret);
         test(KEY_RUMBLE_SECRET, RumbleSecret);
         test(KEY_DEPLOYMENT, Deployment);
+        
+        LoadLogglyUrl();  // if grabbed from dynamic config as opposed to CI, this needs to be reloaded now.
         test(KEY_LOGGLY_URL, LogglyUrl);
         test(KEY_COMPONENT, ServiceName);
         test(KEY_GITLAB_ENVIRONMENT_URL, ClusterUrl);

@@ -158,9 +158,6 @@ public abstract class PlatformStartup
         }
         else if (UsingMongoServices && MongoConnection == null)
             Log.Warn(Owner.Will, "MongoConnection is null.  All connections to Mongo will fail.");
-
-        if (Options.EnabledFeatures.HasFlag(CommonFeature.Graphite))
-            Graphite.Initialize(Options.ServiceName ?? ServiceName);
     }
 
     /// <param name="services"></param>
@@ -396,6 +393,9 @@ public abstract class PlatformStartup
         Log.Suppressed = false;
         
         PlatformEnvironment.Validate(Options, out List<string> errors);
+        
+        if (Options.EnabledFeatures.HasFlag(CommonFeature.Graphite))
+            Graphite.Initialize(Options.ServiceName ?? ServiceName);
 
         if (Options.EnabledFeatures.HasFlag(CommonFeature.ExitOnMissingEnvironmentVariables) && errors.Any())
         {
