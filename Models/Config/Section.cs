@@ -29,7 +29,7 @@ public class Section : PlatformCollectionDocument
   
     [BsonElement(DB_KEY_VALUES)]
     [JsonInclude, JsonPropertyName("data"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Dictionary<string, SettingsValue> Data { get; init; }
+    public Dictionary<string, SettingsValue> Data { get; set; }
 
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -65,4 +65,6 @@ public class Section : PlatformCollectionDocument
         AdminToken = null;
         ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
     }
+
+    public void ResetId() => Id = null;
 }

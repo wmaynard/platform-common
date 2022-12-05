@@ -13,7 +13,7 @@ public class SettingsValue : PlatformDataModel
     
     [BsonElement("comment"), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName("comment")]
-    public string Comment { get; init; }
+    public string Comment { get; set; }
 
     [BsonConstructor, JsonConstructor]
     public SettingsValue(object value = null, string comment = null)
