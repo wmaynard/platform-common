@@ -189,14 +189,13 @@ public class ApiService : PlatformService
         Request(url)
             .AddAuthorization(adminToken)
             .SetPayload(payload)
-            .OnFailure(response =>
-                Log.Error(Owner.Will, "Unable to generate token.", data: new
-                {
-                    Payload = payload,
-                    Response = response,
-                    Url = response.RequestUrl
-                })
-            ).Post(out RumbleJson json);
+            .OnFailure(response => Log.Error(Owner.Will, "Unable to generate token.", data: new
+            {
+                Payload = payload,
+                Response = response,
+                Url = response.RequestUrl
+            }))
+            .Post(out RumbleJson json);
 
         try
         {

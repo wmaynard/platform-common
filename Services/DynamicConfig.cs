@@ -86,6 +86,7 @@ public class DynamicConfig : PlatformTimerService
         ID = Guid.NewGuid().ToString();
         _apiService = apiService;
         _healthService = healthService;
+        AllValues = new RumbleJson();
 
         try
         {
@@ -306,6 +307,9 @@ public class DynamicConfig : PlatformTimerService
 
     private T Search<T>(string key)
     {
+        if (AllValues == null)
+            return default;
+        
         T output = default;
 
         foreach (RumbleJson data in AllValues.Values)
