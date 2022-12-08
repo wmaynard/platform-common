@@ -99,6 +99,9 @@ public class ApiResponse
 
     private RumbleJson _generic;
     public RumbleJson AsRumbleJson => _generic ??= Await(AsRumbleJsonAsync()); // If this gets called multiple times, prevent the conversion after the first instance.
+
+    public T Optional<T>(string key) => AsRumbleJson.Optional<T>(key);
+    public T Require<T>(string key) => AsRumbleJson.Require<T>(key);
     public async Task<RumbleJson> AsRumbleJsonAsync()
     {
         string asString = await AsStringAsync();
