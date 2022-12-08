@@ -273,6 +273,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
             : output;
     }
 
+    public static string Url() => Url("");
     public static string Url(string endpoint) => Url(ClusterUrl, endpoint);
 
     public static string Url(params string[] paths)
