@@ -63,4 +63,5 @@ public enum ErrorCode
     [Display(Name = "1006")] RumbleAccountMissing = 1006,
     [Display(Name = "1007")] RumbleAccountUnconfirmed = 1007,
     [Display(Name = "1008")] ConfirmationCodeExpired = 1008,
+    [Display(Name = "1009")] ConfirmationCodeInvalid = 1009,
 }
