@@ -111,6 +111,17 @@ public abstract class PlatformController : Controller
             output.Combine(model.ResponseObject);
         return Ok(output);
     }
+    
+    public ObjectResult Problem(params PlatformDataModel[] objects)
+    {
+        RumbleJson output = new RumbleJson
+        {
+            { "success", false } // TODO: This should be removed and consumers should use HTTP status codes.
+        };
+        foreach (PlatformDataModel model in objects.Where(obj => obj != null))
+            output.Combine(model.ResponseObject);
+        return Problem(output);
+    }
 
     public OkObjectResult Ok(IEnumerable<PlatformDataModel> objects) => Ok(objects.ToArray());
 
