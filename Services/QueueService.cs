@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
@@ -555,6 +556,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     [BsonIgnoreExtraElements]
     private class QueuedTask : TaskData
     {
+        private const string INDEX_KEY_BY_TYPE = "type_1_owner_1";
+        private const string INDEX_KEY_BY_STATUS = "status_1_failures_1";
+        
         private const string KEY_CLAIMED_BY = "owner";
         private const string KEY_CLAIMED_ON = "taken";
         private const string KEY_DATA = "data";
@@ -563,12 +567,14 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_TRACKED = "tracked";
         
         [BsonElement(KEY_CLAIMED_BY)]
+        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 1)]
         public string ClaimedBy { get; set; }
         
         [BsonElement(KEY_CLAIMED_ON)]
         public long ClaimedOn { get; set; }
         
         [BsonElement(KEY_STATUS)]
+        [CompoundIndex(group: INDEX_KEY_BY_STATUS, priority: 1)]
         internal TaskStatus Status { get; set; }
         
         [BsonElement(KEY_TRACKED)]
@@ -578,7 +584,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         internal T Data { get; set; }
         
         [BsonElement(KEY_FAILURES)]
+        [CompoundIndex(group: INDEX_KEY_BY_STATUS, priority: 2)]
         internal int Failures { get; set; }
+        
+        [BsonElement(KEY_TYPE)]
+        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 2)]
+        internal new TaskType Type { get; set; }
         
         internal enum TaskStatus
         {
@@ -593,8 +604,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     [BsonIgnoreExtraElements]
     public abstract class TaskData : PlatformCollectionDocument
     {
-        private const string KEY_CREATED = "created";
-        private const string KEY_TYPE = "type";
+        internal const string KEY_CREATED = "created";
+        internal const string KEY_TYPE = "type";
 
         [BsonElement(KEY_CREATED)]
         internal long CreatedOn { get; init; }
