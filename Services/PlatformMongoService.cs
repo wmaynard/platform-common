@@ -41,6 +41,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     public bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
     public bool IsHealthy => IsConnected || Open();
+    public string CollectionName => _collection?.CollectionNamespace?.CollectionName;
 
     protected PlatformMongoService(string collection)
     {

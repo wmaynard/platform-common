@@ -389,6 +389,30 @@ need fixing or fields that may be candidates for obsolescence / removal.");
 
         errors = output;
     }
+
+    public static void EnforceNonprod()
+    {
+        if (IsProd)
+            throw new EnvironmentPermissionsException();
+    }
+
+    public static void EnforceLocal()
+    {
+        if (!IsLocal)
+            throw new EnvironmentPermissionsException();
+    }
+
+    public static void EnforceDev()
+    {
+        if (!IsDev)
+            throw new EnvironmentPermissionsException();
+    }
+
+    public static void EnforceStage()
+    {
+        if (!IsStaging)
+            throw new EnvironmentPermissionsException();
+    }
 };
 
 // TODO: Incorporate DynamicConfigService as fallback values?
