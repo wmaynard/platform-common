@@ -13,6 +13,7 @@ public enum ErrorCode
     [Display(Name = "0001")] RuntimeException = 0001,
     [Display(Name = "0002")] ExtensionMethodFailure = 0002,
     [Display(Name = "0003")] ExternalLibraryFailure = 0003,
+    [Display(Name = "0004")] DownForMaintenance = 0004,
       // 10: Serialization
       [Display(Name = "0010")] GenericDataConversion = 0010,
       [Display(Name = "0011")] SerializationFailure = 0011,
