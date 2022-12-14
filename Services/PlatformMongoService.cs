@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
@@ -217,25 +218,27 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             )
             .ToList();
         
+        AdditionalIndexKey[] additionalKeys = property
+            .GetCustomAttributes()
+            .Where(attribute => attribute.GetType().IsAssignableTo(typeof(AdditionalIndexKey)))
+            .Select(attribute => (AdditionalIndexKey)attribute)
+            .ToArray();
+
+        foreach (CompoundIndex compound in output.OfType<CompoundIndex>())
+            compound.AddKeys(additionalKeys.Where(adds => adds.GroupName == compound.GroupName));
+        
         if (property.PropertyType.IsAssignableTo(typeof(PlatformDataModel)))
-        {
             foreach (PropertyInfo nested in GetIndexCandidates(property.PropertyType))
                 output.AddRange(ExtractIndexes(nested, property.Name, parentDbKey, depth - 1));
-        }
 
-        if (!output.Any())
-            return Array.Empty<PlatformMongoIndex>();
-
-        if (bson == null)
-        {
+        if (bson != null)
+            return output.ToArray();
+        if (output.Any())
             Log.Warn(Owner.Default, "Unable to create indexes without a BsonElement attribute also present on a property.", data: new
             {
                 Name = property.Name
             });
-            return Array.Empty<PlatformMongoIndex>();
-        }
-        
-        return output.ToArray();
+        return Array.Empty<PlatformMongoIndex>();
     }
 
     /// <summary>
@@ -244,25 +247,48 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     /// <returns>Returns all SimpleIndexes, one CompoundIndex per group name, and a maximum of one TextIndex.</returns>
     private PlatformMongoIndex[] ExtractIndexes()
     {
+        List<PlatformMongoIndex> output = new List<PlatformMongoIndex>();
         List<PlatformMongoIndex> indexes = new List<PlatformMongoIndex>();
+        List<PropertyInfo> candidates = GetIndexCandidates(typeof(Model)).ToList();
         
-        foreach (PropertyInfo property in GetIndexCandidates(typeof(Model)))
+        // Perform a deep dive on this service's models.  Look for all generic arguments and nested types that can
+        // support index attributes (PlatformDataModels).
+        Type type = GetType();
+        do
+        {
+            candidates.AddRange(type
+                .GetGenericArguments()
+                .Union(type.GetNestedTypes(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                .Where(model => model.IsAssignableTo(typeof(PlatformDataModel)))
+                .SelectMany(GetIndexCandidates)
+            );
+            
+            type = type.BaseType;
+        } while (type?.IsAssignableTo(typeof(IPlatformMongoService)) ?? false);
+
+        // Pull out all the indexes defined by the attributes found on the properties.
+        foreach (PropertyInfo property in candidates)
             indexes.AddRange(ExtractIndexes(property));
 
-        List<PlatformMongoIndex> output = new List<PlatformMongoIndex>();
-        
-        output.AddRange(indexes.OfType<SimpleIndex>());
-
-        // Per Mongo restrictions we can only have one TextIndex on any given collection.
+        // We can't add all of the indexes on their own.  Limitations:
+        //     A collection can only support one text index, so we have to combine them.
+        //     Our compound indexes have not yet been combined into a comprehensive definition.
         TextIndex[] texts = indexes.OfType<TextIndex>().ToArray();
+        CompoundIndex[] compounds = indexes.OfType<CompoundIndex>().ToArray();
+        SimpleIndex[] simples = indexes.OfType<SimpleIndex>().ToArray();
+        
+        output.AddRange(simples);
+
+        // Combine text indexes into one definition.
         if (texts.Any())
             output.Add(new TextIndex
             {
                 Name = "text",
-                DatabaseKeys = texts.Select(text => text.DatabaseKey).ToArray()
+                DatabaseKeys = texts
+                    .Select(text => text.DatabaseKey)
+                    .ToArray()
             });
-
-        CompoundIndex[] compounds = indexes.OfType<CompoundIndex>().ToArray();
+        // Combine compound indexes into one definition - grouped by their name.
         if (compounds.Any()) 
             output.AddRange(compounds
                 .Select(compound => compound.GroupName)
@@ -272,7 +298,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                     .ToArray())
                 )
             );
-
+        
         return output.ToArray();
     }
     
@@ -283,14 +309,13 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     /// <param name="type">The data model or collection document to get indexes from.</param>
     /// <returns>An array of property reflection data.</returns>
     private PropertyInfo[] GetIndexCandidates(Type type) => type
-        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
         .Where(prop => !prop.GetCustomAttributes().Any(att => att.GetType().IsAssignableTo(typeof(BsonIgnoreAttribute))))
         .ToArray();
 
     public void CreateIndexes()
     {
         PlatformMongoIndex[] indexes = ExtractIndexes();
-
         if (!indexes.Any())
             return;
 

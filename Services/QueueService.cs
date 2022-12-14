@@ -539,6 +539,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         internal long LastActive { get; set; }
         
         [BsonElement(KEY_MINIMUM_WAIT_TIME)]
+        [SimpleIndex]
         internal long OnCompleteTime { get; set; }
         
         [BsonElement(KEY_SETTINGS)]
@@ -567,7 +568,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_TRACKED = "tracked";
         
         [BsonElement(KEY_CLAIMED_BY)]
-        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 1)]
+        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 2)]
+        [AdditionalIndexKey(group: INDEX_KEY_BY_TYPE, key: KEY_TYPE, priority: 1)]
         public string ClaimedBy { get; set; }
         
         [BsonElement(KEY_CLAIMED_ON)]
@@ -586,10 +588,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [BsonElement(KEY_FAILURES)]
         [CompoundIndex(group: INDEX_KEY_BY_STATUS, priority: 2)]
         internal int Failures { get; set; }
-        
-        [BsonElement(KEY_TYPE)]
-        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 2)]
-        internal new TaskType Type { get; set; }
         
         internal enum TaskStatus
         {
