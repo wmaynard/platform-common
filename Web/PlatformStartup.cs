@@ -214,6 +214,10 @@ public abstract class PlatformStartup
         Log.Verbose(Owner.Default, "Adding CORS to services");
         services.AddCors(options =>
         {
+            // Note that despite how open and permissive this looks, this is just creating a very open CORS policy; your
+            // services will NOT use it by default.  To enable this in your project, you will need to add the following
+            // attribute to any of your controllers with endpoints you want to use it with:
+            //     [EnableCors(PlatformStartup.CORS_SETTINGS_NAME)]
             options.AddPolicy(name: CORS_SETTINGS_NAME, builder =>
             {
                 builder
