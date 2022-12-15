@@ -124,15 +124,12 @@ public class DynamicConfig : PlatformTimerService
             .Request("/config/settings/all")
             // .Request("http://localhost:5151/config/settings/all")
             .AddRumbleKeys()
-            .OnFailure((_, response) =>
-            {
-                Log.Error(Owner.Will, "Unable to fetch config data for portal.");
-            })
-            .OnSuccess((_, response) =>
+            .OnFailure(response => Log.Error(Owner.Will, "Unable to fetch config data for portal.", data: response))
+            .OnSuccess(response =>
             {
                 try
                 {
-                    output = response.AsRumbleJson.Require<Section[]>(API_KEY_SECTIONS);
+                    output = response.Require<Section[]>(API_KEY_SECTIONS);
                 }
                 catch (Exception e)
                 {
@@ -160,17 +157,17 @@ public class DynamicConfig : PlatformTimerService
                 ServiceName = PlatformEnvironment.ServiceName
             }.JSON)
             .AddParameter(key: KEY_CLIENT_ID, value: ID)
-            .AddParameter(key: "service", PlatformEnvironment.ServiceName)
-            .OnFailure((sender, response) =>
+            .AddParameter(key: "name", PlatformEnvironment.ServiceName)
+            .OnFailure(response =>
             {
                 // _healthService?.Degrade(amount: 10);  TODO: Uncomment this after DC2 is deployed
                 Log.Warn(Owner.Will, "Unable to fetch dynamic config data.", data: new
                 {
-                    Url = response.RequestUrl,
+                    Response = response,
                     Code = (int)response
                 });
             })
-            .OnSuccess((sender, response) =>
+            .OnSuccess(response =>
             {
                 AllValues = response;
                 LastUpdated = Timestamp.UnixTime;
