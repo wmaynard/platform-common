@@ -338,6 +338,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                         drop = keys.Except(existingKeys).Any() || existingKeys.Except(keys).Any();
                         if (!drop)
                             continue;
+                        index.Name = existingCompound.Name;
                     }
 
                     model = new CreateIndexModel<Model>(
@@ -354,9 +355,11 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
                     if (existingSimple != null)
                     {
-                        drop = existingSimple.KeyInformation.Select(pair => pair.Key).FirstOrDefault() != simple.DatabaseKey;
+                        drop = existingSimple.KeyInformation.Select(pair => pair.Key).FirstOrDefault() != simple.DatabaseKey 
+                               || existingSimple.Unique != simple.Unique;
                         if (!drop)
                             continue;
+                        index.Name = existingSimple?.Name;
                     }
 
                     model = new CreateIndexModel<Model>(
@@ -366,7 +369,8 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                         options: new CreateIndexOptions<Model>
                         {
                             Name = simple.Name,
-                            Background = true
+                            Background = true,
+                            Unique = simple.Unique
                         }
                     );
                     break;

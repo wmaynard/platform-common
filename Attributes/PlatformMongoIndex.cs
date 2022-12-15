@@ -6,7 +6,7 @@ namespace Rumble.Platform.Common.Attributes;
 public abstract class PlatformMongoIndex : Attribute
 {
     public string DatabaseKey { get; internal set; }
-    public string Name { get; init; }
+    public string Name { get; internal set; }
     public string PropertyName { get; private set; }
     
     internal PlatformMongoIndex SetPropertyName(string name)

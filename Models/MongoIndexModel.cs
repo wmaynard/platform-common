@@ -25,6 +25,10 @@ public class MongoIndexModel : PlatformDataModel
     [BsonElement("key")]
     [JsonPropertyName("key")]
     public RumbleJson KeyInformation { get; set; }
+    
+    [BsonElement("unique")]
+    [JsonPropertyName("unique")]
+    public bool Unique { get; set; }
 
     public bool IsText => KeyInformation?.Optional<string>("_fts") == "text";
     public bool IsSimple => KeyInformation?.Optional<string>("_fts") != "text" && KeyInformation?.Keys.Count == 1;
@@ -34,6 +38,7 @@ public class MongoIndexModel : PlatformDataModel
     {
         try
         {
+            string foo = collection.Indexes.List().ToList().ToJson().ToString();
             return ((RumbleJson)$"{{\"data\":{collection.Indexes.List().ToList().ToJson()}}}").Require<MongoIndexModel[]>("data");
         }
         catch
