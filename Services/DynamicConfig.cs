@@ -157,7 +157,7 @@ public class DynamicConfig : PlatformTimerService
                 ServiceName = PlatformEnvironment.ServiceName
             }.JSON)
             .AddParameter(key: KEY_CLIENT_ID, value: ID)
-            .AddParameter(key: "name", PlatformEnvironment.ServiceName)
+            // .AddParameter(key: "name", PlatformEnvironment.ServiceName)
             .OnFailure(response =>
             {
                 // _healthService?.Degrade(amount: 10);  TODO: Uncomment this after DC2 is deployed
