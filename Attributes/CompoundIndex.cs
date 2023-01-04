@@ -7,7 +7,7 @@ using Rumble.Platform.Common.Exceptions;
 
 namespace Rumble.Platform.Common.Attributes;
 
-[AttributeUsage(validOn: AttributeTargets.Property)]
+[AttributeUsage(validOn: AttributeTargets.Property, AllowMultiple = true)]
 public sealed class CompoundIndex : PlatformMongoIndex
 {
     public string GroupName { get; init; }
