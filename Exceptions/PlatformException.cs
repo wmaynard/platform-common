@@ -14,7 +14,7 @@ public class PlatformException : Exception // TODO: Should probably be an abstra
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; private set; }
   
-    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public ErrorCode Code { get; private set; }
   
     public PlatformException() : this("No message provided."){}
