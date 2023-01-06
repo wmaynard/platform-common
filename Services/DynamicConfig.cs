@@ -97,7 +97,7 @@ public class DynamicConfig : PlatformTimerService
         catch
         {
             // This allows the service to run code at startup so that we don't hit our API before we're ready for it.
-            lifetime.ApplicationStarted.Register(() =>
+            lifetime?.ApplicationStarted.Register(() =>
             {
                 Register();
                 Refresh().Wait();

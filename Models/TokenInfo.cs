@@ -25,7 +25,7 @@ public class TokenInfo : PlatformDataModel
     public const string DB_KEY_IP_ADDRESS = "ip";
     public const string DB_KEY_GAME = "gkey";
 
-    public const string FRIENDLY_KEY_ACCOUNT_ID = "aid";
+    public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
     public const string FRIENDLY_KEY_AUDIENCE = "audience";
     public const string FRIENDLY_KEY_COUNTRY_CODE = "country";
     public const string FRIENDLY_KEY_DISCRIMINATOR = "discriminator";
@@ -47,6 +47,15 @@ public class TokenInfo : PlatformDataModel
     [BsonIgnore]
     [JsonIgnore]
     public string Authorization { get; set; }
+
+    /// <summary>
+    /// Alias for AccountId, comes back in JSON responses as "aid", which is a relic from Groovy days.  The new standard is
+    /// "accountId" for readability and clarity.
+    /// </summary>
+    [Obsolete("Use AccountId instead.  AccountIdLegacy is only for API consumers / JSON serialization.")]
+    [BsonIgnore]
+    [JsonInclude, JsonPropertyName("aid"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string AccountIdLegacy => AccountId;
 
     [BsonElement(DB_KEY_ACCOUNT_ID)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
