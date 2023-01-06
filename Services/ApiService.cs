@@ -262,7 +262,7 @@ public class ApiService : PlatformService
                 {
                     RumbleJson json = response.AsRumbleJson;
                     message = json.Optional<string>("message");
-                    output = json.Require<TokenInfo>("tokenInfo");
+                    output = json.Optional<TokenInfo>(TokenInfo.KEY_TOKEN_OUTPUT) ?? json.Require<TokenInfo>(TokenInfo.KEY_TOKEN_LEGACY_OUTPUT);
                     
                     output.Authorization = encryptedToken;
                     

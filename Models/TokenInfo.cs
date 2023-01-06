@@ -9,6 +9,8 @@ namespace Rumble.Platform.Common.Models;
 public class TokenInfo : PlatformDataModel
 {
     internal const int CACHE_EXPIRATION = 600_000; // 10 minutes
+    public const string KEY_TOKEN_OUTPUT = "token";
+    public const string KEY_TOKEN_LEGACY_OUTPUT = "tokenInfo";
         
     public const string DB_KEY_ACCOUNT_ID = "aid";
     public const string DB_KEY_AUDIENCE = "aud";
