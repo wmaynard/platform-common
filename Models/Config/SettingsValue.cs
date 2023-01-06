@@ -7,11 +7,11 @@ namespace Rumble.Platform.Common.Models.Config;
 [BsonIgnoreExtraElements]
 public class SettingsValue : PlatformDataModel
 {
-    [BsonElement("value"), BsonIgnoreIfNull]
+    [BsonElement("value")]
     [JsonInclude, JsonPropertyName("value")]
     public string Value { get; init; }
     
-    [BsonElement("comment"), BsonIgnoreIfNull]
+    [BsonElement("comment")]
     [JsonInclude, JsonPropertyName("comment")]
     public string Comment { get; set; }
 
