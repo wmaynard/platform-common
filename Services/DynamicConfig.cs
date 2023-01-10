@@ -31,6 +31,7 @@ public class DynamicConfig : PlatformTimerService
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
     
     public static DynamicConfig Instance { get; private set; }
+    public EventHandler<RumbleJson> OnRefresh { get; set; }
 
     public class DC2ClientInformation : PlatformDataModel
     {
@@ -81,7 +82,7 @@ public class DynamicConfig : PlatformTimerService
 
     public long LastUpdated { get; private set; }
 
-    public DynamicConfig(ApiService apiService, HealthService healthService, IHostApplicationLifetime lifetime) : base(intervalMS: 300_000, startImmediately: true)
+    public DynamicConfig(ApiService apiService, HealthService healthService, IHostApplicationLifetime lifetime, double intervalMS = 300_000) : base(intervalMS: intervalMS, startImmediately: true)
     {
         ID = Guid.NewGuid().ToString();
         _apiService = apiService;
@@ -171,6 +172,14 @@ public class DynamicConfig : PlatformTimerService
             {
                 AllValues = response;
                 LastUpdated = Timestamp.UnixTime;
+                try
+                {
+                    OnRefresh?.Invoke(this, ProjectValues);
+                }
+                catch (Exception e)
+                {
+                    Log.Warn(Owner.Default, "Unable to successfully invoke DynamicConfig.OnRefresh event.", exception: e);
+                }
             })
             .GetAsync();
 

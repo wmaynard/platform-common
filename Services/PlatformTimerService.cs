@@ -44,4 +44,22 @@ public abstract class PlatformTimerService : PlatformService
     {
         { Name, Status }
     };
+    
+    public double Interval
+    {
+        get => _timer.Interval;
+        set
+        {
+            try
+            {
+                _timer.Stop();
+                _timer.Interval = value;
+                _timer.Start();
+            }
+            catch (Exception e)
+            {
+                Log.Error(Owner.Default, "Unable to set timer service interval.", exception: e);
+            }
+        }
+    }
 }
