@@ -25,7 +25,7 @@ public class Section : PlatformCollectionDocument
 
     [BsonElement(DB_KEY_SERVICES)] // TODO: Allow SimpleIndex to enforce unique constraints?
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SERVICES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<RegisteredService> Services { get; init; }
+    public List<RegisteredService> Services { get; private set; }
   
     [BsonElement(DB_KEY_VALUES)]
     [JsonInclude, JsonPropertyName("data"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -67,4 +67,11 @@ public class Section : PlatformCollectionDocument
     }
 
     public void ResetId() => Id = null;
+
+    public Section PrepareForExport()
+    {
+        Services = new List<RegisteredService>();
+        ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
+        return this;
+    }
 }

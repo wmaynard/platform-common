@@ -36,7 +36,7 @@ public enum Audience
     [Display(Name = "receipt-service")]         ReceiptService          = 0b0000_0100_0000_0000_0000,
     [Display(Name = "token-service")]           TokenService            = 0b0000_1000_0000_0000_0000,
     [Display(Name = "game-client")]             GameClient              = 0b0001_0000_0000_0000_0000,
-    [Display(Name = "game-server")]             GameServer              = 0b0010_0000_0000_0000_0000,
+    [Display(Name = "tower-service")]           GameServer              = 0b0010_0000_0000_0000_0000,
     [Display(Name = "alert-service")]           AlertService            = 0b0100_0000_0000_0000_0000,
     [Display(Name = "guild-service")]           GuildService            = 0b1000_0000_0000_0000_0000,
 }

@@ -52,10 +52,10 @@ public class DynamicConfig : PlatformTimerService
         public long LastActivity { get; set; }
     }
 
-    public const string CLIENT_SETTING_NAME = "game-client";
+    public static readonly string CLIENT_SETTING_NAME = Audience.GameClient.GetDisplayName();
     public const string CLIENT_SETTING_FRIENDLY_NAME = "Game Client";
 
-    public const string SERVER_SETTING_NAME = "game-server";
+    public static readonly string SERVER_SETTING_NAME = Audience.GameServer.GetDisplayName();
     public const string SERVER_SETTING_FRIENDLY_NAME = "Game Server";
 
     public const string GLOBAL_SETTING_NAME = "global-config";
