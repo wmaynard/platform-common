@@ -88,22 +88,38 @@ public class DynamicConfig : PlatformTimerService
         _apiService = apiService;
         _healthService = healthService;
         AllValues = new RumbleJson();
-
         try
         {
             Register();
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Will, "Failed to register DynamicConfig singleton.", data: new
+            {
+                Impact = "DynamicConfig will not have information on this service's endpoints or platform-common version."
+            }, exception: e);
+        }
+        try
+        {
             Refresh().Wait();
             Log.Local(Owner.Default, "Dynamic config values loaded.");
         }
-        catch
+        catch (Exception e)
         {
-            // This allows the service to run code at startup so that we don't hit our API before we're ready for it.
-            lifetime?.ApplicationStarted.Register(() =>
+            if (lifetime == null)
             {
-                Register();
-                Refresh().Wait();
-                Log.Local(Owner.Default, "Dynamic config values loaded.");
-            });
+                Log.Warn(Owner.Will, "DynamicConfig initial refresh failed.  HostLifetime is null, so the refresh will not automatically happen on startup.");
+            }
+            else
+            {
+                Log.Warn(Owner.Will, "DynamicConfig refresh failed.  Will re-attempt after startup.");
+                // This allows the service to run code at startup so that we don't hit our API before we're ready for it.
+                lifetime.ApplicationStarted.Register(() =>
+                {
+                    Refresh().Wait();
+                    Log.Local(Owner.Default, "Dynamic config values loaded.");
+                });
+            }
         }
 
         Instance = this;

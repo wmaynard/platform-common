@@ -21,48 +21,62 @@ namespace Rumble.Platform.Common.Utilities;
 public class Log : PlatformDataModel
 {
     private static Owner? _defaultOwner;
+
     public static Owner DefaultOwner
     {
         get => _defaultOwner ?? RCL.Logging.Owner.Default;
         set
         {
             if (_defaultOwner != null)
-                Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new {Owner = Enum.GetName(DefaultOwner)});
+                Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new { Owner = Enum.GetName(DefaultOwner) });
             _defaultOwner ??= OwnerInformation.Default = value;
         }
     }
 
     public static bool PrintObjectsEnabled { get; internal set; }
     public static bool NoColor { get; internal set; }
-    
+
     private static bool SwarmMessagePrinted { get; set; }
 
-    private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode 
-        ? null 
+    private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode
+        ? null
         : new LogglyClient();
 
-    public enum LogType { NONE, VERBOSE, LOCAL, INFO, WARN, ERROR, CRITICAL, THROTTLED }
+    public enum LogType
+    {
+        NONE = 0,
+        VERBOSE = 1,
+        LOCAL = 2,
+        INFO = 3,
+        WARN = 4,
+        ERROR = 5,
+        CRITICAL = 6,
+        THROTTLED = -1
+    }
 
     private LogType Emphasis { get; set; }
     internal static bool Suppressed { get; set; }
 
-    [JsonIgnore]
-    private readonly Owner _owner;
+    [JsonIgnore] private readonly Owner _owner;
 
-    [JsonInclude]
-    public string Owner => _owner.ToString();
+    [JsonInclude] public string Owner => _owner.ToString();
+
     [JsonInclude, JsonPropertyName("severity")]
     public string Severity => SeverityType.ToString();
-    [JsonIgnore] 
-    internal LogType SeverityType { get; private set; }
+
+    [JsonIgnore] internal LogType SeverityType { get; private set; }
+
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Message { get; set; }
+
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TokenInfo Token { get; set; }
+
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string StackTrace { get; set; }
-    [JsonInclude, JsonPropertyName("env")]
-    public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
+
+    [JsonInclude, JsonPropertyName("env")] public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
+
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Time { get; set; }
 
@@ -81,8 +95,7 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string AccountId => Token?.AccountId;
 
-    [JsonIgnore]
-    private static readonly DateTime ServiceStart = DateTime.UtcNow;
+    [JsonIgnore] private static readonly DateTime ServiceStart = DateTime.UtcNow;
 
     [JsonIgnore]
     private static string ElapsedTime
@@ -95,14 +108,12 @@ public class Log : PlatformDataModel
             return $"{ms:N0}ms";
         }
     }
-    [JsonIgnore]
-    private static int MaxOwnerNameLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
-    [JsonIgnore] 
-    private static int MaxSeverityLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
+    [JsonIgnore] private static int MaxOwnerNameLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
-    [JsonIgnore]
-    private string Caller { get; set; }
+    [JsonIgnore] private static int MaxSeverityLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
+
+    [JsonIgnore] private string Caller { get; set; }
 
     [JsonInclude, JsonPropertyName("serviceVersion")]
     public string Version { get; init; }
@@ -121,10 +132,10 @@ public class Log : PlatformDataModel
         Exception = exception;
 
         Endpoint = exception is PlatformException
-            ? ((PlatformException) Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
+            ? ((PlatformException)Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
             : Endpoint = Diagnostics.FindEndpoint();
 
-        if (!PlatformEnvironment.IsLocal)
+        if (!PlatformEnvironment.IsLocal && type < LogType.ERROR)
             return;
 
         Caller = Clean(new StackFrame(skipFrames: 3).GetMethod());
@@ -141,6 +152,7 @@ public class Log : PlatformDataModel
 
         Emphasis = LogType.NONE;
     }
+
     /// <summary>
     /// Cleans up a MethodBase obtained from a stack trace to be pretty-printed to the console.
     /// If a callback or anonymous method is used, this also tries to extract the useful parts of the names.
@@ -194,6 +206,7 @@ public class Log : PlatformDataModel
     private static bool _written;
     private const int PADDING_TIMESTAMP = 13;
     private const int PADDING_METHOD = 42;
+
     private string BuildConsoleMessage()
     {
         string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
@@ -201,7 +214,7 @@ public class Log : PlatformDataModel
         string message = Message ?? "No Message";
         string caller = Caller.PadLeft(totalWidth: PADDING_METHOD, paddingChar: ' ');
         string time = ElapsedTime.PadLeft(PADDING_TIMESTAMP, ' ');
-        
+
 
         // This is the first time we've printed a log.  Print the headers.
         if (!_written)
@@ -217,6 +230,7 @@ public class Log : PlatformDataModel
             PrettyPrint("".PadLeft(totalWidth: headers.Length * 2, paddingChar: '-'), ConsoleColor.Cyan);
             _written = true;
         }
+
         return $"{owner} | {time} | {severity} | {caller} | {message}";
     }
 
@@ -229,6 +243,7 @@ public class Log : PlatformDataModel
             Console.WriteLine(text);
             return;
         }
+
         ConsoleColor previous = Console.ForegroundColor;
         Console.ForegroundColor = color;
         Console.WriteLine(text);
@@ -246,7 +261,7 @@ public class Log : PlatformDataModel
             Loggly?.Send(this, out throttled);
         if (throttled)
             SeverityType = LogType.THROTTLED;
-        if (!PlatformEnvironment.IsLocal)
+        if (!(PlatformEnvironment.IsLocal || SeverityType >= LogType.ERROR))
             return this;
 
         LogType type = Emphasis == LogType.NONE

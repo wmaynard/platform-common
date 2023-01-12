@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -55,6 +56,8 @@ public class Section : PlatformCollectionDocument
 
     [JsonConstructor, BsonConstructor]
     public Section(){}
+
+    public Section(string id) => Id = id;
 
     public Section(string name, string friendlyName)
     {
