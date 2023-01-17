@@ -2,7 +2,7 @@ using System;
 
 namespace Rumble.Platform.Common.Attributes;
 
-[AttributeUsage(validOn: AttributeTargets.Property)]
+[AttributeUsage(validOn: AttributeTargets.Property, AllowMultiple = true)]
 public class AdditionalIndexKey : Attribute
 {
     internal bool Ascending { get; set; }
