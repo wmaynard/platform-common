@@ -1,10 +1,11 @@
+using System;
 using RCL.Logging;
 using RCL.Services;
 using Rumble.Platform.Common.Interop;
 
 namespace Rumble.Platform.Common.Utilities;
 
-// TODO: this class should go away once dynamic config v2 is rolled out
+[Obsolete("the admin token should be retrieved from dynamic config v2")]
 public class TokenHelper
 {
     public static string GetAdminToken()
