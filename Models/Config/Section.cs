@@ -26,7 +26,7 @@ public class Section : PlatformCollectionDocument
 
     [BsonElement(DB_KEY_SERVICES)] // TODO: Allow SimpleIndex to enforce unique constraints?
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SERVICES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<RegisteredService> Services { get; private set; }
+    public List<RegisteredService> Services { get; set; }
   
     [BsonElement(DB_KEY_VALUES)]
     [JsonInclude, JsonPropertyName("data"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
