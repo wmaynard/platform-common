@@ -138,11 +138,10 @@ public class SlackUser : PlatformDataModel
                 }).Get();
         return owners
             .Select(owner => UserSearch(OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())
-            .ToArray()
             .FirstOrDefault();
     }
     
-    public static SlackUser[] UserSearch(params string[] terms) => UserSearch(Users);
+    public static SlackUser[] UserSearch(params string[] terms) => UserSearch(Users, terms);
     public static SlackUser[] UserSearch(IEnumerable<SlackUser> users, params string[] terms) => users?
        .OrderByDescending(user => user.Score(terms))
        .Where(user => user.Score(terms) > 0)

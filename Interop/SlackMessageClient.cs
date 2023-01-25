@@ -78,14 +78,13 @@ public class SlackMessageClient
             }).GetAsync();
     }
 
-    private async Task<RumbleJson> Send(SlackMessage message, string channel)
+    private async Task<RumbleJson> SendToSlack(SlackMessage message)
     {
         RumbleJson response = null;
 
         try
         {
             message.Compress();
-            message.Channel = channel;
 
             if (ApiService.Instance != null)
                 await ApiService.Instance
@@ -118,14 +117,23 @@ public class SlackMessageClient
         return response;
     }
 
-    public async Task<RumbleJson> Send(SlackMessage message)
+    public async Task<RumbleJson> Send(SlackMessage message, string channel = null)
     {
         message.Compress(); // TODO: If message is split into more than one message, handle the subsequent messages
 
         RumbleJson response = null;
 
-        foreach (string channel in Channels)
-            response = await Send(message, channel);
+        if (!string.IsNullOrWhiteSpace(channel))
+        {
+            message.Channel = channel;
+            response = await SendToSlack(message);
+        }
+        else
+            foreach (string _channel in Channels)
+            {
+                message.Channel = _channel;
+                response = await SendToSlack(message);
+            }
 
         return response;
     }
@@ -133,9 +141,10 @@ public class SlackMessageClient
     public async Task<RumbleJson> DirectMessage(SlackMessage message, Owner owner)
     {
         SlackUser info = UserSearch(owner).FirstOrDefault();
+        message.Channel = info?.ID;
         return info == null
             ? null
-            : await Send(message, info.ID);
+            : await SendToSlack(message);
     }
 
     public async Task<RumbleJson> TryUpload(string path)

@@ -38,4 +38,29 @@ public static class NumericExtension
         if (!code.Between(200, 299))
             throw new UnsuccessfulRequestException(url, response, code);
     }
+    
+    public static string ToFriendlyTime(this long number)
+    {
+        const int SECONDS_IN_DAY = 86_400;
+        const int SECONDS_IN_HOUR = 3_600;
+        const int SECONDS_IN_MINUTE = 60;
+        
+        long days = number / SECONDS_IN_DAY;
+        long hours = number % SECONDS_IN_DAY / SECONDS_IN_HOUR;
+        long minutes = number % SECONDS_IN_HOUR / SECONDS_IN_MINUTE;
+        long seconds = number % SECONDS_IN_MINUTE;
+
+        string dayString = days.ToString().PadLeft(2, '0');
+        string hourString = hours.ToString().PadLeft(2, '0');
+        string minuteString = minutes.ToString().PadLeft(2, '0');
+        string secondString = seconds.ToString().PadLeft(2, '0');
+
+        return number switch
+        {
+            _ when days > 0 => $"{dayString}d {hourString}h {minuteString}m {secondString}s",
+            _ when hours > 0 => $"{hourString}h {minuteString}m {secondString}s",
+            _ when minutes > 0 => $"{minuteString}m {secondString}s",
+            _ => $"{secondString}s",
+        };
+    }
 }

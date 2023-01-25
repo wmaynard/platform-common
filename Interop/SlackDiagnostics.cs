@@ -70,7 +70,7 @@ public class SlackDiagnostics
     /// Sends the log off to Slack.  Awaitable.  Calling this ends the chain and prevents further sending.
     /// </summary>
     /// <returns>An awaitable Task.</returns>
-    public async Task Send() // TODO: Warn if the message is never sent; or find a way to elegantly send automatically.
+    public async Task Send(string channel = null) // TODO: Warn if the message is never sent; or find a way to elegantly send automatically.
     {
         CheckSentStatus();
         if (!CachedLogs.ContainsKey(Title))
@@ -107,8 +107,8 @@ public class SlackDiagnostics
             Utilities.Log.Info(Owner.Default, "It's too late or too early to tag Slack users.");
         }
 
-        foreach (string channel in AdditionalChannels)
-            Client.Channels.Add(channel);
+        foreach (string _channel in AdditionalChannels)
+            Client.Channels.Add(_channel);
         content.Add(SlackBlock.Divider());
 
         content.Add(Message);
@@ -122,7 +122,7 @@ public class SlackDiagnostics
             content.Add("*Attachments:*");
         try
         {
-            await Client.Send(new SlackMessage(content));
+            await Client.Send(new SlackMessage(content), channel);
             foreach (string path in Attachments)
                 await Client.TryUpload(path);
         }
