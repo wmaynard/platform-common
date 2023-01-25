@@ -89,7 +89,6 @@ public class HealthService : PlatformTimerService
 
     public void Add(int possible = 1)
     {
-        Log.Verbose(Owner.Will, $"Adding {possible} max HP");
         Datapoint point = new Datapoint(possible);
 
         _accessor.TrySetItem(KEY_ID, point.Id);
@@ -119,10 +118,6 @@ public class HealthService : PlatformTimerService
 
     public void Score(int points)
     {
-        Log.Verbose(Owner.Will, $"Adding HP", data: new
-        {
-            Amount = points
-        });
         string id = _accessor.TryGetItem<string>(KEY_ID);
 
         if (id != null)

@@ -103,8 +103,6 @@ namespace Rumble.Platform.Common.Filters;
             Log.Error(Owner.Default, message, data: diagnostics);
         else if (taken > THRESHOLD_MS_WARN && THRESHOLD_MS_WARN > 0)
             Log.Warn(Owner.Default, message, data: diagnostics);
-        else 
-            Log.Verbose(Owner.Default, message: "Endpoint time recorded.", data: diagnostics);
         #endif
         if (taken < 0) // The calculation failed; do not track it as a valid 
             return;

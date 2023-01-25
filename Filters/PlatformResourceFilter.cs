@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using RCL.Logging;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
@@ -88,15 +89,18 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
         try
         {
             string auth = context.HttpContext.Request.Headers
-            .First(kvp => kvp.Key == "Authorization")
-            .Value
-            .First()
-            .Replace("Bearer ", "");
+                .First(kvp => kvp.Key == "Authorization")
+                .Value
+                .First()
+                .Replace("Bearer ", "");
             context.HttpContext.Items[KEY_AUTHORIZATION] = auth;
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Log.Verbose(Owner.Default, "The request authorization could not be read.");
+            string endpoint = context?.GetEndpoint();
+            
+            if (endpoint != null && !endpoint.Contains("/health"))
+                Log.Verbose(Owner.Default, "The request authorization could not be read.", exception: e);
         }
     }
 
