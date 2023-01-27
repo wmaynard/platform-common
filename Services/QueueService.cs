@@ -31,6 +31,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
     private readonly IMongoCollection<QueueConfig> _config;
     private readonly IMongoCollection<QueuedTask> _work;
+    private readonly bool _sendTaskResulsWhenTheyAreCompleted;
 
     /// <summary>
     /// Creates and starts a new QueueService on startup.
@@ -39,7 +40,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="intervalMs">The length of time between PrimaryWork() calls.  The timer is paused while the thread is working.</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
-    protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0) 
+    /// <param name="sendTaskResultsWhenTheyAreComplete">tasks results are sent as they complete instead of all at once at the end</param>
+    protected QueueService(string collection, 
+                           int intervalMs = 5_000, 
+                           [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, 
+                           [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0,
+                           bool sendTaskResultsWhenTheyAreCompleted = false) 
         : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
@@ -53,6 +59,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         _work = new MongoClient(PlatformEnvironment.MongoConnectionString)
             .GetDatabase(PlatformEnvironment.MongoDatabaseName)
             .GetCollection<QueuedTask>(collection);
+
+        _sendTaskResulsWhenTheyAreCompleted = sendTaskResultsWhenTheyAreCompleted;
 
         PrimaryTaskCount = Math.Max(1, primaryNodeTaskCount);
         SecondaryTaskCount = secondaryNodeTaskCount == 0
@@ -113,11 +121,17 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     if (!WorkPerformed(StartNewTask()))
                         break;
 
-                if (TryEmptyWaitlist())
+                if (TryEmptyWaitlist() ||
+                    _sendTaskResulsWhenTheyAreCompleted)
                     try
                     {
                         Log.Verbose(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
-                        OnTasksCompleted(AcknowledgeTasks());
+                        T[] tasks = AcknowledgeTasks();
+
+                        if (tasks.Length > 0)
+                        {
+                            OnTasksCompleted(tasks);
+                        }
                     }
                     catch (Exception e)
                     {
