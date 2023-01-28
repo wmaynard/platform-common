@@ -372,7 +372,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             }
         ) ?? await _config.FindOneAndUpdateAsync<QueueConfig>(                                      // If config is null, the update didn't take
             filter: config => true,                                                                 // effect; this is because the OnCompleteTime
-            update: Builders<QueueConfig>.Update.Push(config => config.Waitlist, document.Id),  // was set by a previous task
+            update: Builders<QueueConfig>.Update.Push(config => config.Waitlist, document.Id),      // was set by a previous task
             options: new FindOneAndUpdateOptions<QueueConfig>
             {
                 ReturnDocument = ReturnDocument.After

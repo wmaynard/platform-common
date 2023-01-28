@@ -107,7 +107,7 @@ public abstract class PlatformStartup
     protected IServiceCollection Services { get; set; }
 
     [JsonIgnore]
-    private PlatformOptions Options { get; set; }
+    internal static PlatformOptions Options { get; private set; }
 
     protected PlatformStartup(IConfiguration configuration = null)
     {

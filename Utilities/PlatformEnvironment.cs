@@ -9,6 +9,7 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
+using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 using Rumble.Platform.Data.Exceptions;
 
@@ -64,6 +65,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
     public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
+    public static string OwnerName => PlatformStartup.Options?.ProjectOwner.GetDisplayName() ?? "Not specified.";
+    
     internal static string[] ServiceUrls => Environment
         .GetEnvironmentVariable("ASPNETCORE_URLS")
         ?.Split(separator: ";")
