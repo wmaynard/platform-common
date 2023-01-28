@@ -320,7 +320,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="queuedTask">The task that was completed.</param>
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
-    private bool CompleteTask(QueuedTask queuedTask) => UpdateTaskStatus(queuedTask, success: true);
+    private bool CompleteTask(QueuedTask queuedTask) => UpdateTaskStatusAndData(queuedTask, success: true);
 
     /// <summary>
     /// Removes tasks that are old and no longer relevant.
@@ -335,9 +335,10 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// Marks a task as completed.
     /// </summary>
     /// <param name="queuedTask">The task that was completed.</param>
+    /// <param name="data">The task that was completed.</param>
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
-    private bool FailTask(QueuedTask queuedTask) => UpdateTaskStatus(queuedTask, success: false);
+    private bool FailTask(QueuedTask queuedTask) => UpdateTaskStatusAndData(queuedTask, success: false);
 
     /// <summary>
     /// Creates a task that can then be claimed by worker threads.
@@ -475,7 +476,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="success">Determines whether or not the task is marked as successful or failed, along with the failure increment.</param>
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
-    private bool UpdateTaskStatus(QueuedTask queuedTask, bool success)
+    private bool UpdateTaskStatusAndData(QueuedTask queuedTask, bool success)
     {
         // Update the config node and remove the task Id.
         _config.FindOneAndUpdate<QueueConfig>(
@@ -495,9 +496,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 Builders<QueuedTask>.Filter.Eq(task => task.ClaimedBy, Id)
             ),
             update: success
-                ? Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Succeeded)
+                ? Builders<QueuedTask>.Update.Combine(
+                    Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Succeeded),
+                    Builders<QueuedTask>.Update.Set(task => task.Data, queuedTask.Data))
                 : Builders<QueuedTask>.Update.Combine(
                     Builders<QueuedTask>.Update.Set(task => task.Status, QueuedTask.TaskStatus.Failed),
+                    Builders<QueuedTask>.Update.Set(task => task.Data, queuedTask.Data),
                     Builders<QueuedTask>.Update.Inc(task => task.Failures, 1)
                 )
         ).ModifiedCount > 0;
