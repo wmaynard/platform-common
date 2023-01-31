@@ -86,6 +86,9 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonPropertyName("log_source"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Source => PlatformEnvironment.ServiceName;
 
+    [JsonInclude, JsonPropertyName("cluster_url"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object ClusterUrl => PlatformEnvironment.ClusterUrl;
+
     [JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object Data { get; set; }
 
