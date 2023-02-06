@@ -114,24 +114,13 @@ public class Section : PlatformCollectionDocument
     /// <param name="environment"></param>
     /// <param name="sections"></param>
     /// <returns></returns>
-    private static List<Tuple<string, string, string>> Flatten(string environment, IEnumerable<Section> sections)
-    {
-        var bar = sections.First().Data.Select(setting => new Tuple<string, string, string>(
+    private static List<Tuple<string, string, string>> Flatten(string environment, IEnumerable<Section> sections) => sections
+        .SelectMany(section => section.Data.Select(setting => new Tuple<string, string, string>(
             item1: environment,
-            item2: $"blah.{setting.Key}",
+            item2: $"{section.Name}.{setting.Key}",
             item3: setting.Value.Value
-        ));
-        
-        var output = sections
-            .SelectMany(section => section.Data.Select(setting => new Tuple<string, string, string>(
-                item1: environment,
-                item2: $"{section.Name}.{setting.Key}",
-                item3: setting.Value.Value
-            )))
-            .ToList();
-
-        return output;
-    }
+        )))
+        .ToList();
 
     /// <summary>
     /// Turn tuples into an array of Diffs.  This filters out items that are
@@ -142,7 +131,10 @@ public class Section : PlatformCollectionDocument
     private static Diff[] DiffsFromTuples(List<string> urls, List<Tuple<string, string, string>> list)
     {
         list = list.OrderBy(tuple => tuple.Item2).ToList();
-        string[] allKeys = list.Select(tuple => tuple.Item2).Distinct().ToArray();
+        string[] allKeys = list
+            .Select(tuple => tuple.Item2)
+            .Distinct()
+            .ToArray();
         
         foreach (string key in allKeys)
         {
@@ -170,11 +162,11 @@ public class Section : PlatformCollectionDocument
 
         return list
             .GroupBy(tuple => tuple.Item2)
+            .Where(group => !group.Key.EndsWith(".adminToken")) // Omit admin tokens for security reasons / unnecessary.
             .Select(group => new Diff
             {
                 Key = group.Key,
                 Data = group
-                    .Where(tuple => !tuple.Item3.EndsWith(".adminToken")) // Omit admin tokens for security reasons / unnecessary.
                     .Select(tuple => new DiffValue
                     {
                         Environment = tuple.Item1,
@@ -206,7 +198,6 @@ public class Section : PlatformCollectionDocument
         return limiter == null
             ? output
             : output.Where(diff => diff.Key.StartsWith(limiter)).ToArray();
-
     }
     
     public class Diff : PlatformDataModel
