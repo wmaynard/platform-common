@@ -292,45 +292,61 @@ public class ApiService : PlatformService
 
     /// <summary>
     /// Fires off a pending alert, or sends one if certain criteria are met.  If {countRequired} alerts are issued within
-    /// {seconds}, the alert will change from a pending status to send out immediately.
+    /// {timeframe}, the alert will change from a pending status to send out immediately.
     /// </summary>
     /// <param name="title">The title of the alert.</param>
     /// <param name="message">The message of the alert.  Keep this descriptive and short, if possible.</param>
     /// <param name="countRequired">The number of hits before an alert can have as pending.  If you want your alert
     /// to always send, use the value of 1.</param>
-    /// <param name="seconds">The number of seconds an alert can be pending for.  If an alert is triggered {countRequired} times
+    /// <param name="timeframe">The number of seconds an alert can be pending for.  If an alert is triggered {countRequired} times
     /// in this time period, the alert status changes from pending to sent.</param>
     /// <param name="type">Slack, Email, or All.</param>
+    /// <param name="impact">What kind of impact the issue has that necessitates the alert.</param>
     /// <param name="data">Any additional data you want to attach to the alert.  In Slack, this comes through as a code block.</param>
-    public void Alert(string title, string message, int countRequired, int seconds, Alert.AlertType type = Models.Alerting.Alert.AlertType.All, RumbleJson data = null)
+    public Alert Alert(string title, string message, int countRequired, int timeframe, Owner owner = Owner.Default, Alert.AlertType type = Models.Alerting.Alert.AlertType.All, ImpactType impact = ImpactType.Unknown, RumbleJson data = null)
     {
+        Alert output = null;
 #if LOCAL
-        Request(PlatformEnvironment.Url())
+        Request(PlatformEnvironment.Url("http://localhost:5201/alert"))
 #else
         Request(PlatformEnvironment.Url("/alert"))
-            .SetPayload(new Alert
+#endif
+            .AddAuthorization(DynamicConfig.Instance?.AdminToken)
+            .SetRetries(1)
+            .SetPayload(new RumbleJson
             {
-                CreatedOn = 0,
-                Data = null,
-                Escalation = Models.Alerting.Alert.EscalationLevel.None,
-                EscalationPeriod = 0,
-                Impact = ImpactType.None,
-                LastEscalation = 0,
-                LastSent = 0,
-                Message = null,
-                Owner = Owner.Default,
-                Type = type,
-                Trigger = new Trigger
-                {
-                    Count = 0,
-                    CountRequired = countRequired,
-                    Timeframe = seconds
-                },
-                Status = Models.Alerting.Alert.AlertStatus.New,
-                SendAfter = 0,
-                Title = null,
-                
-            });
-#endif  
+                { "alert", new Alert
+                    {
+                        CreatedOn = Timestamp.UnixTime,
+                        Data = data,
+                        Escalation = Models.Alerting.Alert.EscalationLevel.None,
+                        Origin = PlatformEnvironment.ServiceName,
+                        // EscalationPeriod = 0,
+                        Impact = impact,
+                        LastEscalation = 0,
+                        LastSent = 0,
+                        Message = message,
+                        Owner = owner,
+                        Type = type,
+                        Trigger = new Trigger
+                        {
+                            Count = 0,
+                            CountRequired = countRequired,
+                            Timeframe = timeframe
+                        },
+                        Status = Models.Alerting.Alert.AlertStatus.Pending,
+                        SendAfter = 0,
+                        Title = title,
+                    }
+                }
+            })
+            .OnSuccess(response => output = response.Require<Alert>("alert"))
+            .OnFailure(response => Log.Error(Owner.Will, "Unable to send an alert to alert-service.", data: new RumbleJson
+            {
+                { "response", response }
+            }))
+            .Post(out RumbleJson json, out int code);
+
+        return output;
     }
 }

@@ -131,10 +131,10 @@ public class FilterChain<T> where T : PlatformDataModel
     public FilterChain<T> LengthLessThanOrEqualTo(Expression<Func<T, object>> field, int size) => AddFilter(Builder.SizeLte(field, size));
 
     // public FilterChain<T> GreaterThanOrEqualToRelative(string field1, string field2) => AddFilter($"{{ $expr: {{ $gte: [ '${field1}', '${field2}' ] }} }}");
-    public FilterChain<T> GreaterThanOrEqualToRelative(Expression<Func<T, object>> field1, Expression<Func<T, object>> field2)
-    {
-        return AddFilter($"{{ $expr: {{ $gte: [ '${Render(field1)}', '${Render(field2)}' ] }} }}");
-    }
+    public FilterChain<T> GreaterThanOrEqualToRelative(Expression<Func<T, object>> field1, Expression<Func<T, object>> field2) => 
+        AddFilter($"{{ $expr: {{ $gte: [ '${Render(field1)}', '${Render(field2)}' ] }} }}");
+    public FilterChain<T> LessThanRelative(Expression<Func<T, object>> field1, Expression<Func<T, object>> field2) => 
+        AddFilter($"{{ $expr: {{ lt: [ '${Render(field1)}', '${Render(field2)}' ] }} }}");
 
     // Unnecessary?
     public void Not(){}
