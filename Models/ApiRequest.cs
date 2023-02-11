@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -208,7 +209,16 @@ public class ApiRequest
     private ApiResponse Send<T>(HttpMethod method, out T model, out int code) where T : PlatformDataModel
     {
         ApiResponse output = Send(method, out RumbleJson result, out code);
-        model = result?.ToModel<T>();
+        try
+        {
+            model = result?.ToModel<T>();
+        }
+        catch (Exception e)
+        {
+            model = default;
+            output.Exception = e;
+            _onFailure?.Invoke(this, output);
+        }
         return output;
     }
 

@@ -16,6 +16,7 @@ public class ApiResponse
     public bool Success => StatusCode.ToString().StartsWith("2");
     public readonly int StatusCode;
     internal readonly HttpResponseMessage Response;
+    public Exception Exception { get; internal set; }
 
     internal RumbleJson OriginalResponse
     {
@@ -24,6 +25,8 @@ public class ApiResponse
             string content = null;
             try
             {
+                if (Response == null)
+                    return new RumbleJson();
                 content = Await(Response.Content.ReadAsStringAsync());
                 return content;
             }
