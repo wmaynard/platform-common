@@ -42,6 +42,8 @@ public class ApiResponse
         }
     }
 
+    public T AsModel<T>() where T : PlatformDataModel => AsRumbleJson.ToModel<T>();
+
     public string RequestUrl { get; init; }
 
     public ApiResponse(HttpResponseMessage message, string requestUrl)
