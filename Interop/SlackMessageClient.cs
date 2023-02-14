@@ -84,19 +84,21 @@ public class SlackMessageClient
 
         try
         {
-            message.Compress();
+            RumbleJson payload = message.Compress().JSON;
+            payload["unfurl_links"] = false;
+            payload["unfurl_media"] = false;
 
             if (ApiService.Instance != null)
                 await ApiService.Instance
                     .Request(POST_MESSAGE)
                     .AddAuthorization(Token)
-                    .SetPayload(message)
+                    .SetPayload(payload)
                     .OnFailure((_, apiResponse) => response = apiResponse.AsRumbleJson ?? new RumbleJson())
                     .OnSuccess((_, apiResponse) =>
                     {
                         response = apiResponse.AsRumbleJson ?? new RumbleJson();
                          if (!response.Require<bool>("ok"))
-                            throw new FailedRequestException(POST_MESSAGE, message.JSON);
+                            throw new FailedRequestException(POST_MESSAGE, payload);
                     })
                     .PostAsync();
         }
