@@ -12,6 +12,5 @@ public class Timestamp
         eventName = null;
         start = 0;
         end = 0;
-
     }
 }

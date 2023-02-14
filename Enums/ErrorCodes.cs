@@ -19,6 +19,8 @@ public enum ErrorCode
       [Display(Name = "0011")] SerializationFailure = 0011,
       // 20: Refactoring
       [Display(Name = "0020")] Obsolete = 0020,
+      // 30: API Failures
+      [Display(Name = "0030")] ApiFailure = 0030,
 
     // 100: Authorization
     [Display(Name = "0100")] KeyValidationFailed = 0100,

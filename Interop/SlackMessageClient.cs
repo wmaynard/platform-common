@@ -95,7 +95,7 @@ public class SlackMessageClient
                     .OnSuccess((_, apiResponse) =>
                     {
                         response = apiResponse.AsRumbleJson ?? new RumbleJson();
-                        if (!response.Require<bool>("ok"))
+                         if (!response.Require<bool>("ok"))
                             throw new FailedRequestException(POST_MESSAGE, message.JSON);
                     })
                     .PostAsync();
