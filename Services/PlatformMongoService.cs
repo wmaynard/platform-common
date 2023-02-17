@@ -308,7 +308,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     /// </summary>
     /// <param name="type">The data model or collection document to get indexes from.</param>
     /// <returns>An array of property reflection data.</returns>
-    private PropertyInfo[] GetIndexCandidates(Type type) => type
+    internal virtual PropertyInfo[] GetIndexCandidates(Type type) => type
         .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
         .Where(prop => !prop.GetCustomAttributes().Any(att => att.GetType().IsAssignableTo(typeof(BsonIgnoreAttribute))))
         .ToArray();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
@@ -541,7 +542,21 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         return task.Result;
     }
 
-#region Collection Documents
+    /// <summary>
+    /// Because the QueueService uses private classes and multiple models, the standard platform-common method for detecting
+    /// indexing is not available here.  We must override it to provide the information common needs.
+    /// </summary>
+    /// <param name="type">The data model to get indexes from; this will be the QueueService's task data model.</param>
+    /// <returns>An array of properties that may have mongo index attributes attached to them, including for private models
+    /// the QueueService needs.</returns>
+    internal override PropertyInfo[] GetIndexCandidates(Type type) => base.GetIndexCandidates(type)
+        .Union(base.GetIndexCandidates(typeof(QueueConfig)))
+        .Union(base.GetIndexCandidates(typeof(QueuedTask)))
+        .Union(base.GetIndexCandidates(typeof(TaskData)))
+        .Where(info => info.Name != nameof(QueuedTask.Data)) // Must be excluded to prevent recursive index candidate lookups
+        .ToArray();
+
+    #region Collection Documents
     [BsonIgnoreExtraElements]
     // ReSharper disable once ClassNeverInstantiated.Local
     private class QueueConfig : TaskData
@@ -554,9 +569,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_LAST_TRACK_TIME = "lastTrackTime";
         
         [BsonElement(KEY_PRIMARY_ID)]
+        [CompoundIndex(GROUP_KEY_PRIMARY, priority: 2)]
         internal string PrimaryServiceId { get; set; }
         
         [BsonElement(KEY_ACTIVITY)]
+        [CompoundIndex(GROUP_KEY_UPDATED, priority: 2)]
         internal long LastActive { get; set; }
         
         [BsonElement(KEY_MINIMUM_WAIT_TIME)]
@@ -567,9 +584,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         public RumbleJson Settings { get; set; }
         
         [BsonElement(KEY_WAITLIST)]
+        [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]
         public HashSet<string> Waitlist { get; set; }
         
         [BsonElement(KEY_LAST_TRACK_TIME)]
+        [CompoundIndex(GROUP_KEY_WAITLIST, priority: 2)]
         public long LastTrackingTime { get; set; }
 
         public QueueConfig() => Waitlist = new HashSet<string>();
@@ -578,9 +597,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     [BsonIgnoreExtraElements]
     private class QueuedTask : TaskData
     {
-        private const string INDEX_KEY_BY_TYPE = "type_1_owner_1";
-        private const string INDEX_KEY_BY_STATUS = "status_1_failures_1";
-        
         private const string KEY_CLAIMED_BY = "owner";
         private const string KEY_CLAIMED_ON = "taken";
         private const string KEY_DATA = "data";
@@ -589,15 +605,15 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_TRACKED = "tracked";
         
         [BsonElement(KEY_CLAIMED_BY)]
-        [CompoundIndex(group: INDEX_KEY_BY_TYPE, priority: 2)]
-        [AdditionalIndexKey(group: INDEX_KEY_BY_TYPE, key: KEY_TYPE, priority: 1)]
+        [CompoundIndex(GROUP_KEY_OWNER, priority: 2)]
         public string ClaimedBy { get; set; }
         
         [BsonElement(KEY_CLAIMED_ON)]
         public long ClaimedOn { get; set; }
         
         [BsonElement(KEY_STATUS)]
-        [CompoundIndex(group: INDEX_KEY_BY_STATUS, priority: 1)]
+        [CompoundIndex(group: GROUP_KEY_FAILURES, priority: 1)]
+        [CompoundIndex(GROUP_KEY_STATUS, priority: 1)]
         internal TaskStatus Status { get; set; }
         
         [BsonElement(KEY_TRACKED)]
@@ -607,7 +623,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         internal T Data { get; set; }
         
         [BsonElement(KEY_FAILURES)]
-        [CompoundIndex(group: INDEX_KEY_BY_STATUS, priority: 2)]
+        [CompoundIndex(group: GROUP_KEY_FAILURES, priority: 2)]
         internal int Failures { get; set; }
         
         internal enum TaskStatus
@@ -623,13 +639,25 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     [BsonIgnoreExtraElements]
     public abstract class TaskData : PlatformCollectionDocument
     {
+        protected const string GROUP_KEY_PRIMARY = "type_1_primary_1";
+        protected const string GROUP_KEY_UPDATED = "type_1_updated_1";
+        protected const string GROUP_KEY_OWNER = "type_1_owner_1";
+        protected const string GROUP_KEY_FAILURES = "status_1_failures_1";
+        protected const string GROUP_KEY_STATUS = "status_1_type_1_created_1";
+        protected const string GROUP_KEY_WAITLIST = "wait_1_lastTrackTime_1";
+
         internal const string KEY_CREATED = "created";
         internal const string KEY_TYPE = "type";
 
         [BsonElement(KEY_CREATED)]
+        [CompoundIndex(GROUP_KEY_STATUS, priority: 3)]
         internal long CreatedOn { get; init; }
     
         [BsonElement(KEY_TYPE)]
+        [CompoundIndex(GROUP_KEY_PRIMARY, priority: 1)]
+        [CompoundIndex(GROUP_KEY_UPDATED, priority: 1)]
+        [CompoundIndex(GROUP_KEY_OWNER, priority: 1)]
+        [CompoundIndex(GROUP_KEY_STATUS, priority: 2)]
         internal TaskType Type { get; set; }
 
         protected TaskData() => CreatedOn = Timestamp.UnixTimeMS;
