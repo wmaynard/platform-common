@@ -585,10 +585,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         [BsonElement(KEY_WAITLIST)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]
+        [AdditionalIndexKey(GROUP_KEY_WAITLIST_ELEMENT, key: $"{KEY_WAITLIST}.0", priority: 1)]
         public HashSet<string> Waitlist { get; set; }
         
         [BsonElement(KEY_LAST_TRACK_TIME)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 2)]
+        [CompoundIndex(GROUP_KEY_WAITLIST_ELEMENT, priority: 2)]
         public long LastTrackingTime { get; set; }
 
         public QueueConfig() => Waitlist = new HashSet<string>();
@@ -603,7 +605,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_FAILURES = "failures";
         private const string KEY_STATUS = "status";
         private const string KEY_TRACKED = "tracked";
-        
+
         [BsonElement(KEY_CLAIMED_BY)]
         [CompoundIndex(GROUP_KEY_OWNER, priority: 2)]
         public string ClaimedBy { get; set; }
@@ -614,9 +616,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [BsonElement(KEY_STATUS)]
         [CompoundIndex(group: GROUP_KEY_FAILURES, priority: 1)]
         [CompoundIndex(GROUP_KEY_STATUS, priority: 1)]
+        [CompoundIndex(GROUP_KEY_TRACKING, priority: 1)]
         internal TaskStatus Status { get; set; }
         
         [BsonElement(KEY_TRACKED)]
+        [CompoundIndex(GROUP_KEY_TRACKING, priority: 2)]
         internal bool Tracked { get; set; }
         
         [BsonElement(KEY_DATA)]
@@ -645,6 +649,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         protected const string GROUP_KEY_FAILURES = "status_1_failures_1";
         protected const string GROUP_KEY_STATUS = "status_1_type_1_created_1";
         protected const string GROUP_KEY_WAITLIST = "wait_1_lastTrackTime_1";
+        protected const string GROUP_KEY_TRACKING = "status_1_tracked_1";
+        protected const string GROUP_KEY_WAITLIST_ELEMENT = $"wait.0_1_lastTrackTime_1";
 
         internal const string KEY_CREATED = "created";
         internal const string KEY_TYPE = "type";
@@ -664,7 +670,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     
         internal enum TaskType
         {
-            Config = 10, 
+            Config = 10,
             Work = 20
         }
     }
