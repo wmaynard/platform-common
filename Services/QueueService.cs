@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
@@ -11,14 +10,17 @@ using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Services;
 
+public interface IConfiscatable
+{
+    void Confiscate();
+}
 
-public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData> where T : PlatformDataModel
+public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData>, IConfiscatable where T : PlatformDataModel
 {
     private const int MAX_FAILURE_COUNT = 5;
     private const int MS_TAKEOVER = 15 * 60 * 1000; // 15 minutes
@@ -67,6 +69,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         UpsertConfig();
     }
 
+    protected void InitDatabase()
+    {
+        
+    }
+
     private T[] AcknowledgeTasks()
     {
         T[] data = _work
@@ -91,7 +98,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <summary>
     /// Immediately updates the queue's config so that this service becomes the primary node.
     /// </summary>
-    protected void Confiscate() => _config.UpdateOne(
+    public void Confiscate() => _config.UpdateOne(
         filter: config => config.Type == TaskData.TaskType.Config,
         update: Builders<QueueConfig>.Update
             .Set(config => config.PrimaryServiceId, Id)
