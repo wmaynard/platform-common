@@ -407,6 +407,14 @@ public abstract class PlatformStartup
             {
                 Errors = errors
             });
+            ApiService.Instance?.Alert(
+                title: $"{PlatformEnvironment.ServiceName} unable to start.",
+                message: "Environment variables are missing.",
+                countRequired: 15,
+                timeframe: 600,
+                owner: Owner.Will,
+                impact: ImpactType.ServicePartiallyUsable
+            );
             Environment.Exit(exitCode: 1);
         }
 

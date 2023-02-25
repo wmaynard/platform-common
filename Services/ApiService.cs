@@ -190,12 +190,24 @@ public class ApiService : PlatformService
         Request(url)
             .AddAuthorization(adminToken)
             .SetPayload(payload)
-            .OnFailure(response => Log.Error(Owner.Will, "Unable to generate token.", data: new
+            .OnFailure(response =>
             {
-                Payload = payload,
-                Response = response,
-                Url = response.RequestUrl
-            }))
+                Log.Error(Owner.Will, "Unable to generate token.", data: new
+                {
+                    Payload = payload,
+                    Response = response,
+                    Url = response.RequestUrl
+                });
+                Alert(
+                    title: "Token Service Bad Response",
+                    message: "Token generation is failing.",
+                    countRequired: 15,
+                    timeframe: 600,
+                    owner: Owner.Will,
+                    impact: ImpactType.ServiceUnusable,
+                    data: response.AsRumbleJson
+                );
+            })
             .Post(out RumbleJson json);
 
         try
@@ -217,6 +229,14 @@ public class ApiService : PlatformService
                 Url = url,
                 Response = json
             }, exception: e);
+            Alert(
+                title: "Token Generation Failure",
+                message: "Tokens are not able to be generated from the ApiService.",
+                countRequired: 15,
+                timeframe: 600,
+                owner: Owner.Will,
+                impact: ImpactType.ServiceUnusable
+            );
             throw;
         }
     }
@@ -306,46 +326,54 @@ public class ApiService : PlatformService
     public Alert Alert(string title, string message, int countRequired, int timeframe, Owner owner = Owner.Default, Alert.AlertType type = Models.Alerting.Alert.AlertType.All, ImpactType impact = ImpactType.Unknown, RumbleJson data = null)
     {
         Alert output = null;
+        try
+        {
 #if LOCAL
-        Request(PlatformEnvironment.Url("http://localhost:5201/alert"))
+            Request(PlatformEnvironment.Url("http://localhost:5201/alert"))
 #else
-        Request(PlatformEnvironment.Url("/alert"))
+            Request(PlatformEnvironment.Url("/alert"))
 #endif
-            .AddAuthorization(DynamicConfig.Instance?.AdminToken)
-            .SetRetries(1)
-            .SetPayload(new RumbleJson
-            {
-                { "alert", new Alert
-                    {
-                        CreatedOn = Timestamp.UnixTime,
-                        Data = data,
-                        Escalation = Models.Alerting.Alert.EscalationLevel.None,
-                        Origin = PlatformEnvironment.ServiceName,
-                        // EscalationPeriod = 0,
-                        Impact = impact,
-                        LastEscalation = 0,
-                        LastSent = 0,
-                        Message = message,
-                        Owner = owner,
-                        Type = type,
-                        Trigger = new Trigger
+                .AddAuthorization(DynamicConfig.Instance?.AdminToken)
+                .SetRetries(1)
+                .SetPayload(new RumbleJson
+                {
+                    { "alert", new Alert
                         {
-                            Count = 0,
-                            CountRequired = countRequired,
-                            Timeframe = timeframe
-                        },
-                        Status = Models.Alerting.Alert.AlertStatus.Pending,
-                        SendAfter = 0,
-                        Title = title,
+                            CreatedOn = Timestamp.UnixTime,
+                            Data = data,
+                            Escalation = Models.Alerting.Alert.EscalationLevel.None,
+                            Origin = PlatformEnvironment.ServiceName,
+                            // EscalationPeriod = 0,
+                            Impact = impact,
+                            LastEscalation = 0,
+                            LastSent = 0,
+                            Message = message,
+                            Owner = owner,
+                            Type = type,
+                            Trigger = new Trigger
+                            {
+                                Count = 0,
+                                CountRequired = countRequired,
+                                Timeframe = timeframe
+                            },
+                            Status = Models.Alerting.Alert.AlertStatus.Pending,
+                            SendAfter = 0,
+                            Title = title,
+                        }
                     }
-                }
-            })
-            .OnSuccess(response => output = response.Require<Alert>("alert"))
-            .OnFailure(response => Log.Error(Owner.Will, "Unable to send an alert to alert-service.", data: new RumbleJson
-            {
-                { "response", response }
-            }))
-            .Post(out RumbleJson json, out int code);
+                })
+                .OnSuccess(response => output = response.Require<Alert>("alert"))
+                .OnFailure(response => Log.Error(Owner.Will, "Unable to send an alert to alert-service.", data: new RumbleJson
+                {
+                    { "response", response }
+                }))
+                .Post();
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, "Unable to send alert.");
+        }
+
 
         return output;
     }

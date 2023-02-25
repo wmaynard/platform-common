@@ -420,6 +420,14 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                     Name = index.Name,
                     Collection = _collection.CollectionNamespace
                 }, exception: e);
+                ApiService.Instance?.Alert(
+                    title: "Mongo Index Creation Failure",
+                    message: "Platform-Common was unable to create a specified index on startup.  MongoDB may have performance problems if this is unaddressed.",
+                    countRequired: PlatformEnvironment.IsDev ? 120 : 15,
+                    timeframe: 600,
+                    owner: Owner.Will,
+                    impact: ImpactType.PerformanceNotOptimized
+                );
             }
         }
     }

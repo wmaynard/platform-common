@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -76,10 +78,14 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
             {
                 Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
             }, exception: e);
-            SlackDiagnostics.Log("Request body failed to read.", "Unable to deserialize RumbleJson")
-                .Attach($"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path.ToString().Replace("/", "_")}.txt", string.IsNullOrEmpty(json) ? "(no json)" : json)
-                .DirectMessage(Owner.Will)
-                .Wait();
+            ApiService.Instance?.Alert(
+                title: "JSON Parse Failure",
+                message: "An incoming request failed to parse into JSON.  This is probably a result of incomplete or invalid JSON, or a 500 error page.",
+                countRequired: PlatformEnvironment.IsDev ? 120 : 15,
+                timeframe: 600,
+                owner: Owner.Will,
+                impact: ImpactType.ServicePartiallyUsable
+            );
         }
     }
 
