@@ -22,7 +22,6 @@ namespace Rumble.Platform.Common.Filters;
 
 public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter, IActionFilter
 {
-    // internal const int TOKEN_CACHE_EXPIRATION = 600_000; // 10 minutes
     public const string KEY_TOKEN = "PlatformToken";
     public const string KEY_GAME_SECRET = "game";
     public const string KEY_RUMBLE_SECRET = "secret";
