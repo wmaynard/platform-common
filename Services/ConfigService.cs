@@ -30,7 +30,7 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
         Find(config => true).FirstOrDefault() 
         ?? Create(new ServiceConfig());
 
-    public ConfigService() : base("config") => Refresh();
+    public ConfigService() : base("config", DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE) => Refresh();
 
     public class ServiceConfig : PlatformCollectionDocument
     {

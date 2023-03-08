@@ -25,6 +25,8 @@ namespace Rumble.Platform.Common.Services;
 
 public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMongoService where Model : PlatformCollectionDocument
 {
+    public const int DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE = 100; // 100 is from the docs
+    
     private string Connection { get; init; }
     private string Database { get; init; }
     private readonly MongoClient _client;
@@ -44,7 +46,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     public bool IsHealthy => IsConnected || Open();
     public string CollectionName => _collection?.CollectionNamespace?.CollectionName;
 
-    protected PlatformMongoService(string collection)
+    protected PlatformMongoService(string collection, int maxConnections)
     {
         Connection = PlatformEnvironment.MongoConnectionString;
         Database = PlatformEnvironment.MongoDatabaseName;
@@ -54,7 +56,11 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (string.IsNullOrEmpty(Database))
             Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_NAME}'.");
 
-        _client = new MongoClient(Connection);
+        var settings = MongoClientSettings.FromConnectionString(Connection);
+        settings.MaxConnectionPoolSize = maxConnections;
+        
+        _client = new MongoClient(settings);
+        
         _database = _client.GetDatabase(Database);
         _collection = _database.GetCollection<Model>(collection);
         _httpContextAccessor = new HttpContextAccessor();
