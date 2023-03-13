@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.AccessControl;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
@@ -18,7 +17,6 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Services;
@@ -29,7 +27,10 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     
     private string Connection { get; init; }
     private string Database { get; init; }
-    private readonly MongoClient _client;
+    
+    private static MongoClient _client;
+    public static  int         MaxMongoConnections = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
+    
     protected readonly IMongoDatabase _database;
     protected readonly IMongoCollection<Model> _collection;
     protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
@@ -46,7 +47,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     public bool IsHealthy => IsConnected || Open();
     public string CollectionName => _collection?.CollectionNamespace?.CollectionName;
 
-    protected PlatformMongoService(string collection, int maxConnections)
+    protected PlatformMongoService(string collection)
     {
         Connection = PlatformEnvironment.MongoConnectionString;
         Database = PlatformEnvironment.MongoDatabaseName;
@@ -56,11 +57,14 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (string.IsNullOrEmpty(Database))
             Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_NAME}'.");
 
-        var settings = MongoClientSettings.FromConnectionString(Connection);
-        settings.MaxConnectionPoolSize = maxConnections;
-        
-        _client = new MongoClient(settings);
-        
+        if (_client == null)
+        {
+            var settings = MongoClientSettings.FromConnectionString(Connection);
+            settings.MaxConnectionPoolSize = MaxMongoConnections;
+
+            _client = new MongoClient(settings);
+        }
+
         _database = _client.GetDatabase(Database);
         _collection = _database.GetCollection<Model>(collection);
         _httpContextAccessor = new HttpContextAccessor();

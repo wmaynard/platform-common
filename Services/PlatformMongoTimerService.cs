@@ -14,7 +14,7 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T> whe
     public bool IsRunning => _timer.Enabled;
     public string Status => IsRunning ? "running" : "stopped";
 
-    protected PlatformMongoTimerService(string collection, double intervalMs, bool startImmediately = true) : base(collection, DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE)
+    protected PlatformMongoTimerService(string collection, double intervalMs, bool startImmediately = true) : base(collection)
     {
         IntervalMs = intervalMs;
         _timer = new Timer(IntervalMs);
