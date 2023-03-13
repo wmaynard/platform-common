@@ -129,7 +129,7 @@ public class Alert : PlatformCollectionDocument
                 _ => "<!here>"
             };
         }
-        catch (Exception e)
+        catch (Exception)
         {
             ping = "<!here>";
         }

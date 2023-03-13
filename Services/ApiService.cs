@@ -369,7 +369,7 @@ public class ApiService : PlatformService
                 }))
                 .Post();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             Log.Error(Owner.Will, "Unable to send alert.");
         }

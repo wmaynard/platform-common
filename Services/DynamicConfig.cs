@@ -104,7 +104,7 @@ public class DynamicConfig : PlatformTimerService
             Refresh().Wait();
             Log.Local(Owner.Default, "Dynamic config values loaded.");
         }
-        catch (Exception e)
+        catch (Exception)
         {
             if (lifetime == null)
             {
