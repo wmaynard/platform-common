@@ -16,9 +16,8 @@ build_app:
   tags:
     - kubernetes
   script:
-    - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name platformcore "https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json"
-    - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name rumblejson "https://gitlab.cdrentertainment.com/api/v4/projects/74/packages/nuget/index.json"
     - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name rumble-core-gitlab "https://gitlab.cdrentertainment.com/api/v4/projects/26/packages/nuget/index.json"
+    - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name rumble-json-gitlab "https://gitlab.cdrentertainment.com/api/v4/projects/74/packages/nuget/index.json"
     - dotnet restore
     - dotnet build --no-restore --configuration Release
     - dotnet nuget add source "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/packages/nuget/index.json" --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name gitlab
