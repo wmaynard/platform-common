@@ -45,6 +45,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
     public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
     public const string KEY_GITLAB_ENVIRONMENT_NAME = "GITLAB_ENVIRONMENT_NAME";
+    public const string KEY_REGION = "RUMBLE_REGION";
 
     // Helper getter properties
     internal static RumbleJson VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
@@ -65,6 +66,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
     public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
+    public static string Region => Optional(KEY_REGION);
     public static string OwnerName => PlatformStartup.Options?.ProjectOwner.GetDisplayName() ?? "Not specified.";
     
     internal static string[] ServiceUrls => Environment

@@ -29,7 +29,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     private string Database { get; init; }
     
     private static MongoClient _client;
-    public static  int         MaxMongoConnections = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
+    public static int MaxMongoConnections = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
     
     protected readonly IMongoDatabase _database;
     protected readonly IMongoCollection<Model> _collection;
@@ -59,7 +59,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
         if (_client == null)
         {
-            var settings = MongoClientSettings.FromConnectionString(Connection);
+            MongoClientSettings settings = MongoClientSettings.FromConnectionString(Connection);
             settings.MaxConnectionPoolSize = MaxMongoConnections;
 
             _client = new MongoClient(settings);

@@ -75,13 +75,17 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string StackTrace { get; set; }
 
-    [JsonInclude, JsonPropertyName("env")] public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
+    [JsonInclude, JsonPropertyName("env")]
+    public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
 
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Time { get; set; }
 
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; set; }
+
+    [JsonInclude, JsonPropertyName("region")]
+    public string Region => PlatformEnvironment.Region ?? "Unknown";
 
     [JsonInclude, JsonPropertyName("log_source"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Source => PlatformEnvironment.ServiceName;
