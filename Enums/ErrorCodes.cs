@@ -38,6 +38,8 @@ public enum ErrorCode
         [Display(Name = "0130")] GoogleValidationFailed = 0130,
         // 40: Apple Accounts
         [Display(Name = "0140")] AppleValidationFailed = 0140,
+        // 50: Plarium Accounts
+        [Display(Name = "0150")] PlariumValidationFailed = 0150,
 
     // 200: Endpoint Validation
     [Display(Name = "0200")] MalformedRequest = 0200,
@@ -67,4 +69,5 @@ public enum ErrorCode
     [Display(Name = "1007")] RumbleAccountUnconfirmed = 1007,
     [Display(Name = "1008")] ConfirmationCodeExpired = 1008,
     [Display(Name = "1009")] ConfirmationCodeInvalid = 1009,
+    [Display(Name = "1010")] PlariumAccountMissing = 1010
 }
