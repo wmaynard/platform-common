@@ -186,6 +186,7 @@ public class ApiService : PlatformService
             { TokenInfo.FRIENDLY_KEY_AUDIENCE, audience },
             { "days", PlatformEnvironment.IsLocal ? 3650 : 5 }
         };
+        int code;
 
         Request(url)
             .AddAuthorization(adminToken)
@@ -208,7 +209,7 @@ public class ApiService : PlatformService
                     data: response.AsRumbleJson
                 );
             })
-            .Post(out RumbleJson json);
+            .Post(out RumbleJson json, out code);
 
         try
         {
@@ -227,7 +228,8 @@ public class ApiService : PlatformService
             Log.Error(Owner.Will, "An unexpected error occurred when generating a token.", data: new
             {
                 Url = url,
-                Response = json
+                Response = json,
+                Code = code
             }, exception: e);
             Alert(
                 title: "Token Generation Failure",
