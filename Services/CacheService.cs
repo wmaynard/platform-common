@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -12,13 +16,13 @@ namespace Rumble.Platform.Common.Services;
 public class CacheService : PlatformTimerService
 {
     private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
-    private RumbleJson Values { get; set; }
-    private Dictionary<string, long> Expirations { get; set; }
+    private ConcurrentDictionary<string, object> Values { get; set; }
+    private ConcurrentDictionary<string, long> Expirations { get; set; }
 
     public CacheService() : base(intervalMS: 5_000, true)
     {
-        Values = new RumbleJson();
-        Expirations = new Dictionary<string, long>();
+        Values = new ConcurrentDictionary<string, object>();
+        Expirations = new ConcurrentDictionary<string, long>();
     }
 
     /// <summary>
@@ -48,7 +52,7 @@ public class CacheService : PlatformTimerService
     public bool Clear(string key = null)
     {
         if (key != null)
-            return Expirations.Remove(key) & Values.Remove(key);
+            return Expirations.Remove(key, out _) & Values.Remove(key, out _);
 
         Expirations.Clear();
         Values.Clear();
@@ -86,8 +90,8 @@ public class CacheService : PlatformTimerService
         foreach (string key in Expirations.Where(pair => pair.Value <= Timestamp.UnixTimeMS).Select(pair => pair.Key))
             try
             {
-                Expirations.Remove(key);
-                Values.Remove(key);
+                Expirations.Remove(key, out _);
+                Values.Remove(key, out _);
                 removals++;
             }
             catch { }
