@@ -16,12 +16,12 @@ namespace Rumble.Platform.Common.Services;
 public class CacheService : PlatformTimerService
 {
     private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
-    private ConcurrentDictionary<string, object> Values { get; set; }
+    private RumbleJson Values { get; set; }
     private ConcurrentDictionary<string, long> Expirations { get; set; }
 
     public CacheService() : base(intervalMS: 5_000, true)
     {
-        Values = new ConcurrentDictionary<string, object>();
+        Values = new RumbleJson();
         Expirations = new ConcurrentDictionary<string, long>();
     }
 
