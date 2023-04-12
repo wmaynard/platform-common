@@ -75,8 +75,12 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         .OrderBy(_string => _string.Length)
         .ToArray()
         ?? Array.Empty<string>();
-
+    
+    #if DEBUG
+    public static readonly bool IsLocal = true;
+    #else
     public static readonly bool IsLocal = (Deployment?.Contains("local") ?? false) || (Deployment?.NumericBetween(min: 0, max: 99) ?? false);
+    #endif
     public static readonly bool IsDev = Deployment?.NumericBetween(min: 100, max: 199) ?? false;
     public static readonly bool IsStaging = Deployment?.NumericBetween(min: 200, max: 299) ?? false;
     public static readonly bool IsProd = Deployment?.NumericBetween(min: 300, max: 399) ?? false;
@@ -220,6 +224,11 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         catch (Exception e)
         {
             Log.Warn(Owner.Will, "Could not read local secrets file.", exception: e);
+            
+            #if DEBUG
+            Log.Local(Owner.Default, e.Message, emphasis: Log.LogType.ERROR);
+            // Exit("Your local environment.json is invalid!  You cannot run your app locally.");
+            #endif
             return new RumbleJson();
         }
     }
@@ -234,13 +243,20 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
         T output = Variables.Optional<T>(key);
 
+        // If the local values specified anything other than a default value, it can't be overridden.  Return the value.
         if (!EqualityComparer<T>.Default.Equals(output, default))
             return output;
         
+        // If Dynamic Config is available, look for the value.
         if (DynamicConfig.Instance != null)
             output = DynamicConfig.Instance.Optional<T>(key);
         
+        // Return the value if it's not a default value, or if the value is optional.
         if (!EqualityComparer<T>.Default.Equals(output, default) || optional)
+            return output;
+
+        // Return the value if a CI var is a default value.
+        if (Variables.ContainsKey(key) || (DynamicConfig.Instance?.ContainsKey(key) ?? false))
             return output;
 
         throw new MissingJsonKeyException(key);

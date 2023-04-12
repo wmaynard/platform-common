@@ -139,7 +139,6 @@ public class DynamicConfig : PlatformTimerService
         
         await _apiService
             .Request("/config/settings/all")
-            // .Request("http://localhost:5151/config/settings/all")
             .AddRumbleKeys()
             .OnFailure(response => Log.Error(Owner.Will, "Unable to fetch config data for portal.", data: response))
             .OnSuccess(response =>
@@ -343,4 +342,6 @@ public class DynamicConfig : PlatformTimerService
 
         return output;
     }
+
+    internal bool ContainsKey(string key) => AllValues.Values.Cast<RumbleJson>().Any(data => data.ContainsKey(key));
 }
