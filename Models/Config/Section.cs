@@ -25,9 +25,10 @@ public class Section : PlatformCollectionDocument
     public const string FRIENDLY_KEY_NAME = "serviceName";
     public const string FRIENDLY_KEY_FRIENDLY_NAME = "friendlyName";
 
-    [BsonElement(DB_KEY_SERVICES)] // TODO: Allow SimpleIndex to enforce unique constraints?
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SERVICES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<RegisteredService> Services { get; set; }
+    // TODO: Restructure service registration
+    // [BsonElement(DB_KEY_SERVICES)] // TODO: Allow SimpleIndex to enforce unique constraints?
+    // [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SERVICES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    // public List<RegisteredService> Services { get; set; }
   
     [BsonElement(DB_KEY_VALUES)]
     [JsonInclude, JsonPropertyName("data"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -53,7 +54,7 @@ public class Section : PlatformCollectionDocument
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FRIENDLY_NAME)]
     public string FriendlyName { get; set; }
   
-    public List<DynamicConfig.DC2ClientInformation> ActiveClients { get; set; }
+    // public List<DynamicConfig.DC2ClientInformation> ActiveClients { get; set; }
 
     [JsonConstructor, BsonConstructor]
     public Section(){}
@@ -65,17 +66,17 @@ public class Section : PlatformCollectionDocument
         Name = name;
         FriendlyName = friendlyName; 
         Data = new Dictionary<string, SettingsValue>();
-        Services = new List<RegisteredService>();
+        // Services = new List<RegisteredService>();
         AdminToken = null;
-        ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
+        // ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
     }
 
     public void ResetId() => Id = null;
 
     public Section PrepareForExport()
     {
-        Services = new List<RegisteredService>();
-        ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
+        // Services = new List<RegisteredService>();
+        // ActiveClients = new List<DynamicConfig.DC2ClientInformation>();
         return this;
     }
 
