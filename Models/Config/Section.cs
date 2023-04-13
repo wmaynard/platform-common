@@ -10,6 +10,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Models.Config;
 
+[BsonIgnoreExtraElements]
 public class Section : PlatformCollectionDocument
 {
     public const string DB_KEY_SERVICES = "svc";

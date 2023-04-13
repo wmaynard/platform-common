@@ -278,7 +278,7 @@ public class DynamicConfig : PlatformTimerService
                     { "owner", Log.DefaultOwner }
                 }}
             })
-            .OnFailure((_, response) =>
+            .OnFailure(response =>
             {
                 switch ((int)response)
                 {
