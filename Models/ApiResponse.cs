@@ -15,6 +15,7 @@ public class ApiResponse
 {
     public bool Success => StatusCode.ToString().StartsWith("2");
     public readonly int StatusCode;
+    private bool ExpectNonJson;
     internal readonly HttpResponseMessage Response;
     public Exception Exception { get; internal set; }
 
@@ -46,9 +47,10 @@ public class ApiResponse
 
     public string RequestUrl { get; init; }
 
-    public ApiResponse(HttpResponseMessage message, string requestUrl)
+    public ApiResponse(HttpResponseMessage message, ApiRequest originalRequest)
     {
-        RequestUrl = requestUrl;
+        RequestUrl = originalRequest.UrlWithQuery;
+        ExpectNonJson = originalRequest.ExpectNonJsonResponse;
         Response = message;
         StatusCode = Response != null
             ? (int)Response.StatusCode
@@ -120,12 +122,13 @@ public class ApiResponse
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Could not cast response to RumbleJson.", data: new
-            {
-                Response = Response,
-                Url = RequestUrl,
-                
-            }, exception: e);
+            if (!ExpectNonJson)
+                Log.Error(Owner.Default, "Could not cast response to RumbleJson.", data: new
+                {
+                    Response = Response,
+                    Url = RequestUrl,
+                    
+                }, exception: e);
             return new RumbleJson();
         }
     }

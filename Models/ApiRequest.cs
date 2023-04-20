@@ -40,6 +40,7 @@ public class ApiRequest
     private event EventHandler<ApiResponse> _onSuccess;
     private event EventHandler<ApiResponse> _onFailure;
     private bool FailureHandled { get; set; }
+    internal bool ExpectNonJsonResponse { get; private set; }
 
     internal ApiRequest(ApiService spawner, string url, int retries = DEFAULT_RETRIES, bool prependEnvironment = true)
     {
@@ -161,6 +162,12 @@ public class ApiRequest
         }
         else
             _onFailure?.DynamicInvoke(this, args);
+    }
+
+    public ApiRequest ExpectNonJson()
+    {
+        ExpectNonJsonResponse = true;
+        return this;
     }
 
     public ApiRequest OnSuccess(EventHandler<ApiResponse> action)

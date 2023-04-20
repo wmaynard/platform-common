@@ -102,7 +102,7 @@ public class ApiService : PlatformService
                 }, exception: e);
         }
 
-        ApiResponse output = new ApiResponse(response, request.UrlWithQuery);
+        ApiResponse output = new ApiResponse(response, request);
         request.Complete(output);
         Record(output.StatusCode);
         return output;
