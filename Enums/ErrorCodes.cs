@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using RCL.Services;
 
 namespace Rumble.Platform.Common.Enums;
 
@@ -69,5 +70,8 @@ public enum ErrorCode
     [Display(Name = "1007")] RumbleAccountUnconfirmed = 1007,
     [Display(Name = "1008")] ConfirmationCodeExpired = 1008,
     [Display(Name = "1009")] ConfirmationCodeInvalid = 1009,
-    [Display(Name = "1010")] PlariumAccountMissing = 1010
+    [Display(Name = "1010")] PlariumAccountMissing = 1010,
+    
+    // 2000: Leaderboard Service
+    [Display(Name = "2001")] LeaderboardUnavailable = 2001
 }
