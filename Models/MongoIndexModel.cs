@@ -38,7 +38,6 @@ public class MongoIndexModel : PlatformDataModel
     {
         try
         {
-            string foo = collection.Indexes.List().ToList().ToJson().ToString();
             return ((RumbleJson)$"{{\"data\":{collection.Indexes.List().ToList().ToJson()}}}").Require<MongoIndexModel[]>("data");
         }
         catch

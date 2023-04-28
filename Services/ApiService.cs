@@ -23,7 +23,7 @@ using Rumble.Platform.Data;
 namespace Rumble.Platform.Common.Services;
 public class ApiService : PlatformService
 {
-    internal static ApiService Instance { get; private set; }
+    public static ApiService Instance { get; private set; }
     private HttpClient HttpClient { get; init; }
     internal RumbleJson DefaultHeaders { get; init; }
 

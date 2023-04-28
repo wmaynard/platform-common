@@ -18,6 +18,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Data;
+using Rumble.Platform.Common.Extensions;
 
 namespace Rumble.Platform.Common.Services;
 
@@ -47,7 +48,15 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     public bool IsHealthy => IsConnected || Open();
     public string CollectionName => _collection?.CollectionNamespace?.CollectionName;
 
-    protected PlatformMongoService(string collection)
+    protected MongoClient CreateClient(string connectionString)
+    {
+        MongoClientSettings settings = MongoClientSettings.FromConnectionString(connectionString);
+        settings.MaxConnectionPoolSize = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
+
+        return new MongoClient(settings);
+    }
+    
+    protected PlatformMongoService(string collection = null)
     {
         Connection = PlatformEnvironment.MongoConnectionString;
         Database = PlatformEnvironment.MongoDatabaseName;
@@ -57,16 +66,11 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (string.IsNullOrEmpty(Database))
             Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_NAME}'.");
 
-        if (_client == null)
-        {
-            MongoClientSettings settings = MongoClientSettings.FromConnectionString(Connection);
-            settings.MaxConnectionPoolSize = MaxMongoConnections;
-
-            _client = new MongoClient(settings);
-        }
+        _client ??= CreateClient(Connection);
 
         _database = _client.GetDatabase(Database);
-        _collection = _database.GetCollection<Model>(collection);
+        if (collection != null)
+            _collection = _database.GetCollection<Model>(collection);
         _httpContextAccessor = new HttpContextAccessor();
     }
 
@@ -325,6 +329,28 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     public void CreateIndexes()
     {
+        try
+        {
+            FieldInfo[] generics = GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                .Where(info => info.FieldType.IsGenericType && info.FieldType.Name == typeof(IMongoCollection<PlatformCollectionDocument>).Name)
+                .ToArray();
+
+            foreach (FieldInfo info in generics)
+            {
+                Type type = info.FieldType.GenericTypeArguments.First();
+                dynamic collection = info.GetValue(this);
+                // TODO: Create indexes given a Collection, as opposed to the below filtering.
+                MongoIndexAssistant.CreateIndexes(collection);
+
+                Log.Local(Owner.Will, $"Creating indexes for {collection?.CollectionNamespace}");
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Will, "Unable to scan member Mongo Collections to create indexes (WIP feature)", exception: e);
+        }
+        
         PlatformMongoIndex[] indexes = ExtractIndexes();
         if (!indexes.Any())
             return;
@@ -444,6 +470,8 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     public void InitializeCollection()
     {
+        if (_collection == null)
+            return;
         string name = _collection.CollectionNamespace.CollectionName;
         try
         {

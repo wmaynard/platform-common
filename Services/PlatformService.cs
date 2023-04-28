@@ -15,12 +15,14 @@ namespace Rumble.Platform.Common.Services;
 public abstract class PlatformService : IService, IPlatformService
 {
     protected static ConcurrentDictionary<Type, IPlatformService> Registry { get; private set; }
+
     private IServiceProvider _services;
     public string Name => GetType().Name;
 
     [BsonIgnore]
     [JsonIgnore]
     public static long UnixTime => Timestamp.UnixTime;
+    
     [BsonIgnore]
     [JsonIgnore]
     public static long UnixTimeMS => Timestamp.UnixTimeMS;

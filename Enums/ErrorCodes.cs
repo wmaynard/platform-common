@@ -52,6 +52,7 @@ public enum ErrorCode
        [Display(Name = "0211")] RequiredFieldMissing = 0211,
        // 20: Request Data Integrity
        [Display(Name = "0220")] ModelFailedValidation = 0220,
+       [Display(Name = "0221")] DataValidationFailed = 0221,
        
     // 300: Database
     [Display(Name = "0300")] MongoSessionIsNull = 0300,
