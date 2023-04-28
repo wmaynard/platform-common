@@ -103,24 +103,24 @@ public abstract class PlatformController : Controller
     [NonAction]
     public OkObjectResult Ok(params PlatformDataModel[] objects)
     {
-        RumbleJson output = new RumbleJson
-        {
-            { "success", true } // TODO: This should be removed and consumers should use HTTP status codes.
-        };
+        RumbleJson output = new RumbleJson();
         foreach (PlatformDataModel model in objects.Where(obj => obj != null))
             output.Combine(model.ResponseObject);
-        return Ok(output);
+
+        return output.Any()
+            ? Ok(output)
+            : Ok();
     }
     
     public ObjectResult Problem(params PlatformDataModel[] objects)
     {
-        RumbleJson output = new RumbleJson
-        {
-            { "success", false } // TODO: This should be removed and consumers should use HTTP status codes.
-        };
+        RumbleJson output = new RumbleJson();
         foreach (PlatformDataModel model in objects.Where(obj => obj != null))
             output.Combine(model.ResponseObject);
-        return Problem(output);
+        
+        return output.Any()
+            ? Problem(output)
+            : base.Problem();
     }
 
     public OkObjectResult Ok(IEnumerable<PlatformDataModel> objects) => Ok(objects.ToArray());
