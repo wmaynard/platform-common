@@ -533,4 +533,8 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     {
         { Name, IsHealthy ? "connected" : "disconnected" }
     };
+
+    protected IMongoDatabase GetDatabase(string name) => _client.GetDatabase(name);
+
+    protected IMongoCollection<T> GetCollection<T>(string name) where T : PlatformCollectionDocument => _database.GetCollection<T>(name);
 }
