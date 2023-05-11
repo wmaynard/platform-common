@@ -18,15 +18,25 @@ public class GeoIPData : PlatformDataModel
     internal const string KEY_ISO_CODE = "iso_code";
     private RumbleJson Data { get; init; }
 
+    [BsonIgnore]
     public string Continent { get; init; }
+    
+    [BsonIgnore]
     public string ContinentCode { get; init; }
-
+    
+    [BsonElement("nat")]
     public string Country { get; init; }
+    
+    [BsonElement("cc")]
     public string CountryCode { get; init; }
 
+    [BsonIgnore]
     public string RegisteredCountry { get; init; }
+    
+    [BsonIgnore]
     public string RegisteredCountryCode { get; init; }
 
+    [BsonElement("ip")]
     public string IPAddress { get; init; }
 
     internal GeoIPData(string ipAddress, RumbleJson data = null)

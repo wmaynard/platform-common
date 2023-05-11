@@ -331,9 +331,7 @@ public abstract class PlatformStartup
             }
 
         if (!Options.AspNetServicesEnabled)
-        {
             return;
-        }
 
         // Separate the two modes of startup - either services or a website with services.
         // This is a necessary step to prevent microservices (the more common projects) from starting up a file server.
@@ -466,6 +464,14 @@ public abstract class PlatformStartup
                 .Get();
         else
             Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN);
+        try
+        {
+            Options?.OnApplicationReady?.Invoke(Options);
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, "OnApplicationReady callback failed to execute.", exception: e);
+        }
     }
 
     protected virtual void ConfigureRoutes(IEndpointRouteBuilder builder) { }

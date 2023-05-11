@@ -1,6 +1,9 @@
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions.Mongo;
+using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Extensions;
 
@@ -17,4 +20,6 @@ public static class StringExtension
         if (!_string.CanBeMongoId())
             throw new InvalidMongoIdException(_string);
     }
+
+    public static string Limit(this string _string, int length) => _string?[..Math.Min(_string.Length, length)];
 }

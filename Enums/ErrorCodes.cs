@@ -72,6 +72,7 @@ public enum ErrorCode
     [Display(Name = "1008")] ConfirmationCodeExpired = 1008,
     [Display(Name = "1009")] ConfirmationCodeInvalid = 1009,
     [Display(Name = "1010")] PlariumAccountMissing = 1010,
+    [Display(Name = "1111")] DeviceMismatch = 1011,
     
     // 2000: Leaderboard Service
     [Display(Name = "2001")] LeaderboardUnavailable = 2001

@@ -38,6 +38,7 @@ public class PlatformOptions
     internal int LogThrottlePeriodSeconds { get; set; }
     internal string RegistrationName { get; set; }
     internal Func<Task> BeforeStartup { get; set; }
+    internal Action<PlatformOptions> OnApplicationReady { get; set; }
     // internal bool StartupLogsSuppressed { get; private set; }
     
     internal bool AspNetServicesEnabled { get; set; }
@@ -74,6 +75,12 @@ public class PlatformOptions
     public PlatformOptions OnBeforeStartup(Func<Task> action)
     {
         BeforeStartup = action;
+        return this;
+    }
+
+    public PlatformOptions OnReady(Action<PlatformOptions> action)
+    {
+        OnApplicationReady = action;
         return this;
     }
 

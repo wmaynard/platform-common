@@ -219,7 +219,7 @@ public class DynamicConfig : PlatformTimerService
                 { "name", COMMON_SETTING_NAME },
                 { "friendlyName", COMMON_SETTING_FRIENDLY_NAME }
             })
-            .OnSuccess((sender, response) =>
+            .OnSuccess(response =>
             {
                 // Most of the time, this will have an Unnecessary error code.  This is expected.  We need this call to happen
                 // to instantiate a settings collection for each service.
@@ -227,7 +227,7 @@ public class DynamicConfig : PlatformTimerService
                 if (response.ErrorCode == ErrorCode.Unnecessary)
                     Log.Verbose(Owner.Default, "Tried to create a dynamic config section, but it already exists.");
             })
-            .OnFailure((sender, response) =>
+            .OnFailure(response =>
             {
 #if DEBUG
                 if (PlatformEnvironment.Url("/") == "/")

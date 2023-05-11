@@ -168,7 +168,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     }
 
     public void Delete(Model model) => Delete(model.Id);
-    public void Update(Model model, bool createIfNotFound = false)
+    public virtual void Update(Model model, bool createIfNotFound = false)
     {
         StartTransactionIfRequested(out IClientSessionHandle session);
         if (!createIfNotFound && model.Id == null)
@@ -496,8 +496,8 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 if (colon > -1)
                     command = $" ({msg[..colon]})";
             }
-            Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions issue.", exception: e);
-            throw;
+            Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.", exception: e);
+            PlatformEnvironment.Exit("Unable to connect to database.");
         }
     }
 
