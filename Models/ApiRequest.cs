@@ -98,6 +98,8 @@ public class ApiRequest
         return this;
     }
 
+    public ApiRequest AddAuthorization(TokenInfo token) => AddAuthorization(token.Authorization);
+
     public ApiRequest AddAuthorization(string token)
     {
         if (token != null)
