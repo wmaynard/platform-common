@@ -44,6 +44,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
     public const string KEY_PLATFORM_COMMON = "PLATFORM_COMMON";
     public const string KEY_GITLAB_ENVIRONMENT_URL = "GITLAB_ENVIRONMENT_URL";
+    public const string KEY_PLATFORM_ENVIRONMENT_URL = "PLATFORM_ENVIRONMENT_URL";
     public const string KEY_GITLAB_ENVIRONMENT_NAME = "GITLAB_ENVIRONMENT_NAME";
     public const string KEY_REGION = "RUMBLE_REGION";
 
@@ -64,7 +65,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string Graphite => Optional(KEY_GRAPHITE);
     public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
-    public static string ClusterUrl => Optional(KEY_GITLAB_ENVIRONMENT_URL);
+    public static string ClusterUrl => Optional(KEY_PLATFORM_ENVIRONMENT_URL) ?? Optional(KEY_GITLAB_ENVIRONMENT_URL);
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
     public static string Region => Optional(KEY_REGION);
     public static string OwnerName => PlatformStartup.Options?.ProjectOwner.GetDisplayName() ?? "Not specified.";
