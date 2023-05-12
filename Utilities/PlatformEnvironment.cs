@@ -65,7 +65,17 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string Graphite => Optional(KEY_GRAPHITE);
     public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
-    public static string ClusterUrl => Optional(KEY_PLATFORM_ENVIRONMENT_URL) ?? Optional(KEY_GITLAB_ENVIRONMENT_URL);
+
+    public static string ClusterUrl
+    {
+        get
+        {
+            string platformUrl = Optional(KEY_PLATFORM_ENVIRONMENT_URL);
+            return string.IsNullOrWhiteSpace(platformUrl)
+                ? Optional(KEY_GITLAB_ENVIRONMENT_URL)
+                : platformUrl;
+        }
+    }
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
     public static string Region => Optional(KEY_REGION);
     public static string OwnerName => PlatformStartup.Options?.ProjectOwner.GetDisplayName() ?? "Not specified.";
