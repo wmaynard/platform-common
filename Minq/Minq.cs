@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using RCL.Logging;
@@ -129,6 +130,11 @@ public class Minq<T> where T : PlatformCollectionDocument
             throw new PlatformException("Mongo connection string must include a database name.");
         
         Client ??= new MongoClient(PlatformEnvironment.MongoConnectionString);
+        // Adds a global BsonIgnoreExtraElements
+        ConventionRegistry.Register("IgnoreExtraElements", new ConventionPack
+        {
+            new IgnoreExtraElementsConvention(true)
+        }, filter: t => true);
         
         return new Minq<T>(Client
             .GetDatabase(PlatformEnvironment.MongoDatabaseName)

@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using RCL.Logging;
@@ -52,6 +53,12 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     {
         MongoClientSettings settings = MongoClientSettings.FromConnectionString(connectionString);
         settings.MaxConnectionPoolSize = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
+        
+        // Adds a global BsonIgnoreExtraElements
+        ConventionRegistry.Register("IgnoreExtraElements", new ConventionPack
+        {
+            new IgnoreExtraElementsConvention(true)
+        }, filter: t => true);
 
         return new MongoClient(settings);
     }
