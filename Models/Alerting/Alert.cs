@@ -59,6 +59,9 @@ public class Alert : PlatformCollectionDocument
         if (Trigger == null)
             errors.Add("A trigger definition is required.");
 
+        if ((int)Type == 0)
+            Type = AlertType.All;
+
         // EscalationPeriod = Math.Min(5_000, Math.Max(0, EscalationPeriod));
         Trigger ??= new Trigger
         {
@@ -171,7 +174,7 @@ $@"```Incident ID: {Id}
             Channel = channel
         };
 
-        return output.Compress();;
+        return output.Compress();
     }
 
     public enum EscalationLevel

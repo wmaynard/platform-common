@@ -55,17 +55,19 @@ public class Minq<T> where T : PlatformCollectionDocument
 
 
 
-    public RequestChain<T> WithTransaction(Transaction transaction)
+    public RequestChain<T> WithTransaction(Transaction transaction) => new RequestChain<T>(this)
     {
-        return new RequestChain<T>(this)
-        {
-            Transaction = transaction
-        };
-    }
+        Transaction = transaction
+    };
 
     public RequestChain<T> WithTransaction(out Transaction transaction)
     {
+        #if DEBUG
+        transaction = null;
+        #else
         transaction = new Transaction(Client.StartSession());
+        #endif
+        
         return new RequestChain<T>(this)
         {
             Transaction = transaction
