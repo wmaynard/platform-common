@@ -318,7 +318,7 @@ public class ApiService : PlatformService
     /// </summary>
     /// <param name="title">The title of the alert.</param>
     /// <param name="message">The message of the alert.  Keep this descriptive and short, if possible.</param>
-    /// <param name="countRequired">The number of hits before an alert can have as pending.  If you want your alert
+    /// <param name="countRequired">The number of hits an alert can tolerate before sending.  If you want your alert
     /// to always send, use the value of 1.</param>
     /// <param name="timeframe">The number of seconds an alert can be pending for.  If an alert is triggered {countRequired} times
     /// in this time period, the alert status changes from pending to sent.</param>

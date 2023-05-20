@@ -15,9 +15,14 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
 {
     private ServiceConfig _config;
     private ServiceConfig Config => _config ?? Refresh();
+    public static ConfigService Instance { get; private set; }
 
     public T Value<T>(string key) => Config.Data.Optional<T>(key);
     private object Value(string key) => Config.Data.Optional(key);
+
+    public T Require<T>(string key) => Config.Data.Require<T>(key);
+    public T Optional<T>(string key) => Config.Data.Optional<T>(key);
+    public void Set(string key, object data) => Update(key, data);
 
     public void Update(string key, object data)
     {
@@ -30,7 +35,11 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
         Find(config => true).FirstOrDefault() 
         ?? Create(new ServiceConfig());
 
-    public ConfigService() : base("config") => Refresh();
+    public ConfigService() : base("config")
+    {
+        Refresh();
+        Instance = this;
+    } 
 
     public class ServiceConfig : PlatformCollectionDocument
     {

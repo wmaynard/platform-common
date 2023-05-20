@@ -111,6 +111,14 @@ public class Minq<T> where T : PlatformCollectionDocument
         
         return new RequestChain<T>(this, filter.Filter);
     }
+
+    public long Count(Action<FilterChain<T>> query)
+    {
+        FilterChain<T> filter = new FilterChain<T>();
+        query.Invoke(filter);
+
+        return Collection.CountDocuments(filter.Filter);
+    }
     
     public void Insert(params T[] models)
     {

@@ -15,6 +15,7 @@ public abstract class MinqService<Model> : PlatformService where Model : Platfor
 
     public void Insert(params Model[] models) => mongo.Insert(models);
     public void Update(Model model) => mongo.Update(model);
+    
     public Model FromId(string id) => mongo
         .Where(query => query.EqualTo(model => model.Id, id))
         .Limit(1)
