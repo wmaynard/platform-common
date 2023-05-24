@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
@@ -25,7 +26,7 @@ public class ApiRequest
     internal string UrlWithQuery => Url + QueryString;
 
     internal string QueryString => Parameters.Any()
-        ? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={pair.Value}"))
+        ? "?" + string.Join('&', Parameters.Select(pair => $"{pair.Key}={HttpUtility.UrlEncode(pair.Value.ToString())}"))
         : "";
 
     internal RumbleJson Headers { get; private set; }
