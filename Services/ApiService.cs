@@ -137,6 +137,80 @@ public class ApiService : PlatformService
             }
         }
     };
+
+    /// <summary>
+    /// Tells token-service to ban the player in question.  This prevents tokens from being generated for that account.
+    /// Your service's admin token must have permissions to interact with token-service to do this.
+    /// </summary>
+    /// <param name="accountId">The account in question to ban.</param>
+    /// <param name="duration">The duration to ban the account for, in seconds.  If unspecified, the ban is permanent.</param>
+    /// <param name="audiences">Used for selective bans; currently just a placeholder, not supported yet.  Once supported,
+    /// a selective ban will still allow a player to generate tokens; those tokens just won't have permissions to use certain
+    /// services (e.g. Leaderboards).
+    /// </param>
+    public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All) =>
+        Request("/token/admin/ban")
+            .AddAuthorization(DynamicConfig.Instance?.AdminToken)
+            .SetPayload(new RumbleJson
+            {
+                { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
+                { TokenInfo.FRIENDLY_KEY_AUDIENCE, audiences }, // placeholder until token-service supports it
+                { "duration", duration }
+            })
+            .OnSuccess(response => Log.Info(Owner.Default, $"An account has been banned.", data: new
+            {
+                AccountId = accountId
+            }))
+            .OnFailure(response =>
+            {
+                object data = new
+                {
+                    AccountId = accountId,
+                    Help = "This could be an admin token permissions issue or other failure.",
+                    Response = response.AsRumbleJson
+                };
+                if (PlatformEnvironment.IsProd)
+                    Log.Critical(Owner.Will, "Unable to ban player.", data);
+                else
+                    Log.Error(Owner.Default, "Unable to ban player.", data);
+            })
+            .Patch();
+    
+    /// <summary>
+    /// Tells token-service to unban the player in question.  This restores token generation for that account.
+    /// Your service's admin token must have permissions to interact with token-service to do this.
+    /// </summary>
+    /// <param name="accountId">The account in question to ban.</param>
+    /// <param name="audiences">Used for selective bans; currently just a placeholder, not supported yet.  Once supported,
+    /// a selective ban will still allow a player to generate tokens; those tokens just won't have permissions to use certain
+    /// services (e.g. Leaderboards).
+    /// </param>
+    public void UnbanPlayer(string accountId, Audience audiences = Audience.All) =>
+        Request("/token/admin/unban")
+            .AddAuthorization(DynamicConfig.Instance?.AdminToken)
+            .SetPayload(new RumbleJson
+            {
+                { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
+                { TokenInfo.FRIENDLY_KEY_AUDIENCE, audiences }, // placeholder until token-service supports it
+            })
+            .OnSuccess(response => Log.Info(Owner.Default, $"An account has been unbanned.", data: new
+            {
+                AccountId = accountId
+            }))
+            .OnFailure(response =>
+            {
+                object data = new
+                {
+                    AccountId = accountId,
+                    Help = "This could be an admin token permissions issue or other failure.",
+                    Response = response.AsRumbleJson
+                };
+                if (PlatformEnvironment.IsProd)
+                    Log.Critical(Owner.Will, "Unable to unban player.", data);
+                else
+                    Log.Error(Owner.Default, "Unable to unban player.", data);
+            })
+            .Patch();
     
     public string GenerateToken(string accountId, string screenname, string email, int discriminator, Audience audiences = Audience.All)
     {
@@ -206,7 +280,10 @@ public class ApiService : PlatformService
                     timeframe: 600,
                     owner: Owner.Will,
                     impact: ImpactType.ServiceUnusable,
-                    data: response.AsRumbleJson
+                    data: response.AsRumbleJson.Combine(new RumbleJson
+                    {
+                        { "origin", PlatformEnvironment.Name }
+                    })
                 );
             })
             .Post(out RumbleJson json, out code);

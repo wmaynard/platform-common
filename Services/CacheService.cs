@@ -18,11 +18,13 @@ public class CacheService : PlatformTimerService
     private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
     private RumbleJson Values { get; set; }
     private ConcurrentDictionary<string, long> Expirations { get; set; }
+    public static CacheService Instance { get; private set; } 
 
     public CacheService() : base(intervalMS: 5_000, true)
     {
         Values = new RumbleJson();
         Expirations = new ConcurrentDictionary<string, long>();
+        Instance = this;
     }
 
     /// <summary>
