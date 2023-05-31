@@ -22,7 +22,7 @@ public class ApiRequest
 
     // These methods cannot contain a body.
     private static readonly HttpMethod[] NO_BODY = { HttpMethod.Delete, HttpMethod.Get, HttpMethod.Head, HttpMethod.Trace };
-    internal string Url { get; private set; }
+    public string Url { get; private set; }
     internal string UrlWithQuery => Url + QueryString;
 
     internal string QueryString => Parameters.Any()
@@ -52,7 +52,7 @@ public class ApiRequest
         SetRetries(retries);
         Url = url;
 
-        if (Url.StartsWith('/') && prependEnvironment)
+        if ((Url.StartsWith('/') || !Url.StartsWith("http")) && prependEnvironment)
             Url = PlatformEnvironment.Url(Url);
 
         _onSuccess += (_, response) => { };

@@ -84,7 +84,7 @@ public abstract class PlatformController : Controller
         { "errorCode", $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}" }
     });
 
-    protected ObjectResult Problem(object data) => base.BadRequest(error: Merge(new { Success = false }, data));
+    protected ObjectResult Problem(object data) => base.BadRequest(error: data);
 
     // TODO: Fix the serialization such that we are consistent to lowerCamelCase keys
     // TODO: Remove all other Ok() / Problem() methods to force Platform over to a standard on RumbleJson
