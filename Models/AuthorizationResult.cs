@@ -90,6 +90,7 @@ public class AuthorizationResult
         }
         
         context.HttpContext.Items[KEY_AUTH_RESULT] = this;
+        context.HttpContext.Items[PlatformAuthorizationFilter.KEY_TOKEN] = Token;
     }
 
     public static AuthorizationResult Evaluate(ActionContext context) => new AuthorizationResult(context);

@@ -344,7 +344,6 @@ public class ApiService : PlatformService
         TokenInfo output = null;
         string message = null;
         Get(out CacheService cache);
-        
 
         if (!(cache?.HasValue(encryptedToken, out output) ?? false))
 #if LOCAL
