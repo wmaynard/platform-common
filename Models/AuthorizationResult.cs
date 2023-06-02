@@ -36,7 +36,7 @@ public class AuthorizationResult
     public PlatformException Exception { get; private init; }
     
     public bool TokenRequired => AdminTokenRequired || StandardTokenRequired;
-    public bool Ok => Optional || Exception != null;
+    public bool Ok => Optional || Exception == null;
 
     private AuthorizationResult(ActionContext context)
     {
