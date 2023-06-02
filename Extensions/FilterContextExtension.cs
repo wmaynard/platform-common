@@ -20,7 +20,7 @@ public static class FilterContextExtension
         }
         catch (Exception e)
         {
-            Log.Warn(Owner.Will, "Unable to cast HTTP context value to RumbleJson");
+            Log.Warn(Owner.Will, "Unable to cast HTTP context value to RumbleJson", exception: e);
             body = null;
         }
         
@@ -37,8 +37,25 @@ public static class FilterContextExtension
         }
         catch (Exception e)
         {
-            Log.Warn(Owner.Will, "Unable to cast HTTP context value to TokenInfo");
+            Log.Warn(Owner.Will, "Unable to cast HTTP context value to TokenInfo", exception: e);
             token = null;
+        }
+
+        return output;
+    }
+
+    public static bool TryGetAuthLevel(this FilterContext context, out AuthorizationResult auth)
+    {
+        bool output = context.HttpContext.Items.TryGetValue(AuthorizationResult.KEY_AUTH_RESULT, out object data);
+
+        try
+        {
+            auth = (AuthorizationResult)data;
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Will, "Unable to cast HTTP context value to AuthorizationResult", exception: e);
+            auth = null;
         }
 
         return output;

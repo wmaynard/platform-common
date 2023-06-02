@@ -23,9 +23,7 @@ namespace Rumble.Platform.Common.Filters;
 public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter, IActionFilter
 {
     public const string KEY_TOKEN = "PlatformToken";
-    public const string KEY_GAME_SECRET = "game";
-    public const string KEY_RUMBLE_SECRET = "secret";
-    
+
     /// <summary>
     /// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
     /// </summary>
@@ -35,80 +33,24 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         if (context.ActionDescriptor is not ControllerActionDescriptor)
             return;
 
-        bool authOptional = context.ControllerHasAttribute<NoAuth>();
-        RequireAuth[] auths = context.GetControllerAttributes<RequireAuth>();
-        
-        bool keysRequired = auths.Any(auth => auth.Type == AuthType.RUMBLE_KEYS); // TODO: Key validation for super users
-        bool adminTokenRequired = auths.Any(auth => auth.Type == AuthType.ADMIN_TOKEN);
-        bool standardTokenRequired = auths.Any(auth => auth.Type == AuthType.STANDARD_TOKEN);
+        AuthorizationResult auth = AuthorizationResult.Evaluate(context);
 
-        string authorization = context.HttpContext.Request.Headers.FirstOrDefault(pair => pair.Key == "Authorization").Value.ToString();
-        
-        if (!context.GetEndpoint().Contains("/health"))
-            Log.Verbose(Owner.Will, $"Authorization received.", data: new
-            {
-                Endpoint = context.GetEndpoint(),
-                AuthorizationHeader = $"auth|{authorization}|",
-                TokenLength = authorization.Length,
-                Headers = context.HttpContext.Request.Headers
-            });
-
-        string endpoint = context.GetEndpoint();
-        
-        GetService(out ApiService api);
-        TokenValidationResult result = api.ValidateToken(authorization, endpoint, context.HttpContext);
-
-        if (authOptional)
+        if (auth.Ok)
             return;
-        
-        if (!result.Success)
-            Graphite.Track(
-                name: adminTokenRequired ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT : Graphite.KEY_UNAUTHORIZED_COUNT,
-                value: 1,
-                endpoint: endpoint
-            );
 
-        //PlatformEnvironment.RumbleSecret;
-        bool keyMismatch = false;
+        Graphite.Track(
+            name: auth.AdminTokenRequired 
+                ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT 
+                : Graphite.KEY_UNAUTHORIZED_COUNT,
+            value: 1,
+            endpoint: context.GetEndpoint()
+        );
 
-        if (keysRequired)
-        {
-            context.HttpContext.Request.Query.TryGetValue(KEY_GAME_SECRET, out StringValues gameValues);
-            context.HttpContext.Request.Query.TryGetValue(KEY_RUMBLE_SECRET, out StringValues secretValues);
-
-            keyMismatch = PlatformEnvironment.GameSecret != gameValues.FirstOrDefault() || PlatformEnvironment.RumbleSecret != secretValues.FirstOrDefault();
-        }
-
-        bool tokenRequired = auths.Any(auth => auth.Type != AuthType.RUMBLE_KEYS);
-        bool requiredTokenNotProvided = (standardTokenRequired || adminTokenRequired) && result.Token == null;
-        bool requiredAdminTokenIsNotAdmin = adminTokenRequired && result.Token != null && result.Token.IsNotAdmin;
-        
-        // Verify that the token has the appropriate privileges.  If it doesn't, change the result so that we don't 
-        // continue to the endpoint and instead exit out early.
-        if (keyMismatch)
-            context.Result = new BadRequestObjectResult(new ErrorResponse(
-                message: "unauthorized",
-                data: new PlatformException("Key mismatch.", code: ErrorCode.KeyValidationFailed),
-                code: ErrorCode.KeyValidationFailed
-            ));
-        else if (tokenRequired && !result.Success)
-            context.Result = new BadRequestObjectResult(new ErrorResponse(
-                message: "unauthorized",
-                data: new PlatformException(result.Error, code: ErrorCode.TokenValidationFailed),
-                code: ErrorCode.TokenValidationFailed
-            ));
-        else if (requiredTokenNotProvided)
-            context.Result = new BadRequestObjectResult(new ErrorResponse(
-                message: "unauthorized",
-                data: new PlatformException("Required token was not provided", code: ErrorCode.TokenValidationFailed),
-                code: ErrorCode.TokenValidationFailed
-            ));
-        else if (requiredAdminTokenIsNotAdmin)
-            context.Result = new BadRequestObjectResult(new ErrorResponse(
-                message: "unauthorized",
-                data: new PlatformException("Required token lacks permission to act on this resource.", code: ErrorCode.TokenValidationFailed),
-                code: ErrorCode.TokenValidationFailed
-            ));
+        context.Result = new BadRequestObjectResult(new ErrorResponse(
+            message: "unauthorized",
+            data: auth.Exception,
+            code: auth.Exception.Code
+        ));
     }
 
     /// <summary>
