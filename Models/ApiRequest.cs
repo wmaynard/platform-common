@@ -18,7 +18,7 @@ namespace Rumble.Platform.Common.Models;
 // TODO: UrlWithQuery property
 public class ApiRequest
 {
-    public const int DEFAULT_RETRIES = 6;
+    public const int DEFAULT_RETRIES = 3;
 
     // These methods cannot contain a body.
     private static readonly HttpMethod[] NO_BODY = { HttpMethod.Delete, HttpMethod.Get, HttpMethod.Head, HttpMethod.Trace };
@@ -37,7 +37,11 @@ public class ApiRequest
     private readonly ApiService _apiService;
     public int Retries { get; internal set; }
     private int _originalRetries;
-    internal int ExponentialBackoffMS => (int)Math.Pow(2, _originalRetries - Retries);
+    
+    // 6 gives us a minimum of 128ms backoff to start.  From there it increases to 256ms, 512ms, etc.
+    // Retries are deducted at the end of a do/while loop, so the first evaluation here will be 6 + (X - X).
+    // Subsequent evaluations will see Retries go lower and lower.
+    internal int ExponentialBackoffMs => (int)Math.Pow(2, 6 + (_originalRetries - Retries));
     private event EventHandler<ApiResponse> _onSuccess;
     private event EventHandler<ApiResponse> _onFailure;
     private bool FailureHandled { get; set; }

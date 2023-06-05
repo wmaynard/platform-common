@@ -80,16 +80,16 @@ public class ApiService : PlatformService
                 {
                     Log.Verbose(Owner.Will, $"Request failed; retrying.", data: new
                     {
-                        BackoffMS = request.ExponentialBackoffMS,
+                        BackoffMS = request.ExponentialBackoffMs,
                         RetriesRemaining = request.Retries,
                         Url = request.Url
                     });
-                    Thread.Sleep(request.ExponentialBackoffMS);
+                    Thread.Sleep(request.ExponentialBackoffMs);
                 }
 
                 response = await HttpClient.SendAsync(request);
                 code = (int)response.StatusCode;
-            } while (!code.Between(200, 299) && --request.Retries > 0);
+            } while ((code.Between(500, 599) || code.Between(300, 399)) && --request.Retries > 0);
         }
         catch (Exception e)
         {
@@ -261,30 +261,40 @@ public class ApiService : PlatformService
             { "days", PlatformEnvironment.IsLocal ? 3650 : 5 }
         };
         int code;
+        
+        const string KEY_LAST_TOKEN_GENERATED = "lastTokenGeneratedOn";
+        const int FAILURE_THRESHOLD_SECONDS = 300; 
 
         Request(url)
             .AddAuthorization(adminToken)
             .SetPayload(payload)
+            .OnSuccess(_ => ConfigService.Instance?.Set(KEY_LAST_TOKEN_GENERATED, Timestamp.UnixTime))
             .OnFailure(response =>
             {
                 Log.Error(Owner.Will, "Unable to generate token.", data: new
                 {
                     Payload = payload,
                     Response = response,
-                    Url = response.RequestUrl
+                    Url = response.RequestUrl,
+                    Code = response.StatusCode
                 });
-                Alert(
-                    title: "Token Service Bad Response",
-                    message: "Token generation is failing.",
-                    countRequired: 15,
-                    timeframe: 600,
-                    owner: Owner.Will,
-                    impact: ImpactType.ServiceUnusable,
-                    data: response.AsRumbleJson.Combine(new RumbleJson
-                    {
-                        { "origin", PlatformEnvironment.Name }
-                    })
-                );
+                long lastGenerated = ConfigService.Instance?.Optional<long>(KEY_LAST_TOKEN_GENERATED) ?? 0;
+                if (lastGenerated > 0 && lastGenerated < Timestamp.UnixTime - FAILURE_THRESHOLD_SECONDS) // Only alert if tokens have been failing for over 5 minutes.
+                    Alert(
+                        title: "Token Service Bad Response",
+                        message: $"Token has been failing for at least {FAILURE_THRESHOLD_SECONDS / 60} minutes",
+                        countRequired: 15,
+                        timeframe: 600,
+                        owner: Owner.Will,
+                        impact: ImpactType.ServiceUnusable,
+                        data: response.AsRumbleJson.Combine(new RumbleJson
+                        {
+                            { "origin", PlatformEnvironment.Name },
+                            { KEY_LAST_TOKEN_GENERATED, lastGenerated },
+                            { "url", response.RequestUrl },
+                            { "code", response.StatusCode }
+                        })
+                    );
             })
             .Post(out RumbleJson json, out code);
 
@@ -308,6 +318,7 @@ public class ApiService : PlatformService
                 Response = json,
                 Code = code
             }, exception: e);
+            
             Alert(
                 title: "Token Generation Failure",
                 message: "Tokens are not able to be generated from the ApiService.",
