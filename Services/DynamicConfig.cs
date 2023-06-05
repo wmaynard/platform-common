@@ -207,7 +207,8 @@ public class DynamicConfig : PlatformTimerService
     {
         if (string.IsNullOrWhiteSpace(PlatformEnvironment.RegistrationName))
         {
-            Log.Error(Owner.Default, $"In order to register this project with dynamic-config-v2, you must make a call to PlatformOptions.SetRegistrationName().");
+            // TODO: Re-evaluate this error when DC registration is revisited
+            // Log.Error(Owner.Default, $"In order to register this project with dynamic-config-v2, you must make a call to PlatformOptions.SetRegistrationName().");
             return;
         }
         
