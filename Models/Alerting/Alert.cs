@@ -19,6 +19,8 @@ public class Alert : PlatformCollectionDocument
         ?? 1_800;
     public Owner Owner { get; set; }
     public string Title { get; set; }
+    [BsonIgnore]
+    public string PagerDutyTitle => $"{PlatformEnvironment.ServiceName}-{PlatformEnvironment.Deployment} | {Title}";
     public string Message { get; set; }
     public ImpactType Impact { get; set; }
     public string Origin { get; set; }
@@ -33,9 +35,17 @@ public class Alert : PlatformCollectionDocument
     public AlertStatus Status { get; set; }
     public AlertType Type { get; set; }
     public EscalationLevel Escalation { get; set; }
+    /// <summary>
+    /// The link to the playbook doc guiding the responder.
+    /// </summary>
+    public string ConfluenceLink { get; set; }
     
     // [BsonIgnore]
     public long Expiration { get; private set; }
+    
+    public string PagerDutyToken { get; private set; }
+    public string PagerDutyServiceId { get; private set; }
+    public string PagerDutyEscalationPolicy { get; private set; }
 
     public Alert()
     {
@@ -47,6 +57,10 @@ public class Alert : PlatformCollectionDocument
         CreatedOn = Timestamp.UnixTime;
 
         Trigger = new Trigger { Count = 1 };
+
+        PagerDutyToken = PlatformEnvironment.PagerDutyToken;
+        PagerDutyServiceId = PlatformEnvironment.PagerDutyServiceId;
+        PagerDutyEscalationPolicy = PlatformEnvironment.PagerDutyEscalationPolicy;
     }
 
     protected override void Validate(out List<string> errors)

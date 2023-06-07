@@ -412,8 +412,14 @@ public class ApiService : PlatformService
     /// <param name="type">Slack, Email, or All.</param>
     /// <param name="impact">What kind of impact the issue has that necessitates the alert.</param>
     /// <param name="data">Any additional data you want to attach to the alert.  In Slack, this comes through as a code block.</param>
-    public Alert Alert(string title, string message, int countRequired, int timeframe, Owner owner = Owner.Default, Alert.AlertType type = Models.Alerting.Alert.AlertType.All, ImpactType impact = ImpactType.Unknown, RumbleJson data = null)
+    /// <param name="confluenceLink">The link to the Engineering Alert Runbook for your specific Alert.</param>
+    public Alert Alert(string title, string message, int countRequired, int timeframe, Owner owner = Owner.Default, Alert.AlertType type = Models.Alerting.Alert.AlertType.All, ImpactType impact = ImpactType.Unknown, RumbleJson data = null, string confluenceLink = null)
     {
+        if (string.IsNullOrWhiteSpace(confluenceLink))
+            Log.Warn(owner, "Confluence link was not provided for an alert", data: new
+            {
+                Title = title
+            });
         Alert output = null;
         try
         {
@@ -448,6 +454,7 @@ public class ApiService : PlatformService
                             Status = Models.Alerting.Alert.AlertStatus.Pending,
                             SendAfter = 0,
                             Title = title,
+                            ConfluenceLink = confluenceLink
                         }
                     }
                 })

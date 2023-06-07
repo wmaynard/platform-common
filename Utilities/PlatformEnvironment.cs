@@ -39,6 +39,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_MONGODB_URI = "MONGODB_URI";
     public const string KEY_MONGODB_NAME = "MONGODB_NAME";
     public const string KEY_GRAPHITE = "GRAPHITE";
+    public const string KEY_PAGERDUTY_TOKEN = "PAGERDUTY_TOKEN";
     public const string KEY_REGISTRATION_NAME = "RUMBLE_REGISTRATION_NAME";
     public const string KEY_SLACK_LOG_CHANNEL = "SLACK_LOG_CHANNEL";
     public const string KEY_SLACK_LOG_BOT_TOKEN = "SLACK_LOG_BOT_TOKEN";
@@ -47,6 +48,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_PLATFORM_ENVIRONMENT_URL = "PLATFORM_ENVIRONMENT_URL";
     public const string KEY_GITLAB_ENVIRONMENT_NAME = "GITLAB_ENVIRONMENT_NAME";
     public const string KEY_REGION = "RUMBLE_REGION";
+    public const string KEY_PAGERDUTY_SERVICE_ID = "PAGERDUTY_SERVICE_ID";
+    public const string KEY_PAGERDUTY_ESCALATION_POLICY = "PAGERDUTY_ESCALATION_POLICY";
 
     // Helper getter properties
     internal static RumbleJson VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
@@ -65,6 +68,12 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string Graphite => Optional(KEY_GRAPHITE);
     public static string SlackLogChannel => Optional(KEY_SLACK_LOG_CHANNEL);
     public static string SlackLogBotToken => Optional(KEY_SLACK_LOG_BOT_TOKEN);
+    public static string PagerDutyToken => Optional(KEY_PAGERDUTY_TOKEN);
+    public static string PagerDutyServiceId => Optional(KEY_PAGERDUTY_SERVICE_ID);
+    public static string PagerDutyEscalationPolicy => Optional(KEY_PAGERDUTY_ESCALATION_POLICY);
+    public static bool PagerDutyEnabled => !(string.IsNullOrWhiteSpace(PagerDutyToken)
+        || string.IsNullOrWhiteSpace(PagerDutyServiceId)
+        || string.IsNullOrWhiteSpace(PagerDutyEscalationPolicy));
 
     public static string ClusterUrl
     {
