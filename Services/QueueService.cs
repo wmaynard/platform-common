@@ -43,7 +43,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="intervalMs">The length of time between PrimaryWork() calls.  The timer is paused while the thread is working.</param>
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
-    /// <param name="sendTaskResultsWhenTheyAreComplete">tasks results are sent as they complete instead of all at once at the end</param>
+    /// <param name="sendTaskResultsWhenTheyAreCompleted">tasks results are sent as they complete instead of all at once at the end</param>
     protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0, bool sendTaskResultsWhenTheyAreCompleted = false) 
         : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
