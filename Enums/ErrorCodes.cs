@@ -75,6 +75,7 @@ public enum ErrorCode
     [Display(Name = "1010")] PlariumAccountMissing = 1010,
     [Display(Name = "1011")] EmailInvalidOrBanned = 1011,
     [Display(Name = "1111")] DeviceMismatch = 1111,
+    [Display(Name = "1112")] Locked = 1112,
 
     // 2000: Leaderboard Service
     [Display(Name = "2001")] LeaderboardUnavailable = 2001

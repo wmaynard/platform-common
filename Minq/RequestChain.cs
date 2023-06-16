@@ -6,10 +6,12 @@ using System.Linq.Expressions;
 using System.Transactions;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Operations;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
+using ReturnDocument = MongoDB.Driver.Core.Operations.ReturnDocument;
 
 namespace Rumble.Platform.Common.Minq;
 
@@ -257,6 +259,41 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             
             FireAffectedEvent(output);
             
+            return output;
+        }
+        catch (MongoWriteException e)
+        {
+            if (e.WriteError.Code == 40 || e.Message.Contains("conflict"))
+                throw new PlatformException("Write conflict encountered.  Check that you aren't updating the same field multiple times in one query.");
+            throw;
+        }
+    }
+
+    public T Upsert(Action<UpdateChain<T>> query)
+    {
+        EnforceNotConsumed();
+
+        if (ShouldAbort(nameof(Upsert)))
+            return default;
+
+        UpdateChain<T> updateChain = new UpdateChain<T>();
+        query.Invoke(updateChain);
+        _update = updateChain.Update;
+
+        FindOneAndUpdateOptions<T> options = new FindOneAndUpdateOptions<T>
+        {
+            IsUpsert = true,
+            ReturnDocument = MongoDB.Driver.ReturnDocument.After
+        };
+
+        try
+        {
+            T output = (UsingTransaction)
+                ? _collection.FindOneAndUpdate(Transaction.Session, _filter, _update, options)
+                : _collection.FindOneAndUpdate(_filter, _update, options);
+            
+            FireAffectedEvent(1);
+
             return output;
         }
         catch (MongoWriteException e)
