@@ -30,6 +30,15 @@ public static class MongoCollectionExtension
             .SelectMany(GetIndexCandidates)
         );
         
+        // For certain cases, like the QueueService, we also have to check the declaring type to see if there are any private classes that have index attributes.
+        candidates.AddRange(type
+            .GetGenericArguments()
+            .Where(t => t.DeclaringType != null)
+            .SelectMany(t => t.DeclaringType.GetNestedTypes(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            .Where(model => model.IsAssignableTo(typeof(PlatformDataModel)))
+            .SelectMany(GetIndexCandidates)
+        );
+
         return FromCandidates(candidates);
     }
     

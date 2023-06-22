@@ -48,7 +48,7 @@ public sealed class CompoundIndex : PlatformMongoIndex
 
         return indexes.Length switch
         {
-            1 when !first.AdditionalKeys.Any() => new SimpleIndex(false, first.Ascending),
+            1 when !first.AdditionalKeys.Any() => new SimpleIndex(false, first.Ascending).SetDatabaseKey(first.DatabaseKey),
             _ => new CompoundIndex(first.GroupName, indexes.Min(index => index.Priority), first.Ascending)
             {
                 AdditionalKeys = indexes
