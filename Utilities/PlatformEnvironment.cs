@@ -143,6 +143,8 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         // In order for these to work on localhost, these must be loaded after LocalSecrets, since that's how
         // we manage environment variables locally.
         Variables.Combine(other: LoadCommonVariables(), prioritizeOther: false);
+        
+        ParseDbName();
 
         if (LogglyUrl != null)
             return Variables;
@@ -150,6 +152,21 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
         LoadLogglyUrl();
 
         return Variables;
+    }
+
+    private static void ParseDbName()
+    {
+        Variables ??= new RumbleJson();
+        
+        // Parse out MONGODB_NAME from the MONGODB_URI.
+        try
+        {
+            string connection = Optional(KEY_MONGODB_URI);
+            connection = connection?[(connection.LastIndexOf('/') + 1)..];
+
+            Variables[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
+        }
+        catch { } // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
     }
 
     private static void LoadLogglyUrl()
@@ -190,18 +207,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
             string component = ServiceName;
             if (root != null && component != null)
                 output[KEY_LOGGLY_URL] = string.Format(root, component);
-
-            // Parse out MONGODB_NAME from the MONGODB_URI.
-            try
-            {
-                string connection = Optional(KEY_MONGODB_URI);
-                connection = connection?[(connection.LastIndexOf('/') + 1)..];
-
-                output[KEY_MONGODB_NAME] = connection?[..connection.IndexOf('?')];
-            }
-            catch
-            {
-            } // Unable to parse, likely because the URI doesn't contain our DB name.  This is common for localhosts.
 
             return output;
         }
