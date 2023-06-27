@@ -28,6 +28,11 @@ public class IndexChain<T> where T : PlatformCollectionDocument
         return this;
     }
 
+    /// <summary>
+    /// Adds a unique constraint to the index.  Note that if you are adding this to a pre-existing index,
+    /// the index will be dropped and re-created.
+    /// </summary>
+    /// <returns>Returns itself for method chaining</returns>
     public IndexChain<T> EnforceUniqueConstraint()
     {
         if (Unique)
@@ -36,6 +41,13 @@ public class IndexChain<T> where T : PlatformCollectionDocument
         return this;
     }
 
+    /// <summary>
+    /// Sets the index name manually.  If unspecified, the name will be "minq_X", where X is the
+    /// highest existing index's number plus one.  If the name is already in use and the keys don't match,
+    /// the index will be dropped and the new one will take its place.
+    /// </summary>
+    /// <param name="name">The name to give the index</param>
+    /// <returns>Returns itself for method chaining</returns>
     public IndexChain<T> SetName(string name)
     {
         if (!string.IsNullOrWhiteSpace(Name))
@@ -44,6 +56,10 @@ public class IndexChain<T> where T : PlatformCollectionDocument
         return this;
     }
 
+    /// <summary>
+    /// Converts the index chain to a MinqIndex object, used to actually create the index.
+    /// </summary>
+    /// <returns>A completed MinqIndex object to be created.</returns>
     internal MinqIndex Build() => new MinqIndex(Rendered, Name, Unique)
     {
         Fields = null,

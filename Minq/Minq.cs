@@ -80,7 +80,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         };
     }
     
-    public RequestChain<T> OnTransactionAborted(Action action) => new RequestChain<T>(this).OnTransactionEnded(action);
+    public RequestChain<T> OnTransactionAborted(Action action) => new RequestChain<T>(this).OnTransactionAborted(action);
 
     public RequestChain<T> OnRecordsAffected(Action<RecordsAffectedArgs> result) => new RequestChain<T>(this).OnRecordsAffected(result);
 
@@ -127,10 +127,11 @@ public class Minq<T> where T : PlatformCollectionDocument
     
     public void Insert(params T[] models)
     {
-        if (!models.Any())
-            throw new Exception();
+        T[] toInsert = models.Where(model => model != null).ToArray();
+        if (!toInsert.Any())
+            throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
         
-        Collection.InsertMany(models);
+        Collection.InsertMany(toInsert);
     }
     
     public static Minq<T> Connect(string collectionName)
@@ -176,7 +177,9 @@ public class Minq<T> where T : PlatformCollectionDocument
             serializerRegistry: BsonSerializer.SerializerRegistry
         ).FieldName;
 
-    private MinqIndex[] PredefinedIndexes { get; set; } 
+    private MinqIndex[] PredefinedIndexes { get; set; }
+
+    public void DefineIndex(Action<IndexChain<T>> builder) => DefineIndexes(builder);
     public void DefineIndexes(params Action<IndexChain<T>>[] builders)
     {
         MinqIndex[] existing = RefreshIndexes(out int next);
