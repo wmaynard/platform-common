@@ -132,7 +132,7 @@ To create indexes with MINQ, you need to use the method `mongo.DefineIndexes()`;
 
 #### The Golden Rule
 
-Whenever you create a filter, you _almost always_ should have a filter to cover it.  The fields you use in your filter should correspond to a separate index.  Let's say you have the following query:
+Whenever you create a filter, you _almost always_ should have an index to cover it.  The fields you use in your filter should correspond to a separate index.  Let's say you have the following query:
 
 ```
 mongo
