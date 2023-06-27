@@ -157,7 +157,7 @@ MINQ will always attempt to create indexes based on usage.  When MINQ detects th
 
 While this can be relied upon for most general use, you should be aware of a few potential issues:
 
-1. Mongo has some restrictions on what indexes can cover.  For example, an index can only cover one array (or other collection type) in a model.  So, if you write a MINQ query that touches two separate arrays, you will inevitably see errors that index creation is failing.  Auto-Index creation failures won't crash your service, but they can be indicators that you've built an anti-pattern into your model structure.
+1. Mongo has some restrictions on what indexes can cover.  For example, an index can only cover one array (or other collection type) in a model.  So, if you write a MINQ query that filters on two separate arrays (updates are OK), you will inevitably see errors that index creation is failing.  Auto-Index creation failures won't crash your service, but they can be indicators that you've built an anti-pattern into your model structure.
 2. Auto-Indexes never use Unique Constraints
 3. Auto-Indexes never use a descending order on a field
 
