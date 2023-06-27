@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -35,6 +36,10 @@ public class Minq<T> where T : PlatformCollectionDocument
 {
     internal static MongoClient Client { get; set; }
     internal readonly IMongoCollection<T> Collection;
+
+    private IMongoCollection<BsonDocument> _collectionGeneric;
+
+    internal IMongoCollection<BsonDocument> GenericCollection => _collectionGeneric ??= Collection.Database.GetCollection<BsonDocument>(Collection.CollectionNamespace.CollectionName);
     // internal Transaction Transaction { get; set; }
     // internal bool UsingTransaction => Transaction != null;
     // internal EventHandler<RecordsAffectedArgs> _onRecordsAffected;
@@ -109,7 +114,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         FilterChain<T> filter = new FilterChain<T>();
         query.Invoke(filter);
         
-        return new RequestChain<T>(this, filter.Filter);
+        return new RequestChain<T>(this, filter);
     }
 
     public long Count(Action<FilterChain<T>> query)
@@ -170,6 +175,86 @@ public class Minq<T> where T : PlatformCollectionDocument
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
         ).FieldName;
+
+    private MinqIndex[] PredefinedIndexes { get; set; } 
+    public void DefineIndexes(params Action<IndexChain<T>>[] builders)
+    {
+        MinqIndex[] existing = RefreshIndexes(out int next);
+        
+        foreach (Action<IndexChain<T>> builder in builders)
+        {
+            IndexChain<T> chain = new IndexChain<T>();
+            builder.Invoke(chain);
+
+            MinqIndex index = chain.Build();
+            if (!index.IsProbablyCoveredBy(existing))
+                TryCreateIndex(index);
+            else if (index.HasConflict(existing, out string name))
+            {
+                GenericCollection.Indexes.DropOne(name);
+                index.Name ??= $"{MinqIndex.INDEX_PREFIX}{next++}";
+                TryCreateIndex(index);
+            }
+        }
+    }
+
+    internal void CreateIndex(MinqIndex index)
+    {
+        Log.Local(Owner.Will, "Creating an index", emphasis: Log.LogType.ERROR);
+        CreateIndexModel<BsonDocument> model = index.GenerateIndexModel();
+        GenericCollection.Indexes.CreateOne(model);
+    }
+
+    internal void TryCreateIndex(MinqIndex index)
+    {
+        try
+        {
+            CreateIndex(index);
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, "Unable to create mongo index", data: new
+            {
+                MinqIndex = index
+            }, exception: e);
+        }
+    }
+    
+    /// <summary>
+    /// Loads all of the currently-existing indexes on the collection.
+    /// </summary>
+    /// <returns>An array of indexes that exist on the collection.</returns>
+    internal MinqIndex[] RefreshIndexes(out int nextIndex)
+    {
+        nextIndex = 0;
+        List<MinqIndex> output = new List<MinqIndex>();
+        
+        using (IAsyncCursor<BsonDocument> cursor = Collection.Indexes.List())
+            while (cursor.MoveNext())
+                output.AddRange(cursor.Current.Select(doc => new MinqIndex(doc)));
+
+        if (!output.Any())
+            return Array.Empty<MinqIndex>();
+
+        try
+        {
+            nextIndex = output
+                .Select(index => index.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name) && name.StartsWith(MinqIndex.INDEX_PREFIX))
+                .Select(name => int.TryParse(name[MinqIndex.INDEX_PREFIX.Length..], out int number)
+                    ? number
+                    : 0
+                )
+                .Max() + 1;
+        }
+        catch (InvalidOperationException) { } // if we hit this, no index has a format of minq_#
+        
+        return output
+            .Where(index => index != null)
+            .ToArray();
+    }
+    
+    
 
     
     

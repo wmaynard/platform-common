@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using RCL.Services;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
@@ -15,7 +17,7 @@ namespace Rumble.Platform.Common.Services;
 public abstract class PlatformService : IService, IPlatformService
 {
     protected static ConcurrentDictionary<Type, IPlatformService> Registry { get; private set; }
-
+    
     private IServiceProvider _services;
     public string Name => GetType().Name;
 
@@ -90,6 +92,16 @@ public abstract class PlatformService : IService, IPlatformService
         service = (T)svc;
 
         return output;
+    }
+
+    public static T Require<T>() where T : PlatformService => Optional<T>() ?? throw new PlatformException($"Service not found {typeof(T).Name}");
+
+    public static T Optional<T>() where T : PlatformService
+    {
+        if (Registry == null)
+            return null;
+        Registry.TryGetValue(typeof(T), out IPlatformService svc);
+        return (T)svc;
     }
 
     public virtual RumbleJson HealthStatus => new RumbleJson
