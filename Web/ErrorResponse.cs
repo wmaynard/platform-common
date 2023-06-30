@@ -20,12 +20,8 @@ internal class ErrorResponse : StandardResponse
     [JsonInclude, JsonPropertyName("errorCode"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Code { get; set; }
     
-    // [JsonInclude, JsonPropertyName("errors"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    // public string[] Errors { get; set; }
-
     internal ErrorResponse(string message, Exception data, ErrorCode code) : base(new { Exception = Clean(data) })
     {
-        Success = false;
         Message = message;
         Code = $"PLATF-{((int)code).ToString().PadLeft(4, '0')}: {code.ToString()}";
     }

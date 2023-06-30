@@ -9,14 +9,11 @@ namespace Rumble.Platform.Common.Web;
 /// </summary>
 public class StandardResponse
 {
-    [JsonInclude]
-    public bool Success { get; set; }
     [JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object Data { get; set; }
 
     public StandardResponse(object data)
     {
-        Success = true;
         if (!PlatformEnvironment.IsProd)
             Data = data;
     }
