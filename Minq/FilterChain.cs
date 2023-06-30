@@ -77,6 +77,8 @@ public class FilterChain<T> where T : PlatformDataModel
         return AddFilter($"{{_id:ObjectId('{model.Id}')}}");
     }
 
+    public FilterChain<T> All() => AddFilter(Builder.Empty);
+
     public FilterChain<T> EqualTo<U>(Expression<Func<T, U>> field, U value) => 
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.Eq(field, value));

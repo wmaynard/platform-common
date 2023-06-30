@@ -239,6 +239,13 @@ public class Minq<T> where T : PlatformCollectionDocument
         return new RequestChain<T>(this, filter);
     }
 
+    /// <summary>
+    /// Returns a request that will affect all records on the database.  You can override this with further queries,
+    /// but if you're going to do that, there's no point to this call.
+    /// </summary>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> All() => new RequestChain<T>(this, new FilterChain<T>().All());
+
     public long Count(Action<FilterChain<T>> query)
     {
         FilterChain<T> filter = new FilterChain<T>();
@@ -389,6 +396,11 @@ public class Minq<T> where T : PlatformCollectionDocument
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<CachedResult>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
         ).FieldName;
+
+    internal static string Render(FilterDefinition<T> filter) => filter.Render(
+        documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+        serializerRegistry: BsonSerializer.SerializerRegistry
+    ).ToString();
     
     
 

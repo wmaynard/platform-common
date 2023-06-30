@@ -93,6 +93,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <param name="filterChain">An optional FilterChain to begin with.  If unspecified, the filter starts off empty.</param>
     internal RequestChain(Minq<T> parent, FilterChain<T> filterChain = null)
     {
+        filterChain ??= new FilterChain<T>().All();
         UpdateIndexWeights(filterChain);
         _filter = filterChain?.Filter ?? Builders<T>.Filter.Empty;
         Parent = parent;
@@ -586,13 +587,17 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         if (suggested.IsProbablyCoveredBy(existing))
             return;
+        
+        bool deliberateEmptyFilter = Minq<T>.Render(_filter) == Minq<T>.Render(Builders<T>.Filter.Empty);
+        if (deliberateEmptyFilter)
+            return;
 
         Explain(out MongoQueryStats stats);
         try
         {
             if (stats.IsFullyCovered)
                 return;
-            
+
             if (stats.IsPartiallyCovered)
                 Log.Info(Owner.Will, "A MINQ query was partially covered by existing indexes; a new index will be added");
             else if (stats.IsNotCovered)
