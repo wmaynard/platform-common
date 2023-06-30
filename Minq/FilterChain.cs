@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Exceptions;
@@ -22,6 +24,13 @@ public class FilterChain<T> where T : PlatformDataModel
     internal FilterType Type { get; set; }
     internal FilterDefinitionBuilder<T> Builder { get; init; }
     internal FilterDefinition<T> Filter => Builder.And(Filters);
+
+    internal int HashCode => Filter.Render(
+            documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+            serializerRegistry: BsonSerializer.SerializerRegistry
+        )
+        .ToJson(new JsonWriterSettings{ OutputMode = JsonOutputMode.CanonicalExtendedJson})
+        .GetHashCode();
 
     private List<FilterDefinition<T>> Filters { get; set; }
 
@@ -236,7 +245,7 @@ public class FilterChain<T> where T : PlatformDataModel
         .Render(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName; 
+        ).FieldName;
 }
 
 public static class MinqExpressionExtension

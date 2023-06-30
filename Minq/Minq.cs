@@ -5,9 +5,11 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using RCL.Data;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
@@ -34,20 +36,144 @@ namespace Rumble.Platform.Common.Minq;
 
 public class Minq<T> where T : PlatformCollectionDocument
 {
+    public class CachedResult : PlatformCollectionDocument
+    {
+        internal const string DB_KEY_MINQ_CACHE_FILTER = "query";
+        internal const string DB_KEY_MINQ_CACHE_DATA = "data";
+        internal const string DB_KEY_MINQ_CACHE_EXPIRATION = "exp";
+            
+        [BsonElement(DB_KEY_MINQ_CACHE_FILTER)]
+        internal string FilterAsString { get; set; }
+        [BsonElement(DB_KEY_MINQ_CACHE_DATA)]
+        internal T[] Results { get; set; }
+        [BsonElement(DB_KEY_MINQ_CACHE_EXPIRATION)]
+        internal long Expiration { get; set; }
+    }
     internal static MongoClient Client { get; set; }
     internal readonly IMongoCollection<T> Collection;
+    internal readonly IMongoCollection<CachedResult> CachedQueries;
+    private bool CacheIndexesExist { get; set; }
 
     private IMongoCollection<BsonDocument> _collectionGeneric;
 
     internal IMongoCollection<BsonDocument> GenericCollection => _collectionGeneric ??= Collection.Database.GetCollection<BsonDocument>(Collection.CollectionNamespace.CollectionName);
-    // internal Transaction Transaction { get; set; }
-    // internal bool UsingTransaction => Transaction != null;
-    // internal EventHandler<RecordsAffectedArgs> _onRecordsAffected;
-    // internal EventHandler<RecordsAffectedArgs> _onTransactionAborted;
 
-    public Minq(IMongoCollection<T> collection)
+    public Minq(IMongoCollection<T> collection, IMongoCollection<CachedResult> cache)
     {
         Collection = collection;
+        CachedQueries = cache;
+    }
+
+    internal bool CheckCache(FilterDefinition<T> filter, out T[] cachedData)
+    {
+        cachedData = Array.Empty<T>();
+
+        CachedResult result = CachedQueries
+            .Find(
+                Builders<CachedResult>.Filter.And(
+                    Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    Builders<CachedResult>.Filter.Gte(cache => cache.Expiration, Timestamp.UnixTime)
+                )
+            )
+            .ToList()
+            .FirstOrDefault();
+
+        cachedData = result?.Results;
+        bool output = result != null;
+        
+        // Delete all the cache entries over one day old.
+        if (output)
+            CachedQueries.DeleteMany(Builders<CachedResult>.Filter.Lt(cache => cache.Expiration, Timestamp.UnixTime - 60 * 60 * 24));
+
+        return result != null;
+    }
+
+    /// <summary>
+    /// This is brittle and ugly and I hate it, but unfortunately it's a challenge to get Mongo to work well with C# typing
+    /// here.  This indexed class comes from an intermediary library (platform-common) and uses generic types, and getting
+    /// Mongo to figure out the serialization for it has proven to be a very expensive use of time.  Consequently the approach
+    /// is to manually craft the index as a BsonDocument, then check existing indexes to see if a matching one exists,
+    /// and finally create the index.... using a strongly typed CreateIndexModel that for some reason doesn't fall over
+    /// when everything else does.... but if we use the BsonDocument we get an Obsolete warning.  Isn't Mongo fun?
+    /// </summary>
+    private void TryCreateCacheIndexIfNecessary()
+    {
+        if (CacheIndexesExist)
+            return;
+        try
+        {
+            BsonDocument[] existing = CachedQueries.Indexes.List().ToList().ToArray();
+            BsonDocument desired = new BsonDocument
+            {
+                { "key", new BsonDocument
+                {
+                    { CachedResult.DB_KEY_MINQ_CACHE_FILTER, 1 },
+                    { CachedResult.DB_KEY_MINQ_CACHE_EXPIRATION, -1 }
+                }},
+                {
+                    "options", new BsonDocument
+                    {
+                        { "background", true }
+                    }
+                }
+            };
+
+            if (!existing
+                    .Select(db => db.TryGetValue("key", out BsonValue output) ? output : null)
+                    .Where(value => value != null)
+                    .Any(value => value == desired.GetValue("key")))
+            {
+                CachedQueries.Indexes.CreateOne(new CreateIndexModel<CachedResult>(
+                    keys: Builders<CachedResult>.IndexKeys.Combine(
+                        Builders<CachedResult>.IndexKeys.Ascending(cache => cache.FilterAsString),
+                        Builders<CachedResult>.IndexKeys.Descending(cache => cache.Expiration)
+                    ),
+                    options: new CreateIndexOptions
+                    {
+                        Background = true
+                    }
+                ));
+            }
+            CacheIndexesExist = true;
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Will, "Unable to create index for MINQ cache.", data: new
+            {
+                Cache = CachedQueries.CollectionNamespace.CollectionName
+            }, exception: e);
+        }
+    }
+
+    internal void Cache(FilterDefinition<T> filter, T[] results, long expiration, Transaction transaction = null)
+    {
+        TryCreateCacheIndexIfNecessary();
+        
+        FindOneAndUpdateOptions<CachedResult> options = new FindOneAndUpdateOptions<CachedResult>
+        {
+            IsUpsert = true,
+            ReturnDocument = ReturnDocument.After
+        };
+        
+        if (transaction?.Session != null)
+            CachedQueries
+                .FindOneAndUpdate(
+                    session: transaction.Session,
+                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    update: Builders<CachedResult>.Update
+                        .Set(cache => cache.Results, results)
+                        .Set(cache => cache.Expiration, expiration),
+                    options
+                );
+        else
+            CachedQueries
+                .FindOneAndUpdate(
+                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    update: Builders<CachedResult>.Update
+                        .Set(cache => cache.Results, results)
+                        .Set(cache => cache.Expiration, expiration),
+                    options
+                );
     }
 
     /// <summary>
@@ -58,9 +184,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// </summary>
     /// <returns>A Mongo type that can be used as if it was a LINQ query; can only be used for reading data, not updating.</returns>
     public IMongoQueryable<T> AsLinq() => Collection.AsQueryable();
-
-
-
+    
     public RequestChain<T> WithTransaction(Transaction transaction) => new RequestChain<T>(this)
     {
         Transaction = transaction
@@ -68,12 +192,10 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     public RequestChain<T> WithTransaction(out Transaction transaction)
     {
-        #if DEBUG
-        transaction = null;
-        #else
-        transaction = new Transaction(Client.StartSession());
-        #endif
-        
+        transaction = !PlatformEnvironment.MongoConnectionString.Contains("localhost")
+            ? new Transaction(Client.StartSession())
+            : null;
+
         return new RequestChain<T>(this)
         {
             Transaction = transaction
@@ -149,11 +271,10 @@ public class Minq<T> where T : PlatformCollectionDocument
         {
             new IgnoreExtraElementsConvention(true)
         }, filter: t => true);
-        
-        return new Minq<T>(Client
-            .GetDatabase(PlatformEnvironment.MongoDatabaseName)
-            .GetCollection<T>(collectionName)
-        );
+
+        IMongoDatabase db = Client.GetDatabase(PlatformEnvironment.MongoDatabaseName);
+
+        return new Minq<T>(db.GetCollection<T>(collectionName), db.GetCollection<CachedResult>($"{collectionName}_cache"));
     }
 
     public long UpdateAll(Action<UpdateChain<T>> action)
@@ -171,11 +292,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         }
     ).ModifiedCount > 0;
 
-    public static string Render(Expression<Func<T, object>> field) => new ExpressionFieldDefinition<T>(field)
-        .Render(
-            documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
-            serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+
 
     private MinqIndex[] PredefinedIndexes { get; set; }
 
@@ -256,6 +373,22 @@ public class Minq<T> where T : PlatformCollectionDocument
             .Where(index => index != null)
             .ToArray();
     }
+    
+    public static string Render(Expression<Func<T, object>> field) => new ExpressionFieldDefinition<T>(field)
+        .Render(
+            documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+            serializerRegistry: BsonSerializer.SerializerRegistry
+        ).FieldName;
+    internal static string Render<U>(Expression<Func<T, U>> field) => new ExpressionFieldDefinition<T>(field)
+        .Render(
+            documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+            serializerRegistry: BsonSerializer.SerializerRegistry
+        ).FieldName;
+    private static string Render(Expression<Func<CachedResult, object>> field) => new ExpressionFieldDefinition<CachedResult>(field)
+        .Render(
+            documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<CachedResult>(),
+            serializerRegistry: BsonSerializer.SerializerRegistry
+        ).FieldName;
     
     
 

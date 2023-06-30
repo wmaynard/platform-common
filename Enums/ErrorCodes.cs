@@ -60,6 +60,8 @@ public enum ErrorCode
     [Display(Name = "0301")] MongoRecordNotFound = 0301,
     [Display(Name = "0302")] MongoUnexpectedFoundCount = 0302,
     [Display(Name = "0303")] MongoUnexpectedAffectedCount = 0303,
+    [Display(Name = "0304")] MongoWriteConflict = 0304,
+    [Display(Name = "0305")] MongoGeneralError = 305,
     
     // 1000: Player Service
     [Display(Name = "1000")] AccountConflict = 1000,

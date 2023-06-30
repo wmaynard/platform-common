@@ -50,6 +50,7 @@ public class Transaction
         {
             Session.AbortTransaction();
             Status = TransactionStatus.Aborted;
+            Log.Warn(Owner.Default, "MINQ transaction aborted.");
             Consumed = true;
             return true;
         }

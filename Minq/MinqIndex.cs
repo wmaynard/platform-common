@@ -16,7 +16,7 @@ internal class MinqIndex : PlatformDataModel
     internal string Name { get; set; }
     internal RumbleJson Fields { get; set; }
     internal bool Unique { get; set; }
-    internal string KeyString => string.Join(",", Fields.Select(json => json.Key));
+    internal string KeyString => string.Join(",", Fields.Select(json => json.Key ?? "unknown"));
     
     internal CreateIndexModel<BsonDocument> IndexModel { get; private set; }
 
@@ -44,6 +44,7 @@ internal class MinqIndex : PlatformDataModel
                 Unique = unique
             }
         );
+        Unique = unique;
     }
 
     internal MinqIndex(Dictionary<string, int> weights)

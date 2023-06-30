@@ -26,9 +26,13 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private IMongoCollection<T> _collection => Parent.Collection;
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
+    private SortDefinition<T> _sort { get; set; }
+    
     private Minq<T> Parent { get; set; }
     private int _limit { get; set; }
     private bool Consumed { get; set; }
+    private bool UseCache => CacheTimestamp > 0; 
+    private long CacheTimestamp { get; set; }
 
     private BsonDocument RenderedFilter => _filter.Render(BsonSerializer.SerializerRegistry.GetSerializer<T>(), BsonSerializer.SerializerRegistry);
     
@@ -39,16 +43,34 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private EventHandler<RecordsAffectedArgs> _onNoneAffected;
     private EventHandler<RecordsAffectedArgs> _onTransactionAborted;
 
-    private string FilterAsString => _filter
-        .Render(BsonSerializer.SerializerRegistry.GetSerializer<T>(),
-        BsonSerializer.SerializerRegistry
-    ).AsBsonDocument.ToString();
+    private string FilterAsString => ConvertFilterToString(_filter);
     
     private string UpdateAsString => _update.Render(
         BsonSerializer.SerializerRegistry.GetSerializer<T>(),
         BsonSerializer.SerializerRegistry
     ).AsBsonDocument.ToString();
 
+    internal static string ConvertFilterToString(FilterDefinition<T> filter) => filter
+        .Render(BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+            BsonSerializer.SerializerRegistry
+        ).AsBsonDocument.ToString();
+
+    /// <summary>
+    /// Instructs MINQ to store the results of the query in a separate collection for a specified duration.  If the
+    /// same exact query (as defined by a hash) is run within this duration, the cache collection is used to return old data
+    /// instead of executing the query on the main collection again.  This can reduce Mongo's memory and processing usage
+    /// while also keeping cached data the same across any number of instances.  Note that this is only valid for read
+    /// operations; if you use it in conjunction with writes, you will get a warning log from it.
+    /// Cache entries are deleted after they've been expired for one day.
+    /// </summary>
+    /// <param name="seconds">The duration the cache should be valid for.  Maximum value of 36_000 (ten hours)</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Cache(long seconds)
+    {
+        seconds = Math.Max(0, Math.Min(36_000, seconds));
+        CacheTimestamp = Timestamp.UnixTime + seconds;
+        return this;
+    }
     /// <summary>
     /// Updates the index weights.  Index weights are used to automatically detect the order an auto-index should be
     /// created in.  Fields that are used more frequently will see higher weights.  WIP.
@@ -185,16 +207,17 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
 
     /// <summary>
-    /// If a limit has been specified, this runs the command on Mongo with the limit in place.
+    /// If a limit has been specified, this runs the command on Mongo with the limit in place.  If a sort has been specified,
+    /// the sort is applied as well.
     /// </summary>
     /// <returns>Mongo's IFindFluent object to be used in future chains.</returns>
-    private IFindFluent<T, T> FindWithLimit() => _limit switch
+    private IFindFluent<T, T> FindWithLimitAndSort() => (_limit switch
     {
         <= 0 when UsingTransaction => _collection.Find(Transaction.Session, _filter),
         <= 0 => _collection.Find(_filter),
         _ when UsingTransaction => _collection.Find(Transaction.Session, _filter).Limit(_limit),
         _ => _collection.Find(_filter).Limit(_limit)
-    };
+    }).ApplySortDefinition(_sort);
 
     /// <summary>
     /// Creates a filter to limit the data that is returned or affected in Mongo.
@@ -282,16 +305,17 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Log.Warn(Owner.Default, string.Format(message, nameof(OnTransactionAborted)), data);
     }
     
-    #region TerminalCommands
+    #region Terminal Commands
     /// <summary>
     /// Returns the number of documents using the filter built from method-chaining.
     /// </summary>
     /// <returns>The number of documents matching the filter.</returns>
     public long Count()
     {
+        WarnOnUnusedCache(nameof(Count));
         WarnOnUnusedEvents(nameof(Count));
         Consume();
-        
+
         return _collection.CountDocuments(_filter);
     }
     
@@ -301,18 +325,27 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>The number of affected records.</returns>
     public long Delete()
     {
+        WarnOnUnusedCache(nameof(Delete));
         Consume();
         if (ShouldAbort(nameof(Delete)))
             return 0;
         
         Consumed = true;
-        long output = (UsingTransaction
-            ? _collection.DeleteMany(Transaction.Session, _filter)
-            : _collection.DeleteMany(_filter)).DeletedCount;
-        
-        FireAffectedEvent(output);
 
-        return output;
+        try
+        {
+            long output = (UsingTransaction
+                ? _collection.DeleteMany(Transaction.Session, _filter)
+                : _collection.DeleteMany(_filter)).DeletedCount;
+        
+            FireAffectedEvent(output);
+            return output;
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            throw;
+        }
     }
     
     /// <summary>
@@ -324,6 +357,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <exception cref="PlatformException">If there are no valid objects to insert, a PlatformException will be thrown.</exception>
     public void Insert(params T[] models)
     {
+        WarnOnUnusedCache(nameof(Insert));
         Consume();
 
         if (ShouldAbort(nameof(Insert)))
@@ -332,13 +366,19 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         T[] toInsert = models.Where(model => model != null).ToArray();
         if (!toInsert.Any())
             throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
-        
-        if (UsingTransaction)
-            _collection.InsertMany(Transaction.Session, toInsert);
-        else
-            _collection.InsertMany(toInsert);
-        
-        FireAffectedEvent(models.Length);
+        try
+        {
+            if (UsingTransaction)
+                _collection.InsertMany(Transaction.Session, toInsert);
+            else
+                _collection.InsertMany(toInsert);
+            FireAffectedEvent(models.Length);
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            throw;
+        }
     }
     
     /// <summary>
@@ -350,10 +390,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>An array </returns>
     public U[] Project<U>(Expression<Func<T, U>> expression)
     {
+        WarnOnUnusedCache(nameof(Project));
         WarnOnUnusedEvents(nameof(Project));
         Consume();
         
-        return FindWithLimit()
+        return FindWithLimitAndSort()
             .Project(Builders<T>.Projection.Expression(expression))
             .ToList()
             .ToArray();
@@ -367,8 +408,17 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     {
         WarnOnUnusedEvents(nameof(ToList));
         Consume();
-        
-        return FindWithLimit().ToList();
+
+        if (!UseCache)
+            return FindWithLimitAndSort().ToList();
+
+        if (Parent.CheckCache(FilterAsString, out T[] data))
+            return data.ToList();
+
+        List<T> output = FindWithLimitAndSort().ToList();
+        string f = ConvertFilterToString(_filter);
+        Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
+        return output;
     }
 
     /// <summary>
@@ -381,7 +431,15 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedEvents(nameof(ToArray));
         Consume();
 
-        return FindWithLimit().ToList().ToArray();
+        if (!UseCache)
+            return FindWithLimitAndSort().ToList().ToArray();
+
+        if (Parent.CheckCache(_filter, out T[] data))
+            return data;
+        
+        T[] output = FindWithLimitAndSort().ToList().ToArray();
+        Parent.Cache(_filter, output, CacheTimestamp, Transaction);
+        return output;
     }
     
     /// <summary>
@@ -394,6 +452,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
     public long Update(Action<UpdateChain<T>> query)
     {
+        WarnOnUnusedCache(nameof(Update));
         Consume();
 
         if (ShouldAbort(nameof(Update)))
@@ -415,8 +474,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (MongoWriteException e)
         {
-            if (e.WriteError.Code == 40 || e.Message.Contains("conflict"))
-                throw new PlatformException("Write conflict encountered.  Check that you aren't updating the same field multiple times in one query.");
+            Transaction?.TryAbort();
             throw;
         }
     }
@@ -429,15 +487,16 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>The model that was updated or inserted (post-update).</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public T Upsert(Action<UpdateChain<T>> query)
+    public T Upsert(Action<UpdateChain<T>> query = null)
     {
+        WarnOnUnusedCache(nameof(Count));
         Consume();
 
         if (ShouldAbort(nameof(Upsert)))
             return default;
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
-        query.Invoke(updateChain);
+        query?.Invoke(updateChain);
         _update = updateChain.Update;
 
         FindOneAndUpdateOptions<T> options = new FindOneAndUpdateOptions<T>
@@ -451,20 +510,70 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             T output = UsingTransaction
                 ? _collection.FindOneAndUpdate(Transaction.Session, _filter, _update, options)
                 : _collection.FindOneAndUpdate(_filter, _update, options);
-            
+
             FireAffectedEvent(1);
 
             return output;
         }
-        catch (MongoWriteException e)
+        catch
         {
-            if (e.WriteError.Code == 40 || e.Message.Contains("conflict"))
-                throw new PlatformException("Write conflict encountered.  Check that you aren't updating the same field multiple times in one query.");
+            Transaction?.TryAbort();
             throw;
         }
     }
-    #endregion
     
+    /// <summary>
+    /// Attempts to update or create a single record on the database.  If an existing record was not modified, one will be created.
+    /// This is effectively the same command as "ReplaceOne" from the stock Mongo driver.
+    /// </summary>
+    /// <param name="model">A model to update on the database.</param>
+    /// <returns>The same model you passed into it.  This is for consistency with the other overload of Upsert.</returns>
+    /// <exception cref="PlatformException">Thrown if for some reason the database could not insert the document; likely a unique constraint violation.</exception>
+    public T Upsert(T model)
+    {
+        WarnOnUnusedCache(nameof(Count));
+        Consume();
+
+        if (ShouldAbort(nameof(Upsert)))
+            return default;
+
+        ReplaceOptions options = new ReplaceOptions
+        {
+            IsUpsert = true
+        };
+
+        try
+        {
+            ReplaceOneResult result = UsingTransaction
+                ? _collection.ReplaceOne(Transaction.Session, _filter, model, options)
+                : _collection.ReplaceOne(_filter, model, options);
+
+            if (result.ModifiedCount == 0)
+                throw new PlatformException("MINQ Upsert(model) failed to replace the existing document.");
+            
+            FireAffectedEvent(1);
+
+            return model;
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            throw;
+        }
+    }
+    #endregion Terminal Commands
+
+    /// <summary>
+    /// The Cache is only usable for read-only requests; this will issue a warning from other terminal methods that are
+    /// unsupported.
+    /// </summary>
+    /// <param name="methodName"></param>
+    private void WarnOnUnusedCache(string methodName)
+    {
+        if (UseCache)
+            Log.Warn(Owner.Will, $"MINQ was told to use a cache for its query, but caches aren't available for {methodName}");
+    }
+
     #region Index Management
     /// <summary>
     /// Runs automatic analysis on the filter the chain created.  If the filter is not covered by an index, this will
@@ -511,6 +620,18 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 }, exception: e
             );
         }
+    }
+
+
+    public RequestChain<T> Sort(Action<SortChain<T>> sort)
+    {
+        if (_sort != null)
+            Log.Warn(Owner.Default, $"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
+        SortChain<T> chain = new SortChain<T>();
+        sort.Invoke(chain);
+
+        _sort = chain.Sort;
+        return this;
     }
     
     /// <summary>

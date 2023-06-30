@@ -16,6 +16,7 @@ using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Data;
 using Rumble.Platform.Data.Exceptions;
 
@@ -67,15 +68,22 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
         data["baseUrl"] = PlatformEnvironment.Url("/");
         data["environment"] = PlatformEnvironment.Name;
 
-        // Special handling for MongoCommandException because it doesn't like being serialized to JSON.
-        if (ex is MongoCommandException mce)
+        if (ex is MongoException)
         {
-            ex = new PlatformMongoException(mce);
-            Log.Critical(Owner.Default, "Something went wrong with MongoDB.", data: data, exception: mce);
+            ex = ex switch
+            {
+                MongoCommandException asCmd when asCmd.Code == 40 => new WriteConflictException(ex),
+                MongoCommandException asCmd => new PlatformMongoException(asCmd),
+                MongoWriteException asWrite when asWrite.WriteError.Code == 40 => new WriteConflictException(ex),
+                _ when ex.Message.Contains("conflict") => new WriteConflictException(ex),
+                _ => new PlatformException("Something went wrong with MongoDB.", ex, ErrorCode.MongoGeneralError)
+            };
+            message = ex.Message;
+            Log.Critical(Owner.Default, message, data: data, exception: ex);
         }
         else
             Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
-
+        
         context.Result = new BadRequestObjectResult(new ErrorResponse(
             message: message,
             data: ex,
