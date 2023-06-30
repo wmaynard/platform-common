@@ -319,15 +319,18 @@ public class DynamicConfig : PlatformTimerService
     /// <param name="key">The key of the value to look for.</param>
     /// <param name="defaultValue">If specified and the value isn't found, this will create the DC entry with the specified value.</param>
     /// <returns>A value of a specified type.</returns>
-    public T Optional<T>(string key, string defaultValue = null)
+    public T Optional<T>(string key, T defaultValue = default)
     {
         T output = ProjectValues.Optional<T>(key)
             ?? CommonValues.Optional<T>(key)
             ?? GlobalValues.Optional<T>(key)
             ?? Search<T>(key);
-        
+
         if (output == null && defaultValue != null)
-            EnsureExists(key, defaultValue);
+        {
+            EnsureExists(key, defaultValue.ToString());
+            return defaultValue;
+        }
 
         return output;
     }
