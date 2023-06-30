@@ -326,7 +326,7 @@ public class DynamicConfig : PlatformTimerService
             ?? GlobalValues.Optional<T>(key)
             ?? Search<T>(key);
 
-        if (output == null && defaultValue != null)
+        if (EqualityComparer<T>.Default.Equals(output, default) && !EqualityComparer<T>.Default.Equals(defaultValue, default))
         {
             EnsureExists(key, defaultValue.ToString());
             return defaultValue;
