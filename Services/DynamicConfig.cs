@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -10,6 +11,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
@@ -31,6 +33,8 @@ public class DynamicConfig : PlatformTimerService
     public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
     
     public static DynamicConfig Instance { get; private set; }
+    
+    private ConcurrentDictionary<string, long> _guarantees;
     public EventHandler<RumbleJson> OnRefresh { get; set; }
 
     public class DC2ClientInformation : PlatformDataModel
@@ -87,6 +91,7 @@ public class DynamicConfig : PlatformTimerService
         ID = Guid.NewGuid().ToString();
         _apiService = apiService;
         _healthService = healthService;
+        _guarantees = new ConcurrentDictionary<string, long>();
         AllValues = new RumbleJson();
         try
         {
@@ -312,11 +317,20 @@ public class DynamicConfig : PlatformTimerService
     /// Searches for a config value.  The hierarchy for scope is Project > Common > Global > (everything else). 
     /// </summary>
     /// <param name="key">The key of the value to look for.</param>
+    /// <param name="defaultValue">If specified and the value isn't found, this will create the DC entry with the specified value.</param>
     /// <returns>A value of a specified type.</returns>
-    public T Optional<T>(string key) => ProjectValues.Optional<T>(key)
-        ?? CommonValues.Optional<T>(key)
-        ?? GlobalValues.Optional<T>(key)
-        ?? Search<T>(key);
+    public T Optional<T>(string key, string defaultValue = null)
+    {
+        T output = ProjectValues.Optional<T>(key)
+            ?? CommonValues.Optional<T>(key)
+            ?? GlobalValues.Optional<T>(key)
+            ?? Search<T>(key);
+        
+        if (output == null && defaultValue != null)
+            EnsureExists(key, defaultValue);
+
+        return output;
+    }
 
     public T Require<T>(string key)
     {
@@ -325,6 +339,109 @@ public class DynamicConfig : PlatformTimerService
         if (!EqualityComparer<T>.Default.Equals(output, default))
             return output;
         throw new MissingJsonKeyException(key);
+    }
+
+    /// <summary>
+    /// [CAUTION] Updates a value in DynamicConfig.  Be very sure you know what you're doing; you could corrupt a service
+    /// not your own with the wrong requests here.  If you're modifying values for a different project, this method will generate
+    /// a WARN log
+    /// </summary>
+    /// <param name="audience"></param>
+    /// <param name="value"></param>
+    /// <param name="comment"></param>
+    public bool Update(Audience audience, string key, string value, string comment = null, string reason = null)
+    {
+        string name = audience.GetDisplayName();
+        Section section = GetAdminData().FirstOrDefault(section => section.Name == name);
+        if (section == null)
+        {
+            Log.Error(Owner.Default, $"Unable to find DC section of name {name}; could not honor update");
+            return false;
+        }
+
+        section.Data.TryGetValue(key, out SettingsValue setting);
+
+        if (string.IsNullOrWhiteSpace(comment))
+            comment = setting?.Comment;
+        
+        object logData = new
+        {
+            Section = audience.GetDisplayName(),
+            Key = key,
+            OldComment = setting?.Comment,
+            OldValue = setting?.Value,
+            NewValue = value,
+            NewComment = comment,
+            Reason = reason
+        };
+
+        if (audience.GetDisplayName() != PlatformEnvironment.ServiceName)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                Log.Error(Owner.Default, $"Programmatic DC modification without a reason is not allowed from {nameof(DynamicConfig)}.{nameof(Update)}().", logData);
+                return false;
+            }
+            Log.Warn(Owner.Default, "DynamicConfig section is being updated programmatically by something other than its owner", data: new
+            {
+                LogData = logData,
+                Help = "This isn't necessarily a problem, but has to be kept in check.  Programmatic DC management has risk."
+            });
+        }
+
+        _apiService
+            .Request("/config/settings/update")
+            .AddAuthorization(AdminToken)
+            .SetPayload(new RumbleJson
+            {
+                { "name", name },
+                { "key", key },
+                { "value", value },
+                { "comment", comment }
+            })
+            .OnSuccess(_ =>
+            {
+                Log.Local(Owner.Default, $"DC value updated: {name}.{key}");
+                Refresh().Wait();
+            })
+            .OnFailure(response => Log.Error(Owner.Default, "Unable to update DC value", data: new
+            {
+                LogData = logData,
+                Response = response
+            }))
+            .Patch(out _, out int code);
+
+        return code.Between(200, 299);
+    }
+
+    /// <summary>
+    /// Sets a default for a key in the current project, but only if it doesn't exist.  Creates the DC entry when this happens.
+    /// </summary>
+    /// <param name="key">The key to have a default for.</param>
+    /// <param name="fallback">The default value to use.</param>
+    private void EnsureExists(string key, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(key) || _guarantees.ContainsKey(key))
+            return;
+        _guarantees ??= new ConcurrentDictionary<string, long>();
+        
+        _apiService
+            .Request("/config/settings/ensure")
+            .AddAuthorization(AdminToken)
+            .SetPayload(new RumbleJson
+            {
+                { "name", PlatformEnvironment.ServiceName },
+                { "key", key },
+                { "value", fallback }
+            })
+            .OnSuccess(_ => _guarantees.TryAdd(key, Timestamp.UnixTime))
+            .OnFailure(response => Log.Error(Owner.Default, "Unable to set default for DC key", data: new
+            {
+                Key = key,
+                DefaultValue = fallback,
+                Response = response
+            }))
+            .Patch(out _, out int code);
     }
 
     private T Search<T>(string key)
