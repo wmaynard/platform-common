@@ -83,4 +83,6 @@ public sealed class CompoundIndex : PlatformMongoIndex
                     ? Builders<T>.IndexKeys.Ascending(tuple.Item2)
                     : Builders<T>.IndexKeys.Descending(tuple.Item2)
         ));
+
+    public override string ToString() => GroupName;
 }

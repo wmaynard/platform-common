@@ -27,7 +27,7 @@ public static class MongoIndexAssistant
             switch (index)
             {
                 case CompoundIndex compound:
-                    MongoIndexModel existingCompound = dbIndexes.FirstOrDefault(dbIndex => dbIndex.IsCompound && dbIndex.Name == compound.GroupName);
+                    MongoIndexModel existingCompound = dbIndexes.FirstOrDefault(dbIndex => dbIndex.Name == compound.GroupName);
                     if (existingCompound != null)
                     {
                         string[] keys = compound.Keys;

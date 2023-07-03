@@ -7,8 +7,10 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Minq;
@@ -58,7 +60,8 @@ public class FilterChain<T> where T : PlatformDataModel
                 FilterType.And => Builder.And(Filters),
                 FilterType.Not when Filters.Count == 1 => Builder.Not(Filters.First()),
                 FilterType.Not => Builder.Not(Builder.And(Filters)),
-                FilterType.Or => Builder.Or(Filters)
+                FilterType.Or => Builder.Or(Filters),
+                _ => Builders<T>.Filter.Empty 
             }
             : Builders<T>.Filter.Empty;
     }

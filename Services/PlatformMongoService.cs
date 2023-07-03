@@ -29,7 +29,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     
     private string Connection { get; init; }
     private string Database { get; init; }
-    
+
     private static MongoClient _client;
     public static int MaxMongoConnections = DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE;
     
@@ -238,7 +238,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 .SetDatabaseKey(parentDbKey)
             )
             .ToList();
-        
+
         AdditionalIndexKey[] additionalKeys = property
             .GetCustomAttributes()
             .Where(attribute => attribute.GetType().IsAssignableTo(typeof(AdditionalIndexKey)))
@@ -287,6 +287,10 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             type = type.BaseType;
         } while (type?.IsAssignableTo(typeof(IPlatformMongoService)) ?? false);
 
+        candidates = candidates
+            .DistinctBy(info => info.Name)
+            .ToList();
+
         // Pull out all the indexes defined by the attributes found on the properties.
         foreach (PropertyInfo property in candidates)
             indexes.AddRange(ExtractIndexes(property));
@@ -296,8 +300,11 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         //     Our compound indexes have not yet been combined into a comprehensive definition.
         TextIndex[] texts = indexes.OfType<TextIndex>().ToArray();
         CompoundIndex[] compounds = indexes.OfType<CompoundIndex>().ToArray();
-        SimpleIndex[] simples = indexes.OfType<SimpleIndex>().ToArray();
-        
+        SimpleIndex[] simples = indexes
+            .OfType<SimpleIndex>()
+            .DistinctBy(simple => $"{simple.DatabaseKey}_{(simple.Ascending ? "1" : "-1")}")
+            .ToArray();
+
         output.AddRange(simples);
 
         // Combine text indexes into one definition.
@@ -319,7 +326,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                     .ToArray())
                 )
             );
-        
+
         return output.ToArray();
     }
     

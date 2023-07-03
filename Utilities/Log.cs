@@ -20,6 +20,14 @@ namespace Rumble.Platform.Common.Utilities;
 
 public class Log : PlatformDataModel
 {
+    private static bool _written;
+#if DEBUG
+    private const int PADDING_TIMESTAMP = 13;
+#else
+    private readonly int PADDING_TIMESTAMP = DATE_FORMAT.Length + 1;
+#endif
+    private const int PADDING_METHOD = 42;
+    private const string DATE_FORMAT = "yyyy.MM.dd HH:mm:ss.fff";
     private static Owner? _defaultOwner;
 
     public static Owner DefaultOwner
@@ -168,13 +176,13 @@ public class Log : PlatformDataModel
     {
         try
         {
-            string className = method?.DeclaringType?.FullName;
+            string className = method?.DeclaringType?.FullName ?? "UnknownClass";
             string methodName = method?.Name;
             string cleanedClass = null;
             string cleanedMethod = null;
 
             if (string.IsNullOrWhiteSpace(methodName))
-                methodName = "UnknownClass";
+                methodName = "UnknownMethod";
             if (!className.Contains('.'))
                 cleanedClass = className;
             else
@@ -184,11 +192,9 @@ public class Log : PlatformDataModel
             // This is probably a more brittle way to grab it as compared to a proper regex, but if this changes it can be addressed later.
             if (className.Contains('+'))
                 className = className[..className.IndexOf('+')];
-            cleanedClass = className;
-
-            // Rename constructors to something more readable.
-            if (methodName == ".ctor")
-                return $"new {cleanedClass}";
+            cleanedClass = className.Contains('`')
+                ? className[..className.IndexOf('`')]
+                : className;
 
             if (string.IsNullOrWhiteSpace(methodName))
                 methodName = "UnknownMethod";
@@ -200,7 +206,13 @@ public class Log : PlatformDataModel
 
             if (start > -1 && end > start)
                 methodName = methodName[(start + 1)..end];
+            
+            // Rename constructors to something more readable.
+            if (methodName == ".ctor")
+                return $"new {cleanedClass}";
+            
             cleanedMethod = methodName;
+                
             return $"{cleanedClass}.{cleanedMethod}";
         }
         catch
@@ -209,18 +221,19 @@ public class Log : PlatformDataModel
             return $"{method?.DeclaringType?.Name ?? "Unknown"}.{method?.Name?.Replace(".ctor", "new") ?? "unknown"}()";
         }
     }
-
-    private static bool _written;
-    private const int PADDING_TIMESTAMP = 13;
-    private const int PADDING_METHOD = 42;
-
+    
     private string BuildConsoleMessage()
     {
         string owner = Owner.PadRight(MaxOwnerNameLength, ' ');
         string severity = Severity.PadRight(MaxSeverityLength, ' ');
         string message = Message ?? "No Message";
         string caller = Caller.PadLeft(totalWidth: PADDING_METHOD, paddingChar: ' ');
+        
+        #if DEBUG
         string time = ElapsedTime.PadLeft(PADDING_TIMESTAMP, ' ');
+        #else
+        string time = DateTime.Now.ToString(DATE_FORMAT).PadLeft(PADDING_TIMESTAMP, ' ');
+        #endif
 
 
         // This is the first time we've printed a log.  Print the headers.

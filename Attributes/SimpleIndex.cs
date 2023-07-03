@@ -13,4 +13,6 @@ public sealed class SimpleIndex : PlatformMongoIndex
         Unique = unique;
         Ascending = ascending;
     }
+
+    public override string ToString() => Name;
 }

@@ -473,7 +473,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             
             return output;
         }
-        catch (MongoWriteException e)
+        catch (MongoWriteException)
         {
             Transaction?.TryAbort();
             throw;

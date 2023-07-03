@@ -13,7 +13,7 @@ public class PagerDutyError : PlatformDataModel
     [JsonPropertyName("errors")]
     public string[] Errors { get; set; }
 
-    public string ToString()
+    public override string ToString()
     {
         string output = Message;
 

@@ -592,12 +592,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         [BsonElement(KEY_WAITLIST)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]
-        [AdditionalIndexKey(GROUP_KEY_WAITLIST_ELEMENT, key: $"{KEY_WAITLIST}.0", priority: 1)]
         public HashSet<string> Waitlist { get; set; }
         
         [BsonElement(KEY_LAST_TRACK_TIME)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 2)]
         [CompoundIndex(GROUP_KEY_WAITLIST_ELEMENT, priority: 2)]
+        [AdditionalIndexKey(GROUP_KEY_WAITLIST_ELEMENT, key: $"{KEY_WAITLIST}.0", priority: 1)]
         public long LastTrackingTime { get; set; }
 
         public QueueConfig() => Waitlist = new HashSet<string>();
@@ -657,7 +657,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         protected const string GROUP_KEY_STATUS = "status_1_type_1_created_1";
         protected const string GROUP_KEY_WAITLIST = "wait_1_lastTrackTime_1";
         protected const string GROUP_KEY_TRACKING = "status_1_tracked_1";
-        protected const string GROUP_KEY_WAITLIST_ELEMENT = $"wait.0_1_lastTrackTime_1";
+        protected const string GROUP_KEY_WAITLIST_ELEMENT = "wait.0_1_lastTrackTime_1";
 
         internal const string KEY_CREATED = "created";
         internal const string KEY_TYPE = "type";

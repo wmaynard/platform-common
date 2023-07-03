@@ -22,6 +22,11 @@ public class MongoQueryStats : PlatformDataModel
     public bool IsPartiallyCovered => IndexScan && CollectionScan;
     public bool IsFullyCovered => IndexScan && !CollectionScan;
 
+    // When Mongo is initializing, every PlatformDataModel is created with the smallest constructor available to it.
+    // Consequently, null reference errors can cause exceptions from the normal constructor on startup.  This silences
+    // logs when the service is starting up and hasn't made any queries yet.
+    private MongoQueryStats() { }
+
     public MongoQueryStats(BsonDocument explainResult)
     {
         RumbleJson result = explainResult;
