@@ -4,13 +4,16 @@ using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using System.Transactions;
+using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Operations;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
@@ -38,6 +41,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     
     internal Transaction Transaction { get; set; }
     internal bool UsingTransaction => Transaction != null;
+    internal bool AbortTransactionOnFailure { get; set; }
     
     private EventHandler<RecordsAffectedArgs> _onRecordsAffected;
     private EventHandler<RecordsAffectedArgs> _onNoneAffected;
@@ -97,6 +101,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         UpdateIndexWeights(filterChain);
         _filter = filterChain?.Filter ?? Builders<T>.Filter.Empty;
         Parent = parent;
+        AbortTransactionOnFailure = true;
     }
     
     /// <summary>
@@ -219,7 +224,52 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         _ when UsingTransaction => _collection.Find(Transaction.Session, _filter).Limit(_limit),
         _ => _collection.Find(_filter).Limit(_limit)
     }).ApplySortDefinition(_sort);
+    
+    /// <summary>
+    /// Paging allows end users - like players - to get partial results and continue scanning results.  Use paging
+    /// if you need to allow an end user to scan the database.
+    /// </summary>
+    /// <param name="size">The number of results you want back.  For the last page you may get fewer results.</param>
+    /// <param name="number">The page number you want to view, zero-indexed.</param>
+    /// <param name="remaining">The number of remaining records from the query.  If you have 100 records, skipped 20,
+    /// and are viewing 10, this will be 70.</param>
+    /// <returns>An array of results.</returns>
+    /// <exception cref="PlatformException">Thrown when size is invalid.</exception>
+    private T[] PageQuery(int size, int number, out long remaining)
+    {
+        if (size <= 0)
+            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
 
+        IFindFluent<T, T> finder = UsingTransaction
+            ? _collection
+                .Find(Transaction.Session, _filter)
+                .Sort(_sort)
+                .Skip(Math.Max(0, number * size))
+            : _collection
+                .Find(_filter)
+                .Sort(_sort)
+                .Skip(Math.Max(0, number * size));
+        remaining = finder.CountDocuments();
+        T[] output = finder
+            .Limit(size)
+            .ToList()
+            .ToArray();
+        remaining -= output.Length;
+
+        return output;
+    }
+
+    /// <summary>
+    /// Creates a filter that matches all records.  IMPORTANT: this will overwrite any other filters you've built.
+    /// </summary>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> All()
+    {
+        if (_filter != null && _filter != Builders<T>.Filter.Empty)
+            Log.Warn(Owner.Default, $"An existing filter is being overwritten by {nameof(All)}(); remove the previous filter definitions");
+        _filter = Builders<T>.Filter.Empty;
+        return this;
+    }
     /// <summary>
     /// Creates a filter to limit the data that is returned or affected in Mongo.
     /// </summary>
@@ -380,6 +430,69 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Transaction?.TryAbort();
             throw;
         }
+    }
+    
+    /// <summary>
+    /// Paging allows end users - like players - to get partial results and continue scanning results.  Use paging
+    /// if you need to allow an end user to scan the database.  This consumes the request.
+    /// </summary>
+    /// <param name="size">The number of results you want back.  For the last page you may get fewer results.</param>
+    /// <param name="number">The page number you want to view, zero-indexed.</param>
+    /// <param name="remaining">The number of remaining records from the query.  If you have 100 records, skipped 20,
+    /// and are viewing 10, this will be 70.</param>
+    /// <returns>An array of results.</returns>
+    /// <exception cref="PlatformException">Thrown when size is invalid.</exception>
+    public T[] Page(int size, int number, out long remaining)
+    {
+        Consume();
+        WarnOnUnusedEvents(nameof(Page));
+
+        if (size <= 0)
+            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
+
+        return PageQuery(size, number, out remaining);
+    }
+    
+    /// <summary>
+    /// Use this method to perform operations on a data set.  This is primarily for transformations; such as writing
+    /// import / export / upgrade scripts, and is generally discouraged for use within core service code.  It is expensive
+    /// in the sense that the typical use case will be performing operations on large data sets, so the service will be loading
+    /// significant counts of models into memory.
+    /// </summary>
+    /// <param name="size"></param>
+    /// <param name="onPage"></param>
+    public void Process(int size, Action<ProcessingEventArgs<T>> onPage)
+    {
+        Consume();
+
+        long start = Timestamp.UnixTimeMS;
+        
+        int page = 0;
+        
+        ProcessingEventArgs<T> args;
+        do
+        {
+            T[] results = PageQuery(size, page, out long remaining);
+            args = new ProcessingEventArgs<T>
+            {
+                Results = results,
+                Remaining = remaining,
+                OperationRuntime = Timestamp.UnixTime - start,
+                Processed = page * size,
+                Total = page * size + remaining + results.Length,
+                Continue = remaining > 0
+            };
+            onPage?.Invoke(args);
+            page++;
+        } while (args.Continue);
+
+        long timeTaken = Timestamp.UnixTimeMS - start;
+        
+        if (UsingTransaction && timeTaken > 20_000)
+            Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
+            {
+                TimeTakenMs = timeTaken
+            });
     }
     
     /// <summary>
@@ -626,7 +739,6 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             );
         }
     }
-
 
     public RequestChain<T> Sort(Action<SortChain<T>> sort)
     {

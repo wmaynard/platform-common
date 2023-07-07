@@ -185,12 +185,28 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <returns>A Mongo type that can be used as if it was a LINQ query; can only be used for reading data, not updating.</returns>
     public IMongoQueryable<T> AsLinq() => Collection.AsQueryable();
     
-    public RequestChain<T> WithTransaction(Transaction transaction) => new RequestChain<T>(this)
+    /// <summary>
+    /// Uses an existing Transaction to use for Mongo queries.  Transactions are generally not supported on localhost; use a
+    /// deployed environment connection string to test them.  If you need a new Transaction, use the other overload with
+    /// an out parameter.
+    /// </summary>
+    /// <param name="transaction">The MINQ Transaction to use.</param>
+    /// <param name="abortOnFailure">If true and MINQ encounters an exception, the transaction will be aborted.</param>
+    /// <returns>A new RequestChain for method chaining.</returns>
+    public RequestChain<T> WithTransaction(Transaction transaction, bool abortOnFailure = true) => new RequestChain<T>(this)
     {
-        Transaction = transaction
+        Transaction = transaction,
+        AbortTransactionOnFailure = abortOnFailure
     };
 
-    public RequestChain<T> WithTransaction(out Transaction transaction)
+    /// <summary>
+    /// Creates a new Transaction to use for Mongo queries.  Transactions are generally not supported on localhost; use a
+    /// deployed environment connection string to test them.
+    /// </summary>
+    /// <param name="transaction">The MINQ Transaction to use in future queries.</param>
+    /// <param name="abortOnFailure">If true and MINQ encounters an exception, the transaction will be aborted.</param>
+    /// <returns>A new RequestChain for method chaining.</returns>
+    public RequestChain<T> WithTransaction(out Transaction transaction, bool abortOnFailure = true)
     {
         transaction = !PlatformEnvironment.MongoConnectionString.Contains("localhost")
             ? new Transaction(Client.StartSession())
@@ -198,7 +214,8 @@ public class Minq<T> where T : PlatformCollectionDocument
 
         return new RequestChain<T>(this)
         {
-            Transaction = transaction
+            Transaction = transaction,
+            AbortTransactionOnFailure = abortOnFailure
         };
     }
     

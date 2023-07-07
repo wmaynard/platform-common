@@ -16,6 +16,7 @@ public enum ErrorCode
     [Display(Name = "0003")] ExternalLibraryFailure = 0003,
     [Display(Name = "0004")] DownForMaintenance = 0004,
     [Display(Name = "0005")] Uninitialized = 0005,
+    [Display(Name = "0006")] InvalidParameter = 0006,
       // 10: Serialization
       [Display(Name = "0010")] GenericDataConversion = 0010,
       [Display(Name = "0011")] SerializationFailure = 0011,
@@ -48,7 +49,7 @@ public enum ErrorCode
     [Display(Name = "0201")] InvalidRequestData = 0201,
     [Display(Name = "0202")] InvalidDataType = 0202,
     [Display(Name = "0203")] Unnecessary = 0203,
-        // 10: Required Fields
+    // 10: Required Fields
        [Display(Name = "0210")] AccountIdMismatch = 0210,
        [Display(Name = "0211")] RequiredFieldMissing = 0211,
        // 20: Request Data Integrity
