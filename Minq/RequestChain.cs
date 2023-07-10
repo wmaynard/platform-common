@@ -25,70 +25,26 @@ namespace Rumble.Platform.Common.Minq;
 
 public class RequestChain<T> where T : PlatformCollectionDocument
 {
-    private Dictionary<string, int> _indexWeights { get; set; }
-    private IMongoCollection<T> _collection => Parent.Collection;
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
-    private SortDefinition<T> _sort { get; set; }
-    
-    private Minq<T> Parent { get; set; }
-    private int _limit { get; set; }
-    private bool Consumed { get; set; }
-    private bool UseCache => CacheTimestamp > 0; 
-    private long CacheTimestamp { get; set; }
 
-    private BsonDocument RenderedFilter => _filter.Render(BsonSerializer.SerializerRegistry.GetSerializer<T>(), BsonSerializer.SerializerRegistry);
-    
+    internal bool AbortTransactionOnFailure { get; set; }
     internal Transaction Transaction { get; set; }
     internal bool UsingTransaction => Transaction != null;
-    internal bool AbortTransactionOnFailure { get; set; }
     
+    private long CacheTimestamp { get; set; }
+    private bool Consumed { get; set; }
+    private Minq<T> Parent { get; set; }
+    private bool UseCache => CacheTimestamp > 0; 
+
+    private int _limit;
+    private Dictionary<string, int> _indexWeights;
     private EventHandler<RecordsAffectedArgs> _onRecordsAffected;
     private EventHandler<RecordsAffectedArgs> _onNoneAffected;
     private EventHandler<RecordsAffectedArgs> _onTransactionAborted;
+    private IMongoCollection<T> _collection => Parent.Collection;
+    private SortDefinition<T> _sort;
 
-    private string FilterAsString => ConvertFilterToString(_filter);
-    
-    private string UpdateAsString => _update.Render(
-        BsonSerializer.SerializerRegistry.GetSerializer<T>(),
-        BsonSerializer.SerializerRegistry
-    ).AsBsonDocument.ToString();
-
-    internal static string ConvertFilterToString(FilterDefinition<T> filter) => filter
-        .Render(BsonSerializer.SerializerRegistry.GetSerializer<T>(),
-            BsonSerializer.SerializerRegistry
-        ).AsBsonDocument.ToString();
-
-    /// <summary>
-    /// Instructs MINQ to store the results of the query in a separate collection for a specified duration.  If the
-    /// same exact query (as defined by a hash) is run within this duration, the cache collection is used to return old data
-    /// instead of executing the query on the main collection again.  This can reduce Mongo's memory and processing usage
-    /// while also keeping cached data the same across any number of instances.  Note that this is only valid for read
-    /// operations; if you use it in conjunction with writes, you will get a warning log from it.
-    /// Cache entries are deleted after they've been expired for one day.
-    /// </summary>
-    /// <param name="seconds">The duration the cache should be valid for.  Maximum value of 36_000 (ten hours)</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Cache(long seconds)
-    {
-        seconds = Math.Max(0, Math.Min(36_000, seconds));
-        CacheTimestamp = Timestamp.UnixTime + seconds;
-        return this;
-    }
-    /// <summary>
-    /// Updates the index weights.  Index weights are used to automatically detect the order an auto-index should be
-    /// created in.  Fields that are used more frequently will see higher weights.  WIP.
-    /// </summary>
-    /// <param name="filter">The partial FilterChain to update the weights with.</param>
-    private void UpdateIndexWeights(FilterChain<T> filter)
-    {
-        if (filter == null)
-            return;
-        _indexWeights ??= new Dictionary<string, int>();
-        foreach (KeyValuePair<string, int> pair in filter.IndexWeights.Where(pair => !_indexWeights.TryAdd(pair.Key, pair.Value)))
-            _indexWeights[pair.Key] += pair.Value;
-    }
-    
     /// <summary>
     /// RequestChains are integral for controlling MINQ's flow.  They're components of a MINQ service and act as the entry
     /// point to both filter and update chains.
@@ -105,112 +61,18 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
     
     /// <summary>
-    /// Defines an action to take when a transaction fails.
+    /// Attempts to complete the RequestChain, disallowing its use again.  Once consumed, the filter is evaluated,
+    /// which can result in the automatic creation of indexes if the query isn't covered.
     /// </summary>
-    /// <param name="action">A lambda expression allowing logging events or other diagnostics to include.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> OnTransactionAborted(Action action)
+    /// <exception cref="PlatformException">Thrown when the chain has already been consumed.</exception>
+    private void Consume()
     {
-        if (action != null)
-            _onTransactionAborted += (sender, args) => action.Invoke();
-        return this;
-    }
-
-    /// <summary>
-    /// Defines an action to take when at least one record was affected.  This will most often be considered a "successful"
-    /// update.  It's good practice to add some sanity checks; if you use a bad filter, you might be accidentally impacting
-    /// every record on the database instead of the 10 you expected to.  Add some conditionals and logging for safety here
-    /// if appropriate.
-    /// </summary>
-    /// <param name="result">A lambda expression for RecordsAffectedArgs.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> OnRecordsAffected(Action<RecordsAffectedArgs> result)
-    {
-        if (result != null)
-            _onRecordsAffected += (sender, args) =>
-            {
-                result.Invoke(args);
-            };
-        return this;
-    }
-
-    /// <summary>
-    /// Defines an action to take when no records were affected.  This will most often be considered a "failed" update.
-    /// </summary>
-    /// <param name="result">A lambda expression for RecordsAffectedArgs.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> OnNoneAffected(Action<RecordsAffectedArgs> result)
-    {
-        if (result != null)
-            _onNoneAffected += (sender, args) =>
-            {
-                result.Invoke(args);
-            };
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a limit to the filter that was built.  Very strongly encouraged in any situation where you expect to
-    /// find more than 100 documents to ensure you aren't accidentally polling far too much data.
-    /// </summary>
-    /// <param name="limit">The maximum number of records to return / modify.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Limit([Range(0, int.MaxValue)] int limit)
-    {
-        _limit = limit;
-        return this;
-    }
-
-    /// <summary>
-    /// Used to combine multiple queries.  Slightly discouraged - preferred use is to modify an initial query instead.
-    /// For example, if you need to look for a record with Foo.Bar = 5 or model.Foo = 10, use the FilterChain method
-    /// ContainedIn(model => model.Foo, new [] { 5, 10 }) instead of two separate filters.  However, if the documents
-    /// aren't at all related and you're looking for wildly different fields, the Or filter may use multiple indexes,
-    /// so it can still be more performant in some situations - in such cases, use your judgment to decide whether or not
-    /// it's more readable to just use a second MINQ chain entirely.
-    /// </summary>
-    /// <param name="builder">A filter method chain.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Or(Action<FilterChain<T>> builder)
-    {
-        FilterChain<T> or = new FilterChain<T>();
-        builder.Invoke(or);
-        _filter = Builders<T>.Filter.Or(_filter, or.Filter);
-        UpdateIndexWeights(or);
-        return this;
+        if (Consumed)
+            throw new PlatformException("The RequestChain was previously consumed by another action.  This is not allowed to prevent accidental DB spam.");
+        Consumed = true;
+        EvaluateFilter();
     }
     
-    /// <summary>
-    /// Used to combine method chains for a request.  Moderately discouraged to use this, as you can accomplish more
-    /// readable queries by just using the initial FilterChain instead.
-    /// </summary>
-    /// <param name="builder">A filter method chain.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> And(Action<FilterChain<T>> builder)
-    {
-        FilterChain<T> and = new FilterChain<T>();
-        builder.Invoke(and);
-        _filter = Builders<T>.Filter.And(_filter, and.Filter);
-        UpdateIndexWeights(and);
-        return this;
-    }
-    
-    /// <summary>
-    /// Used to create a negated filter chain.  It's strongly recommended to avoid using this unless necessary, as
-    /// you can create easier-to-understand queries with negated equality operators with NotEqualTo.  This is combined with
-    /// prior filter chains.
-    /// </summary>
-    /// <param name="builder">A filter method chain.</param>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Not(Action<FilterChain<T>> builder)
-    {
-        FilterChain<T> not = new FilterChain<T>();
-        builder.Invoke(not);
-        
-        _filter = Builders<T>.Filter.And(_filter, Builders<T>.Filter.Not(not.Filter));
-        UpdateIndexWeights(not);
-        return this;
-    }
 
     /// <summary>
     /// If a limit has been specified, this runs the command on Mongo with the limit in place.  If a sort has been specified,
@@ -226,8 +88,27 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }).ApplySortDefinition(_sort);
     
     /// <summary>
+    /// Fires off either the RecordsAffected or the NoneAffected event, where appropriate.
+    /// </summary>
+    /// <param name="affected">The number of records affected by a MINQ.</param>
+    private void FireAffectedEvent(long affected)
+    {
+        // This might look a little ugly, but it's technically more memory efficient since it only
+        // allocates memory for the args if event handlers are defined.
+        (affected == 0
+                ? _onNoneAffected
+                : _onRecordsAffected)
+            ?.Invoke(this, new RecordsAffectedArgs
+            {
+                Affected = affected,
+                Transaction = Transaction
+            });
+    }
+    
+    /// <summary>
     /// Paging allows end users - like players - to get partial results and continue scanning results.  Use paging
-    /// if you need to allow an end user to scan the database.
+    /// if you need to allow an end user to scan the database.  This does not consume the request since it has shared
+    /// functionality with Process().
     /// </summary>
     /// <param name="size">The number of results you want back.  For the last page you may get fewer results.</param>
     /// <param name="number">The page number you want to view, zero-indexed.</param>
@@ -260,49 +141,6 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
 
     /// <summary>
-    /// Creates a filter that matches all records.  IMPORTANT: this will overwrite any other filters you've built.
-    /// </summary>
-    /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> All()
-    {
-        if (_filter != null && _filter != Builders<T>.Filter.Empty)
-            Log.Warn(Owner.Default, $"An existing filter is being overwritten by {nameof(All)}(); remove the previous filter definitions");
-        _filter = Builders<T>.Filter.Empty;
-        return this;
-    }
-    /// <summary>
-    /// Creates a filter to limit the data that is returned or affected in Mongo.
-    /// </summary>
-    /// <param name="query">A lambda expression that builds your filter chain.  The entire filter should be built
-    /// with a method chain here.</param>
-    /// <returns>A RequestChain object, which allows you to issue terminal commands such as Update() or ToList().</returns>
-    public RequestChain<T> Where(Action<FilterChain<T>> query)
-    {
-        FilterChain<T> filter = new FilterChain<T>();
-        query.Invoke(filter);
-        
-        if (_filter != null && _filter != Builders<T>.Filter.Empty)
-            Log.Warn(Owner.Default, "Filter was not empty when Where() was called.  Where() overrides previous filters.  Is this intentional?");
-
-        _filter = filter.Filter;
-        UpdateIndexWeights(filter);
-        return this;
-    }
-
-    /// <summary>
-    /// Attempts to complete the RequestChain, disallowing its use again.  Once consumed, the filter is evaluated,
-    /// which can result in the automatic creation of indexes if the query isn't covered.
-    /// </summary>
-    /// <exception cref="PlatformException">Thrown when the chain has already been consumed.</exception>
-    private void Consume()
-    {
-        if (Consumed)
-            throw new PlatformException("The RequestChain was previously consumed by another action.  This is not allowed to prevent accidental DB spam.");
-        Consumed = true;
-        EvaluateFilter();
-    }
-    
-    /// <summary>
     /// Fires off the OnTransactionAborted event if a transaction was previously consumed and can no longer be used.
     /// </summary>
     /// <param name="methodName">Typically, the name of the calling method.</param>
@@ -322,18 +160,15 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         return true;
     }
 
-    private void FireAffectedEvent(long affected)
+    /// <summary>
+    /// The Cache is only usable for read-only requests; this will issue a warning from other terminal methods that are
+    /// unsupported.
+    /// </summary>
+    /// <param name="methodName"></param>
+    private void WarnOnUnusedCache(string methodName)
     {
-        // This might look a little ugly, but it's technically more memory efficient since it only
-        // allocates memory for the args if event handlers are defined.
-        (affected == 0
-            ? _onNoneAffected
-            : _onRecordsAffected)
-            ?.Invoke(this, new RecordsAffectedArgs
-            {
-                Affected = affected,
-                Transaction = Transaction
-            });
+        if (UseCache)
+            Log.Warn(Owner.Will, $"MINQ was told to use a cache for its query, but caches aren't available for {methodName}");
     }
 
     /// <summary>
@@ -355,6 +190,281 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (_onTransactionAborted != null)
             Log.Warn(Owner.Default, string.Format(message, nameof(OnTransactionAborted)), data);
     }
+    
+    #region Chainables
+    /// <summary>
+    /// Used to combine method chains for a request.  Moderately discouraged to use this, as you can accomplish more
+    /// readable queries by just using the initial FilterChain instead.
+    /// </summary>
+    /// <param name="builder">A filter method chain.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> And(Action<FilterChain<T>> builder)
+    {
+        FilterChain<T> and = new FilterChain<T>();
+        builder.Invoke(and);
+        _filter = Builders<T>.Filter.And(_filter, and.Filter);
+        UpdateIndexWeights(and);
+        return this;
+    }
+    
+    /// <summary>
+    /// Creates a filter that matches all records.  IMPORTANT: this will overwrite any other filters you've built.
+    /// </summary>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> All()
+    {
+        if (_filter != null && _filter != Builders<T>.Filter.Empty)
+            Log.Warn(Owner.Default, $"An existing filter is being overwritten by {nameof(All)}(); remove the previous filter definitions");
+        _filter = Builders<T>.Filter.Empty;
+        return this;
+    }
+    
+    /// <summary>
+    /// Instructs MINQ to store the results of the query in a separate collection for a specified duration.  If the
+    /// same exact query (as defined by a hash) is run within this duration, the cache collection is used to return old data
+    /// instead of executing the query on the main collection again.  This can reduce Mongo's memory and processing usage
+    /// while also keeping cached data the same across any number of instances.  Note that this is only valid for read
+    /// operations; if you use it in conjunction with writes, you will get a warning log from it.
+    /// Cache entries are deleted after they've been expired for one day.
+    /// </summary>
+    /// <param name="seconds">The duration the cache should be valid for.  Maximum value of 36_000 (ten hours)</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Cache(long seconds)
+    {
+        seconds = Math.Max(0, Math.Min(36_000, seconds));
+        CacheTimestamp = Timestamp.UnixTime + seconds;
+        return this;
+    }
+    
+    /// <summary>
+    /// Adds a limit to the filter that was built.  Very strongly encouraged in any situation where you expect to
+    /// find more than 100 documents to ensure you aren't accidentally polling far too much data.
+    /// </summary>
+    /// <param name="limit">The maximum number of records to return / modify.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Limit([Range(0, int.MaxValue)] int limit)
+    {
+        _limit = limit;
+        return this;
+    }
+    
+    /// <summary>
+    /// Used to create a negated filter chain.  It's strongly recommended to avoid using this unless necessary, as
+    /// you can create easier-to-understand queries with negated equality operators with NotEqualTo.  This is combined with
+    /// prior filter chains.
+    /// </summary>
+    /// <param name="builder">A filter method chain.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Not(Action<FilterChain<T>> builder)
+    {
+        FilterChain<T> not = new FilterChain<T>();
+        builder.Invoke(not);
+        
+        _filter = Builders<T>.Filter.And(_filter, Builders<T>.Filter.Not(not.Filter));
+        UpdateIndexWeights(not);
+        return this;
+    }
+    
+    /// <summary>
+    /// Defines an action to take when no records were affected.  This will most often be considered a "failed" update.
+    /// </summary>
+    /// <param name="result">A lambda expression for RecordsAffectedArgs.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> OnNoneAffected(Action<RecordsAffectedArgs> result)
+    {
+        if (result != null)
+            _onNoneAffected += (sender, args) =>
+            {
+                result.Invoke(args);
+            };
+        return this;
+    }
+    
+    /// <summary>
+    /// Defines an action to take when at least one record was affected.  This will most often be considered a "successful"
+    /// update.  It's good practice to add some sanity checks; if you use a bad filter, you might be accidentally impacting
+    /// every record on the database instead of the 10 you expected to.  Add some conditionals and logging for safety here
+    /// if appropriate.
+    /// </summary>
+    /// <param name="result">A lambda expression for RecordsAffectedArgs.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> OnRecordsAffected(Action<RecordsAffectedArgs> result)
+    {
+        if (result != null)
+            _onRecordsAffected += (sender, args) =>
+            {
+                result.Invoke(args);
+            };
+        return this;
+    }
+    
+    /// <summary>
+    /// Used to combine multiple queries.  Slightly discouraged - preferred use is to modify an initial query instead.
+    /// For example, if you need to look for a record with Foo.Bar = 5 or model.Foo = 10, use the FilterChain method
+    /// ContainedIn(model => model.Foo, new [] { 5, 10 }) instead of two separate filters.  However, if the documents
+    /// aren't at all related and you're looking for wildly different fields, the Or filter may use multiple indexes,
+    /// so it can still be more performant in some situations - in such cases, use your judgment to decide whether or not
+    /// it's more readable to just use a second MINQ chain entirely.
+    /// </summary>
+    /// <param name="builder">A filter method chain.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Or(Action<FilterChain<T>> builder)
+    {
+        FilterChain<T> or = new FilterChain<T>();
+        builder.Invoke(or);
+        _filter = Builders<T>.Filter.Or(_filter, or.Filter);
+        UpdateIndexWeights(or);
+        return this;
+    }
+    
+    /// <summary>
+    /// Defines an action to take when a transaction fails.
+    /// </summary>
+    /// <param name="action">A lambda expression allowing logging events or other diagnostics to include.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> OnTransactionAborted(Action action)
+    {
+        if (action != null)
+            _onTransactionAborted += (sender, args) => action.Invoke();
+        return this;
+    }
+    
+    /// <summary>
+    /// Defines a sort for the query.  Note that sorts, like filters, rely on indexes.  Keep this in mind if a query
+    /// begins misbehaving and MINQ hasn't automatically created an index for it.
+    /// </summary>
+    /// <param name="sort">A sort method chain.</param>
+    /// <returns>The RequestChain for method chaining.</returns>
+    public RequestChain<T> Sort(Action<SortChain<T>> sort)
+    {
+        if (_sort != null)
+            Log.Warn(Owner.Default, $"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
+        SortChain<T> chain = new SortChain<T>();
+        sort.Invoke(chain);
+
+        _sort = chain.Sort;
+        return this;
+    }
+    
+    /// <summary>
+    /// Creates a filter to limit the data that is returned or affected in Mongo.
+    /// </summary>
+    /// <param name="query">A lambda expression that builds your filter chain.  The entire filter should be built
+    /// with a method chain here.</param>
+    /// <returns>A RequestChain object, which allows you to issue terminal commands such as Update() or ToList().</returns>
+    public RequestChain<T> Where(Action<FilterChain<T>> query)
+    {
+        FilterChain<T> filter = new FilterChain<T>();
+        query.Invoke(filter);
+        
+        if (_filter != null && _filter != Builders<T>.Filter.Empty)
+            Log.Warn(Owner.Default, "Filter was not empty when Where() was called.  Where() overrides previous filters.  Is this intentional?");
+
+        _filter = filter.Filter;
+        UpdateIndexWeights(filter);
+        return this;
+    }
+    #endregion Chainables
+    
+    #region Index Management
+    /// <summary>
+    /// Runs automatic analysis on the filter the chain created.  If the filter is not covered by an index, this will
+    /// try to create an appropriate one for it.
+    /// </summary>
+    private void EvaluateFilter()
+    {
+        MinqIndex[] existing = Parent.RefreshIndexes(out int next);
+        MinqIndex suggested = new MinqIndex(_indexWeights);
+
+        if (suggested.IsProbablyCoveredBy(existing))
+            return;
+        
+        bool deliberateEmptyFilter = Minq<T>.Render(_filter) == Minq<T>.Render(Builders<T>.Filter.Empty);
+        if (deliberateEmptyFilter)
+            return;
+
+        Explain(out MongoQueryStats stats);
+        try
+        {
+            if (stats.IsFullyCovered)
+                return;
+
+            if (stats.IsPartiallyCovered)
+                Log.Info(Owner.Will, "A MINQ query was partially covered by existing indexes; a new index will be added");
+            else if (stats.IsNotCovered)
+                Log.Error(Owner.Will, "A MINQ query is not covered by any index; a new index will be added");
+            
+            suggested.Name = $"{MinqIndex.INDEX_PREFIX}{next}";
+            CreateIndexModel<BsonDocument> model = suggested.GenerateIndexModel();
+            Parent.GenericCollection.Indexes.CreateOne(model);
+            Log.Info(Owner.Will, "MINQ automatically created an index", data: new
+            {
+                Collection = _collection.CollectionNamespace.CollectionName,
+                IndexName = suggested.Name,
+                Filter = (RumbleJson)Minq<T>.Render(_filter)
+            });
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, stats.DocumentsReturned > 1_000 
+                ? "Unable to create automatic MINQ index, and the query scanned many documents; investigation required" 
+                : "Unable to create automatic MINQ index; investigation possibly needed",
+                data: new
+                {
+                    Filter = (RumbleJson)Minq<T>.Render(_filter),
+                    Stats = stats
+                }, exception: e
+            );
+        }
+    }
+    
+    /// <summary>
+    /// Runs an "explain" command on Mongo and parses the result into a usable C# data structure.  This is an important
+    /// factor in keeping an eye on our DB performance.
+    /// </summary>
+    /// <param name="stats">An object containing information about keys/records scanned and whether or not the query was covered by indexes.</param>
+    private void Explain(out MongoQueryStats stats)
+    {
+        stats = null;
+        
+        try
+        {
+            // Unfortunately this is unable to leverage Minq<T>.Render(filter), because it needs to be a BSON document,
+            // not a string.
+            BsonDocument command = new BsonDocument
+            {
+                { "explain", new BsonDocument
+                {
+                    { "find", _collection.CollectionNamespace.CollectionName }, 
+                    { "filter", _filter.Render(
+                        documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+                        serializerRegistry: BsonSerializer.SerializerRegistry
+                    ).AsBsonDocument }
+                } }
+            };
+            stats = new MongoQueryStats(_collection.Database.RunCommand<BsonDocument>(command));
+
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, "Unable to parse Mongo explanation", exception: e);
+        }
+    }
+    
+    /// <summary>
+    /// Updates the index weights.  Index weights are used to automatically detect the order an auto-index should be
+    /// created in.  Fields that are used more frequently will see higher weights.  WIP.
+    /// </summary>
+    /// <param name="filter">The partial FilterChain to update the weights with.</param>
+    private void UpdateIndexWeights(FilterChain<T> filter)
+    {
+        if (filter == null)
+            return;
+        _indexWeights ??= new Dictionary<string, int>();
+        foreach (KeyValuePair<string, int> pair in filter.IndexWeights.Where(pair => !_indexWeights.TryAdd(pair.Key, pair.Value)))
+            _indexWeights[pair.Key] += pair.Value;
+    }
+    #endregion Index Management
     
     #region Terminal Commands
     /// <summary>
@@ -515,27 +625,6 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
     
     /// <summary>
-    /// Returns the results of your MINQ pipeline as a List.
-    /// </summary>
-    /// <returns>A list of matching models in the database.</returns>
-    public List<T> ToList()
-    {
-        WarnOnUnusedEvents(nameof(ToList));
-        Consume();
-
-        if (!UseCache)
-            return FindWithLimitAndSort().ToList();
-
-        if (Parent.CheckCache(FilterAsString, out T[] data))
-            return data.ToList();
-
-        List<T> output = FindWithLimitAndSort().ToList();
-        string f = ConvertFilterToString(_filter);
-        Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
-        return output;
-    }
-
-    /// <summary>
     /// Returns the results of your MINQ pipeline as an Array.  This requires an additional data transformation of
     /// List to Array.
     /// </summary>
@@ -553,6 +642,26 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         T[] output = FindWithLimitAndSort().ToList().ToArray();
         Parent.Cache(_filter, output, CacheTimestamp, Transaction);
+        return output;
+    }
+    
+    /// <summary>
+    /// Returns the results of your MINQ pipeline as a List.
+    /// </summary>
+    /// <returns>A list of matching models in the database.</returns>
+    public List<T> ToList()
+    {
+        WarnOnUnusedEvents(nameof(ToList));
+        Consume();
+
+        if (!UseCache)
+            return FindWithLimitAndSort().ToList();
+
+        if (Parent.CheckCache(Minq<T>.Render(_filter), out T[] data))
+            return data.ToList();
+
+        List<T> output = FindWithLimitAndSort().ToList();
+        Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
         return output;
     }
     
@@ -676,106 +785,6 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
     }
     #endregion Terminal Commands
-
-    /// <summary>
-    /// The Cache is only usable for read-only requests; this will issue a warning from other terminal methods that are
-    /// unsupported.
-    /// </summary>
-    /// <param name="methodName"></param>
-    private void WarnOnUnusedCache(string methodName)
-    {
-        if (UseCache)
-            Log.Warn(Owner.Will, $"MINQ was told to use a cache for its query, but caches aren't available for {methodName}");
-    }
-
-    #region Index Management
-    /// <summary>
-    /// Runs automatic analysis on the filter the chain created.  If the filter is not covered by an index, this will
-    /// try to create an appropriate one for it.
-    /// </summary>
-    private void EvaluateFilter()
-    {
-        MinqIndex[] existing = Parent.RefreshIndexes(out int next);
-        MinqIndex suggested = new MinqIndex(_indexWeights);
-
-        if (suggested.IsProbablyCoveredBy(existing))
-            return;
-        
-        bool deliberateEmptyFilter = Minq<T>.Render(_filter) == Minq<T>.Render(Builders<T>.Filter.Empty);
-        if (deliberateEmptyFilter)
-            return;
-
-        Explain(out MongoQueryStats stats);
-        try
-        {
-            if (stats.IsFullyCovered)
-                return;
-
-            if (stats.IsPartiallyCovered)
-                Log.Info(Owner.Will, "A MINQ query was partially covered by existing indexes; a new index will be added");
-            else if (stats.IsNotCovered)
-                Log.Error(Owner.Will, "A MINQ query is not covered by any index; a new index will be added");
-            
-            suggested.Name = $"{MinqIndex.INDEX_PREFIX}{next}";
-            CreateIndexModel<BsonDocument> model = suggested.GenerateIndexModel();
-            Parent.GenericCollection.Indexes.CreateOne(model);
-            Log.Info(Owner.Will, "MINQ automatically created an index", data: new
-            {
-                Collection = _collection.CollectionNamespace.CollectionName,
-                IndexName = suggested.Name,
-                Filter = (RumbleJson)RenderedFilter
-            });
-        }
-        catch (Exception e)
-        {
-            Log.Error(Owner.Will, stats.DocumentsReturned > 1_000 
-                ? "Unable to create automatic MINQ index, and the query scanned many documents; investigation required" 
-                : "Unable to create automatic MINQ index; investigation possibly needed",
-                data: new
-                {
-                    Filter = (RumbleJson)RenderedFilter,
-                    Stats = stats
-                }, exception: e
-            );
-        }
-    }
-
-    public RequestChain<T> Sort(Action<SortChain<T>> sort)
-    {
-        if (_sort != null)
-            Log.Warn(Owner.Default, $"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
-        SortChain<T> chain = new SortChain<T>();
-        sort.Invoke(chain);
-
-        _sort = chain.Sort;
-        return this;
-    }
-    
-    /// <summary>
-    /// Runs an "explain" command on Mongo and parses the result into a usable C# data structure.  This is an important
-    /// factor in keeping an eye on our DB performance.
-    /// </summary>
-    /// <param name="stats">An object containing information about keys/records scanned and whether or not the query was covered by indexes.</param>
-    private void Explain(out MongoQueryStats stats)
-    {
-        stats = null;
-        
-        try
-        {
-            BsonDocument command = new BsonDocument
-            {
-                { "explain", new BsonDocument { { "find", _collection.CollectionNamespace.CollectionName }, { "filter", RenderedFilter } } }
-            };
-
-            stats = new MongoQueryStats(_collection.Database.RunCommand<BsonDocument>(command));
-
-        }
-        catch (Exception e)
-        {
-            Log.Error(Owner.Will, "Unable to parse Mongo explanation", exception: e);
-        }
-    }
-    #endregion Index Management
 }
 
 

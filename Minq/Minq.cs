@@ -71,7 +71,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         CachedResult result = CachedQueries
             .Find(
                 Builders<CachedResult>.Filter.And(
-                    Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, Render(filter)),
                     Builders<CachedResult>.Filter.Gte(cache => cache.Expiration, Timestamp.UnixTime)
                 )
             )
@@ -159,7 +159,7 @@ public class Minq<T> where T : PlatformCollectionDocument
             CachedQueries
                 .FindOneAndUpdate(
                     session: transaction.Session,
-                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, Render(filter)),
                     update: Builders<CachedResult>.Update
                         .Set(cache => cache.Results, results)
                         .Set(cache => cache.Expiration, expiration),
@@ -168,7 +168,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         else
             CachedQueries
                 .FindOneAndUpdate(
-                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, RequestChain<T>.ConvertFilterToString(filter)),
+                    filter: Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, Render(filter)),
                     update: Builders<CachedResult>.Update
                         .Set(cache => cache.Results, results)
                         .Set(cache => cache.Expiration, expiration),
@@ -418,10 +418,17 @@ public class Minq<T> where T : PlatformCollectionDocument
         documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
         serializerRegistry: BsonSerializer.SerializerRegistry
     ).ToString();
-    
-    
 
-    
+    /// <summary>
+    /// Serializes an UpdateDefinition as a flat string.  This can be useful for debugging purposes but serves no other important
+    /// function at the time of this writing.
+    /// </summary>
+    /// <param name="update">The UpdateDefinition to serialize.</param>
+    /// <returns>A string representation of the UpdateDefinition.</returns>
+    internal static string Render(UpdateDefinition<T> update) => update.Render(
+        documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
+        serializerRegistry: BsonSerializer.SerializerRegistry
+    ).ToString();
     
 #if DEBUG
     public long DeleteAll() => new RequestChain<T>(this).Delete();
