@@ -564,14 +564,43 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
     
     /// <summary>
+    /// Paging allows end users - like players - to get partial results and continue scanning results.  Use paging
+    /// if you need to allow an end user to scan the database.  This consumes the request.
+    /// </summary>
+    /// <param name="size">The number of results you want back.  For the last page you may get fewer results.</param>
+    /// <param name="number">The page number you want to view, zero-indexed.</param>
+    /// <param name="remaining">The number of remaining records from the query.  If you have 100 records, skipped 20,
+    /// and are viewing 10, this will be 70.</param>
+    /// <param name="total">The total number of documents from the query.</param>
+    /// <returns>An array of results.</returns>
+    /// <exception cref="PlatformException">Thrown when size is invalid.</exception>
+    public T[] Page(int size, int number, out long remaining, out long total)
+    {
+        Consume();
+        WarnOnUnusedEvents(nameof(Page));
+
+        if (size <= 0)
+            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
+
+        T[] output = PageQuery(size, number, out remaining);
+
+        // Accommodate edge case when viewing the last page
+        total = remaining > 0
+            ? remaining + size * number
+            : (number - 1) * size + output.Length;
+
+        return output;
+    }
+    
+    /// <summary>
     /// Use this method to perform operations on a data set.  This is primarily for transformations; such as writing
     /// import / export / upgrade scripts, and is generally discouraged for use within core service code.  It is expensive
     /// in the sense that the typical use case will be performing operations on large data sets, so the service will be loading
     /// significant counts of models into memory.
     /// </summary>
-    /// <param name="size"></param>
-    /// <param name="onPage"></param>
-    public void Process(int size, Action<ProcessingEventArgs<T>> onPage)
+    /// <param name="batchSize">The number of records to batch at one time.</param>
+    /// <param name="onBatch">The action to take on the BatchData on every batch.</param>
+    public void Process(int batchSize, Action<BatchData<T>> onBatch)
     {
         Consume();
 
@@ -579,20 +608,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         int page = 0;
         
-        ProcessingEventArgs<T> args;
+        BatchData<T> args;
         do
         {
-            T[] results = PageQuery(size, page, out long remaining);
-            args = new ProcessingEventArgs<T>
+            T[] results = PageQuery(batchSize, page, out long remaining);
+            args = new BatchData<T>
             {
                 Results = results,
                 Remaining = remaining,
                 OperationRuntime = Timestamp.UnixTime - start,
-                Processed = page * size,
-                Total = page * size + remaining + results.Length,
+                Processed = page * batchSize,
+                Total = page * batchSize + remaining + results.Length,
                 Continue = remaining > 0
             };
-            onPage?.Invoke(args);
+            onBatch?.Invoke(args);
             page++;
         } while (args.Continue);
 

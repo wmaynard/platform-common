@@ -202,3 +202,61 @@ It's worth noting that this can apply to multiple fields, too.  If your index ha
 #### Deleting Indexes
 
 Currently not supported.
+
+### Paging
+
+Paged queries is a very useful tool when building a UI that needs to connect to a large data set.  As an example, when you're searching Amazon for cat toys, you don't want a server to be returning 20 million different toys at once.  Instead, you only want 25/50/100 results per page.  Use
+paging to accomplish this.  Let's say you're looking through the fourth page of cat toys with 100 results per page:
+
+```
+mongo
+    .All()
+    .Page(size: 100, number: 4, out long remaining);
+```
+
+The `out long` there tells you how many more records there are, which can be used to deduce how many more pages there are left to view.  There is an overload to `Page()` that also provides an `out long total`, should you need it.
+
+#### Processing
+
+Should you ever need to process data in batches, MINQ provides a way for you to do this as an extension of its paging functionality.  Note that this kind of data manipulation is not intended for frequent use, but mostly exists for flexibility down the line to support future needs, but at a high level this:
+
+1. Uses a paged query to create batches
+2. Loads each batch into memory one at a time
+3. Performs a defined action / lambda expression to access / transform these batches
+
+Theoretical example: we need a scheduled task that runs once per week, takes all players created since the last run, cross-references another service for some additional data, and does something with it.
+
+```
+long now = Timestamp.UnixTime;
+long lastRunTime = GetLastRunTime();
+SetLastRunTime(now);
+
+mongo
+    .Where(query => query
+        .GreaterThan(player => player.CreatedOn, lastRunTime)
+        .LessThanOrEqualTo(player => player.CreatedOn, now)   // Possibly redundant; edge cases might see a record created after our "now" timestamp
+    )
+    .Process(batchSize: 10, onBatch: data =>
+    {
+        Player[] batch = data.Results;
+        Log.Info(Owner.Default, "MINQ processing {data.PercentComplete}% complete.");
+        foreach (Player player in batch)
+        {
+            // Do something with each player here
+            if (...)          // critical error condition
+            {
+                data.Stop();
+                Log.Error(Owner.Default, $"MINQ processing failed after {data.Processed} records.");
+            }
+        }
+        
+        if (data.Remaining == 0)
+            Log.Info(Owner.Default, "MINQ processing complete.");
+    });
+```
+
+Note that while Transactions are still supported for processing, this is necessarily going to be a slow operation.  Transactions will fail if they take more than 30 seconds, so if you're going to use one, make sure your initial query doesn't return an extremely large data set.  This kind of processing can be useful for scheduled tasks, analysis, or upgrade scripts, and is generally discouraged from use in regular services and designed more for one-off scripts or on-demand programs.
+
+Before using processing, consider if there are more efficient ways to achieve what you want - using projection, or flat updates, et cetera.  However, the flexibility is there should you need it.
+
+**Important:** It's heavily discouraged to modify the collection you're querying against during processing, as this will affect the paging results.  Modifying other collections is fine.

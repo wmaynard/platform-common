@@ -2,7 +2,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Minq;
 
-public class ProcessingEventArgs<T> where T : PlatformDataModel
+public class BatchData<T> where T : PlatformDataModel
 {
     /// <summary>
     /// If set to false, this batch will be the final one processed.
