@@ -25,6 +25,8 @@ namespace Rumble.Platform.Common.Minq;
 
 public class RequestChain<T> where T : PlatformCollectionDocument
 {
+    private readonly string EmptyRenderedFilter = Minq<T>.Render(Builders<T>.Filter.Empty);
+    
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
 
@@ -357,14 +359,19 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         FilterChain<T> filter = new FilterChain<T>();
         query.Invoke(filter);
         
-        if (_filter != null && _filter != Builders<T>.Filter.Empty)
-            Log.Warn(Owner.Default, "Filter was not empty when Where() was called.  Where() overrides previous filters.  Is this intentional?");
+        WarnOnFilterOverwrite(nameof(Where));
 
         _filter = filter.Filter;
         UpdateIndexWeights(filter);
         return this;
     }
     #endregion Chainables
+
+    private void WarnOnFilterOverwrite(string method)
+    {
+        if (_filter != null && Minq<T>.Render(_filter) != EmptyRenderedFilter)
+            Log.Warn(Owner.Default, $"Filter was not empty when {method}() was called.  {method}() overrides previous filters.  Is this intentional?");
+    }
     
     #region Index Management
     /// <summary>
@@ -476,8 +483,16 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedCache(nameof(Count));
         WarnOnUnusedEvents(nameof(Count));
         Consume();
-
-        return _collection.CountDocuments(_filter);
+        
+        try
+        {
+            return _collection.CountDocuments(_filter);
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return 0;
+        }
     }
     
     /// <summary>
@@ -505,7 +520,29 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch
         {
             Transaction?.TryAbort();
-            throw;
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Alias for ToList() with a limit of 1.  Throws an exception if no records are found.
+    /// </summary>
+    /// <returns>The first model matching the specified query.</returns>
+    /// <exception cref="IndexOutOfRangeException">Thrown when no records are found.</exception>
+    public T First() => FirstOrDefault() ?? throw new IndexOutOfRangeException("No models found.");
+
+    public T FirstOrDefault()
+    {
+        _limit = 1;
+
+        try
+        {
+            return ToList().FirstOrDefault();
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return null;
         }
     }
     
@@ -538,7 +575,6 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch
         {
             Transaction?.TryAbort();
-            throw;
         }
     }
     
@@ -603,35 +639,41 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     public void Process(int batchSize, Action<BatchData<T>> onBatch)
     {
         Consume();
-
-        long start = Timestamp.UnixTimeMS;
         
-        int page = 0;
-        
-        BatchData<T> args;
-        do
+        try
         {
-            T[] results = PageQuery(batchSize, page, out long remaining);
-            args = new BatchData<T>
+            long start = Timestamp.UnixTimeMS;
+            int page = 0;
+            
+            BatchData<T> args;
+            do
             {
-                Results = results,
-                Remaining = remaining,
-                OperationRuntime = Timestamp.UnixTime - start,
-                Processed = page * batchSize,
-                Total = page * batchSize + remaining + results.Length,
-                Continue = remaining > 0
-            };
-            onBatch?.Invoke(args);
-            page++;
-        } while (args.Continue);
-
-        long timeTaken = Timestamp.UnixTimeMS - start;
-        
-        if (UsingTransaction && timeTaken > 20_000)
-            Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
-            {
-                TimeTakenMs = timeTaken
-            });
+                T[] results = PageQuery(batchSize, page, out long remaining);
+                args = new BatchData<T>
+                {
+                    Results = results,
+                    Remaining = remaining,
+                    OperationRuntime = Timestamp.UnixTime - start,
+                    Processed = page * batchSize,
+                    Total = page * batchSize + remaining + results.Length,
+                    Continue = remaining > 0
+                };
+                onBatch?.Invoke(args);
+                page++;
+            } while (args.Continue);
+    
+            long timeTaken = Timestamp.UnixTimeMS - start;
+            
+            if (UsingTransaction && timeTaken > 20_000)
+                Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
+                {
+                    TimeTakenMs = timeTaken
+                });
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+        }
     }
     
     /// <summary>
@@ -647,10 +689,18 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedEvents(nameof(Project));
         Consume();
         
-        return FindWithLimitAndSort()
-            .Project(Builders<T>.Projection.Expression(expression))
-            .ToList()
-            .ToArray();
+        try
+        {
+            return FindWithLimitAndSort()
+                .Project(Builders<T>.Projection.Expression(expression))
+                .ToList()
+                .ToArray();
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return Array.Empty<U>();
+        }
     }
     
     /// <summary>
@@ -660,18 +710,15 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>An array of matching models in the database.</returns>
     public T[] ToArray()
     {
-        WarnOnUnusedEvents(nameof(ToArray));
-        Consume();
-
-        if (!UseCache)
-            return FindWithLimitAndSort().ToList().ToArray();
-
-        if (Parent.CheckCache(_filter, out T[] data))
-            return data;
-        
-        T[] output = FindWithLimitAndSort().ToList().ToArray();
-        Parent.Cache(_filter, output, CacheTimestamp, Transaction);
-        return output;
+        try
+        {
+            return ToList().ToArray();
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return Array.Empty<T>();
+        }
     }
     
     /// <summary>
@@ -683,15 +730,23 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedEvents(nameof(ToList));
         Consume();
 
-        if (!UseCache)
-            return FindWithLimitAndSort().ToList();
-
-        if (Parent.CheckCache(Minq<T>.Render(_filter), out T[] data))
-            return data.ToList();
-
-        List<T> output = FindWithLimitAndSort().ToList();
-        Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
-        return output;
+        try
+        {
+            if (!UseCache)
+                return FindWithLimitAndSort().ToList();
+    
+            if (Parent.CheckCache(Minq<T>.Render(_filter), out T[] data))
+                return data.ToList();
+    
+            List<T> output = FindWithLimitAndSort().ToList();
+            Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
+            return output;
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return new List<T>();
+        }
     }
     
     /// <summary>
@@ -727,7 +782,51 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch (MongoWriteException)
         {
             Transaction?.TryAbort();
-            throw;
+            return 0;
+        }
+    }
+    
+    
+    /// <summary>
+    /// Attempts to update or create a single record on the database.  If the record does not exist, one will not be created.
+    /// This is effectively the same command as "ReplaceOne" from the stock Mongo driver.
+    /// </summary>
+    /// <param name="model">A model to update on the database.</param>
+    /// <returns>The same model you passed into it.  This is for consistency with the other overload of Upsert.</returns>
+    /// <exception cref="PlatformException">Thrown if for some reason the database could not insert the document; likely a unique constraint violation.</exception>
+    public T Update(T model)
+    {
+        WarnOnUnusedCache(nameof(Count));
+        Consume();
+
+        if (ShouldAbort(nameof(Update)))
+            return default;
+        
+        WarnOnFilterOverwrite(nameof(Update));
+        
+        _filter = model.Id == null
+            ? Builders<T>.Filter.Empty
+            : Builders<T>.Filter.Eq(t => t.Id, model.Id);
+
+        ReplaceOptions options = new ReplaceOptions
+        {
+            IsUpsert = false
+        };
+
+        try
+        {
+            ReplaceOneResult result = UsingTransaction
+                ? _collection.ReplaceOne(Transaction.Session, _filter, model, options)
+                : _collection.ReplaceOne(_filter, model, options);
+            
+            FireAffectedEvent(result.ModifiedCount);
+
+            return model;
+        }
+        catch
+        {
+            Transaction?.TryAbort();
+            return null;
         }
     }
 
@@ -770,7 +869,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch
         {
             Transaction?.TryAbort();
-            throw;
+            return null;
         }
     }
     
@@ -788,6 +887,12 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         if (ShouldAbort(nameof(Upsert)))
             return default;
+        
+        WarnOnFilterOverwrite(nameof(Upsert));
+        
+        _filter = model.Id == null
+            ? Builders<T>.Filter.Empty
+            : Builders<T>.Filter.Eq(t => t.Id, model.Id);
 
         ReplaceOptions options = new ReplaceOptions
         {
@@ -800,17 +905,14 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 ? _collection.ReplaceOne(Transaction.Session, _filter, model, options)
                 : _collection.ReplaceOne(_filter, model, options);
 
-            if (result.ModifiedCount == 0)
-                throw new PlatformException("MINQ Upsert(model) failed to replace the existing document.");
-            
-            FireAffectedEvent(1);
+            FireAffectedEvent(result.ModifiedCount);
 
             return model;
         }
         catch
         {
             Transaction?.TryAbort();
-            throw;
+            return null;
         }
     }
     #endregion Terminal Commands

@@ -63,4 +63,8 @@ public static class NumericExtension
             _ => $"{secondString}s",
         };
     }
+
+    public static string ToBinary(this short number) => Convert.ToString(number, 2);
+    public static string ToBinary(this int number) => Convert.ToString(number, 2);
+    public static string ToBinary(this long number) => Convert.ToString(number, 2);
 }

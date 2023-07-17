@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
@@ -67,9 +68,21 @@ public class UpdateChain<T> where T : PlatformCollectionDocument
         return this;
     }
     
-    public UpdateChain<T> Unset<U>(Expression<Func<T, object>> field)
+    /// <summary>
+    /// Erases a field in your model.  If the field type is an Enumerable, it is set to an empty array; otherwise, it
+    /// is set to null.
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
+    public UpdateChain<T> Clear(Expression<Func<T, object>> field)
     {
-        Updates.Add(Builder.Unset(field));
+        Type member = (field.Body as MemberExpression)?.Type;
+
+        Updates.Add(typeof(IEnumerable).IsAssignableFrom(member)
+            ? Builder.Set(field, Array.CreateInstance(member, 0))
+            : Builder.Unset(field)
+        );
+        
         return this;
     }
     
@@ -185,18 +198,25 @@ public class UpdateChain<T> where T : PlatformCollectionDocument
     /// Used for removing embedded models from the document.  Unlike the other "Remove" methods, this allows you to filter
     /// embedded models to remove.
     /// </summary>
-    /// <param name="field"></param>
-    /// <param name="builder"></param>
+    /// <param name="field">The field to modify.  Must be an enumerable.</param>
+    /// <param name="filter">A filter chain to select items for removal.</param>
     /// <typeparam name="U"></typeparam>
-    /// <returns></returns>
-    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : PlatformDataModel
+    /// <returns>The UpdateChain for method chaining.</returns>
+    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : PlatformDataModel
     {
-        FilterChain<U> filter = new FilterChain<U>();
-        builder.Invoke(filter);
-        Updates.Add(Builder.PullFilter(field, filter.Filter));
+        FilterChain<U> _filter = new FilterChain<U>();
+        filter.Invoke(_filter);
+        Updates.Add(Builder.PullFilter(field, _filter.Filter));
         return this;
     }
     
+    /// <summary>
+    /// Removes nested documents from an enumerable field.
+    /// </summary>
+    /// <param name="field">The enumerable field to remove nested documents from.</param>
+    /// <param name="items">The items to remove.</param>
+    /// <typeparam name="U"></typeparam>
+    /// <returns>The UpdateChain for method chaining.</returns>
     public UpdateChain<T> RemoveItems<U>(Expression<Func<T, IEnumerable<U>>> field, params U[] items)
     {
         Updates.Add(Builder.PullAll(field, items));

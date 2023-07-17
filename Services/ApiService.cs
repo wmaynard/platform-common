@@ -257,7 +257,7 @@ public class ApiService : PlatformService
             { TokenInfo.FRIENDLY_KEY_DISCRIMINATOR, discriminator },
             { TokenInfo.FRIENDLY_KEY_IP_ADDRESS, geoData?.IPAddress },
             { TokenInfo.FRIENDLY_KEY_COUNTRY_CODE, geoData?.CountryCode },
-            { TokenInfo.FRIENDLY_KEY_AUDIENCE, audience },
+            { TokenInfo.FRIENDLY_KEY_PERMISSION_SET, (int)audiences },
             { "days", PlatformEnvironment.IsLocal ? 3650 : 5 }
         };
         int code;
@@ -327,6 +327,7 @@ public class ApiService : PlatformService
                 owner: Owner.Will,
                 impact: ImpactType.ServiceUnusable
             );
+            
             throw;
         }
     }

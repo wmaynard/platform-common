@@ -86,6 +86,9 @@ public class FilterChain<T> where T : PlatformDataModel
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.Eq(field, value));
 
+    public FilterChain<T> Is(Expression<Func<T, bool>> field) => EqualTo(field, true);
+    public FilterChain<T> IsNot(Expression<Func<T, bool>> field) => EqualTo(field, false);
+
     public FilterChain<T> NotEqualTo<U>(Expression<Func<T, U>> field, U value) => 
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.Ne(field, value));

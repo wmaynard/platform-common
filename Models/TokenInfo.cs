@@ -1,13 +1,20 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Data;
+using StackExchange.Redis;
 
 namespace Rumble.Platform.Common.Models;
 
 [BsonIgnoreExtraElements]
 public class TokenInfo : PlatformDataModel
 {
+    private string[] _audiences;
+    
     public const int CACHE_EXPIRATION = 900_000; // 15 minutes
     public const string KEY_TOKEN_OUTPUT = "token";
     public const string KEY_TOKEN_LEGACY_OUTPUT = "tokenInfo";
@@ -26,6 +33,7 @@ public class TokenInfo : PlatformDataModel
     public const string DB_KEY_SCREENNAME = "sn";
     public const string DB_KEY_IP_ADDRESS = "ip";
     public const string DB_KEY_GAME = "gkey";
+    public const string DB_KEY_PERMISSION_SET = "perm";
 
     public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
     public const string FRIENDLY_KEY_AUDIENCE = "audience";
@@ -42,6 +50,7 @@ public class TokenInfo : PlatformDataModel
     public const string FRIENDLY_KEY_SECONDS_REMAINING = "secondsRemaining";
     public const string FRIENDLY_KEY_USERNAME = "username";
     public const string FRIENDLY_KEY_GAME = "game";
+    public const string FRIENDLY_KEY_PERMISSION_SET = "permissions";
     
     // TODO: RequestComponent?  Something to track who requested the token?
     // TODO: HasAccessTo(component) method, based on "aud"
@@ -62,10 +71,32 @@ public class TokenInfo : PlatformDataModel
     [BsonElement(DB_KEY_ACCOUNT_ID)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string AccountId { get; set; }
-    
-    [BsonElement(DB_KEY_AUDIENCE)]
+
+    [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_AUDIENCE)]
-    public string[] Audience { get; set; }
+    public string[] Audience
+    {
+        get
+        {
+            if (_audiences != null)
+                return _audiences;
+            
+            string[] output = Enum.GetValues<Audience>()
+                .Where(aud => aud.IsFlagOf(PermissionSet))
+                .Select(aud => aud.GetDisplayName())
+                .ToArray();
+
+            string wildcard = Enums.Audience.All.GetDisplayName();
+            if (output.Any(str => str == wildcard))
+                output = new [] { wildcard };
+
+            return _audiences = output.ToArray();
+        }
+    }
+    
+    [BsonElement(DB_KEY_PERMISSION_SET)]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PERMISSION_SET)]
+    public int PermissionSet { get; set; }
 
     [BsonElement(DB_KEY_DISCRIMINATOR)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_DISCRIMINATOR), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -126,4 +157,8 @@ public class TokenInfo : PlatformDataModel
     [BsonIgnore]
     [JsonIgnore]
     public bool IsExpired => Expiration <= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    
+    [BsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public Ban[] Bans { get; set; }
 }

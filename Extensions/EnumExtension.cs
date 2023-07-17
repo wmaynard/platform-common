@@ -86,4 +86,11 @@ public static class EnumExtension
 
         return att?.Name ?? obj.ToString();
     }
+
+    public static bool IsFlagOf<T>(this T obj, int value) where T : Enum
+    {
+        int asInt = (int)Convert.ChangeType(obj, typeof(int));
+
+        return (asInt & value) == asInt;
+    }
 }
