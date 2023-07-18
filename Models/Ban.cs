@@ -25,6 +25,10 @@ public class Ban : PlatformDataModel
     [JsonPropertyName("reason")]
     public string Reason { get; set; }
     
+    [BsonElement("id")]
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
+    
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(TokenInfo.FRIENDLY_KEY_AUDIENCE)]
     public string[] Audience
@@ -53,5 +57,7 @@ public class Ban : PlatformDataModel
         
         if (PermissionSet <= 0)
             errors.Add("A valid permission is required for a ban to be effective.");
+
+        Id ??= Guid.NewGuid().ToString();
     }
 }
