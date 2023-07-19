@@ -20,6 +20,8 @@ public class AuthorizationResult
     public const string KEY_GAME_SECRET = "game";
     public const string KEY_RUMBLE_SECRET = "secret";
     
+    public bool AudienceRequired { get; private init; }
+    public bool PermissionsMismatch { get; private init; }
     public bool KeysRequired { get; private init; }
     public bool AdminTokenRequired { get; private init; }
     public bool StandardTokenRequired { get; private init; }
@@ -35,7 +37,7 @@ public class AuthorizationResult
     public string ValidationError { get; private init; }
     public PlatformException Exception { get; private init; }
     
-    public bool TokenRequired => AdminTokenRequired || StandardTokenRequired;
+    public bool TokenRequired => AdminTokenRequired || StandardTokenRequired || AudienceRequired;
     public bool Ok => Optional || Exception == null;
 
     private AuthorizationResult(ActionContext context)
@@ -67,7 +69,6 @@ public class AuthorizationResult
         TokenValidationResult result = ApiService.Instance?.ValidateToken(authorization, context.GetEndpoint(), context.HttpContext);
         Token = result?.Token;
         ValidationError = result?.Error;
-
         
         Optional = context.ControllerHasAttribute<NoAuth>();
         KeysRequired = !Optional && auths.Any(auth => auth.Type == AuthType.RUMBLE_KEYS);
@@ -76,6 +77,16 @@ public class AuthorizationResult
         TokenIsInvalid = !(result?.Success ?? false);
         TokenNotProvided = Token == null;
         KeyMismatch = KeysRequired && (PlatformEnvironment.GameSecret != GameKey || PlatformEnvironment.RumbleSecret != RumbleKey);
+
+        AudienceRequired = !Optional && auths.Any(auth => auth.Type == AuthType.AUDIENCE);
+        if (AudienceRequired)
+        {
+            Audience required = auths
+                .Where(auth => auth.Type == AuthType.AUDIENCE)
+                .Select(auth => auth.Audience)
+                .Aggregate((a, b) => a | b);
+            PermissionsMismatch = !Optional && auths.Any(auth => auth.Type == AuthType.AUDIENCE) && !(Token?.IsValidFor(required) ?? false);
+        }
 
         if (KeyMismatch)
             Exception = new PlatformException("Key mismatch.", code: ErrorCode.KeyValidationFailed);
@@ -87,6 +98,8 @@ public class AuthorizationResult
                 Exception = new PlatformException("Required token was not provided", code: ErrorCode.TokenValidationFailed);
             else if (AdminTokenRequired && (Token?.IsNotAdmin ?? true))
                 Exception = new PlatformException("Required token lacks permission to act on this resource.", code: ErrorCode.TokenValidationFailed);
+            else if (PermissionsMismatch)
+                Exception = new PlatformException("Required token does not have permission for this audience.", code: ErrorCode.TokenValidationFailed);
         }
         
         context.HttpContext.Items[KEY_AUTH_RESULT] = this;

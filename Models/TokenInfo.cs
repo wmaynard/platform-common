@@ -161,4 +161,6 @@ public class TokenInfo : PlatformDataModel
     [BsonIgnore]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public Ban[] Bans { get; set; }
+
+    public bool IsValidFor(Audience audience) => audience.IsFlagOf(PermissionSet);
 }
