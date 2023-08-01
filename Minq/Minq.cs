@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -12,6 +14,7 @@ using MongoDB.Driver.Linq;
 using RCL.Data;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -436,4 +439,146 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     public U[] Project<U>(Expression<Func<T, U>> expression) => new RequestChain<T>(this).Project(expression);
 #endif
+
+    /// <summary>
+    /// Searches all text fields of your model.  Caution: this will create an index on all text fields, which can be
+    /// extremely expensive.  This is a WIP feature; if you need performance, consider writing your own at this time.
+    /// A hard limit of 1000 records is returned currently.  Since the records are not evaluated for relevance before that,
+    /// if your search turns up with more than 1000 results, you may not get the one you're looking for.
+    /// </summary>
+    /// <param name="term">The term to search for.</param>
+    /// <returns>An array of models matching your search.</returns>
+    public T[] Search(string term)
+    {
+        MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
+        Expression<Func<T, object>>[] info = infos
+            .Select(ci =>
+            {
+                try
+                {
+                    UnaryExpression body = Expression.Convert(ci.Accessor, typeof(object));
+                    ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
+                    Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(body, param);
+                    
+
+                    // TODO: By default, the Mongo driver can't handle this.  There's an apparent bug in the following file:
+                    // MongoDB.Driver.Linq.Linq3Implementation.Misc.SymbolTable.
+                    // In TryGetSymbol(), the if condition is:
+                    //     if (s.Parameter == parameter).
+                    // However, this object equality means that only expressions created from Builders<T> work; if you
+                    // create them separately, as we've done here, you'll get an exception.  It's possible to fix this by
+                    // changing the conditional to:
+                    //     if (s.Parameter.Type == parameter.Type)
+                    // Unfortunately, this likely requires us to maintain our own fork.  It's unknown currently if there's
+                    // a way to get Builders<T> to work with us or otherwise let us use our own reflected expressions.
+                    // Render(output);  // this is just a test to see if Mongo can validate our expression.
+                    
+                    return output;
+                }
+                catch (Exception e)
+                {
+                    Log.Warn(Owner.Will, "Unable to create MINQ accessor expression", exception: e);
+                    return null;
+                }
+            })
+            .ToArray();
+
+        RequestChain<T> request = new RequestChain<T>(this);
+
+        foreach (Expression<Func<T, object>> expression in info)
+            request.Or(builder => builder.ContainsSubstring(expression, term));
+
+        request.Limit(1_000);
+
+        List<T> output = request.ToList();
+        // TODO: Weigh and score results, return in descending order.
+        // TODO: Create Search() overload with specific fields
+
+        return output.ToArray();
+    }
+
+    /// <summary>
+    /// Returns an array of objects representing properties and fields of a given type, along with the expression accessor
+    /// required for Mongo.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="ex"></param>
+    /// <returns></returns>
+    private MemberInfoAccess[] GetStringAccessors(IReflect type, Expression ex = null)
+    {
+        List<MemberInfo> members = new List<MemberInfo>();
+        List<MemberInfoAccess> cInfo = new List<MemberInfoAccess>();
+        try
+        {
+            PropertyInfo[] props = type
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Union(type
+                    .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .Where(prop => prop.GetCustomAttribute<BsonElementAttribute>() != null)
+                )
+                .Where(prop => prop.GetCustomAttribute<BsonIgnoreAttribute>() == null)
+                .ToArray();
+
+            FieldInfo[] fields = type
+                .GetFields(BindingFlags.Instance | BindingFlags.Public)
+                .Union(type
+                    .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .Where(field => field.GetCustomAttribute<BsonElementAttribute>() != null)
+                )
+                .Where(prop => prop.GetCustomAttribute<BsonIgnoreAttribute>() == null)
+                .ToArray();
+
+            PropertyInfo[] stringProps = props.Where(prop => prop.PropertyType == typeof(string)).ToArray();
+            FieldInfo[] stringFields = fields.Where(field => field.FieldType == typeof(string)).ToArray();
+
+            members.AddRange(stringProps);
+            members.AddRange(stringFields);
+            
+            cInfo.AddRange(stringProps.Select(sp => new MemberInfoAccess
+            {
+                Accessor = ex == null
+                    ? Expression.Property(Expression.Parameter(typeof(T), typeof(T).Name), sp)
+                    : Expression.Property(ex, sp),
+                Member = sp
+            }));
+            cInfo.AddRange(stringFields.Select(sp => new MemberInfoAccess
+            {
+                Accessor = ex == null
+                    ? Expression.Field(Expression.Parameter(typeof(T), typeof(T).Name), sp)
+                    : Expression.Field(ex, sp),
+                Member = sp
+            }));
+
+            List<MemberInfo> nonPrimitives = new List<MemberInfo>();
+            nonPrimitives.AddRange(props.Where(prop => !prop.PropertyType.IsPrimitive));
+            nonPrimitives.AddRange(fields.Where(field => !field.FieldType.IsPrimitive));
+            nonPrimitives = nonPrimitives.Except(members).ToList();
+
+            foreach (MemberInfo nonPrimitive in nonPrimitives)
+            {
+                MemberExpression expression = null;
+                if (nonPrimitive is PropertyInfo prop)
+                {
+                    expression = ex == null
+                        ? Expression.Property(Expression.Parameter(typeof(T), typeof(T).Name), prop)
+                        : Expression.Property(ex, prop);
+                    cInfo.AddRange(GetStringAccessors(prop.PropertyType, expression));
+                }
+                else if (nonPrimitive is FieldInfo field)
+                {
+                    expression = ex == null
+                        ? Expression.Field(Expression.Parameter(typeof(T), typeof(T).Name), field)
+                        : Expression.Field(ex, field);
+                    
+                    cInfo.AddRange(GetStringAccessors(field.FieldType, expression));
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Warn(Owner.Default, "Unable to parse MemberInfo for search purposes", exception: e);
+        }
+        
+        return cInfo.ToArray();
+    }
 }

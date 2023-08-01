@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
@@ -142,9 +143,31 @@ public class FilterChain<T> where T : PlatformDataModel
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.AnyEq(field, value));
 
+    public FilterChain<T> ContainsSubstring(Expression<Func<T, object>> field, string value, bool ignoreCase = true)
+    {
+        RegexOptions options = RegexOptions.Multiline | RegexOptions.CultureInvariant;
+
+        if (ignoreCase)
+            options |= RegexOptions.IgnoreCase;
+        
+        return Track(field, WEIGHT_EQUALITY)
+            .AddFilter(Builder.Regex(field, new Regex(value, options)));
+    }
+
     public FilterChain<T> DoesNotContain<U>(Expression<Func<T, IEnumerable<U>>> field, U value) => 
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.AnyNe(field, value));
+    
+    public FilterChain<T> DoesNotContainSubstring(Expression<Func<T, object>> field, string value, bool ignoreCase = true)
+    {
+        RegexOptions options = RegexOptions.Multiline | RegexOptions.CultureInvariant;
+
+        if (ignoreCase)
+            options |= RegexOptions.IgnoreCase;
+        
+        return Track(field, WEIGHT_EQUALITY)
+            .AddFilter(Builder.Regex(field, new Regex($"(?s)^(?!.*{value}).*$", options)));
+    }
     
     public FilterChain<T> ElementGreaterThan<U>(Expression<Func<T, IEnumerable<U>>> field, U value) => 
         Track(field, WEIGHT_RANGE)

@@ -26,6 +26,7 @@ namespace Rumble.Platform.Common.Minq;
 public class RequestChain<T> where T : PlatformCollectionDocument
 {
     private readonly string EmptyRenderedFilter = Minq<T>.Render(Builders<T>.Filter.Empty);
+    internal bool FilterIsEmpty => Minq<T>.Render(_filter) == EmptyRenderedFilter;
     
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
@@ -314,7 +315,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     {
         FilterChain<T> or = new FilterChain<T>();
         builder.Invoke(or);
-        _filter = Builders<T>.Filter.Or(_filter, or.Filter);
+        _filter = !FilterIsEmpty
+            ? Builders<T>.Filter.Or(_filter, or.Filter)
+            : or.Filter;
         UpdateIndexWeights(or);
         return this;
     }
