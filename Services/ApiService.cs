@@ -312,7 +312,7 @@ public class ApiService : PlatformService
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "An unexpected error occurred when generating a token.", data: new
+            Log.Error(Owner.Will, "Unable to generate token.", data: new
             {
                 Url = url,
                 Response = json,
@@ -444,9 +444,36 @@ public class ApiService : PlatformService
             {
                 Title = title
             });
+        Alert toSend = new Alert
+        {
+            CreatedOn = Timestamp.UnixTime,
+            Data = data,
+            Escalation = Models.Alerting.Alert.EscalationLevel.None,
+            Origin = PlatformEnvironment.ServiceName,
+            // EscalationPeriod = 0,
+            Impact = impact,
+            LastEscalation = 0,
+            LastSent = 0,
+            Message = message,
+            Owner = owner,
+            Type = type,
+            Trigger = new Trigger
+            {
+                Count = 0,
+                CountRequired = countRequired,
+                Timeframe = timeframe
+            },
+            Status = Models.Alerting.Alert.AlertStatus.Pending,
+            SendAfter = 0,
+            Title = title,
+            ConfluenceLink = confluenceLink
+        };
+        
         Alert output = null;
         try
         {
+            
+            toSend.Validate();
 #if LOCAL
             Request(PlatformEnvironment.Url("http://localhost:5201/alert"))
 #else
@@ -456,42 +483,31 @@ public class ApiService : PlatformService
                 .SetRetries(1)
                 .SetPayload(new RumbleJson
                 {
-                    { "alert", new Alert
-                        {
-                            CreatedOn = Timestamp.UnixTime,
-                            Data = data,
-                            Escalation = Models.Alerting.Alert.EscalationLevel.None,
-                            Origin = PlatformEnvironment.ServiceName,
-                            // EscalationPeriod = 0,
-                            Impact = impact,
-                            LastEscalation = 0,
-                            LastSent = 0,
-                            Message = message,
-                            Owner = owner,
-                            Type = type,
-                            Trigger = new Trigger
-                            {
-                                Count = 0,
-                                CountRequired = countRequired,
-                                Timeframe = timeframe
-                            },
-                            Status = Models.Alerting.Alert.AlertStatus.Pending,
-                            SendAfter = 0,
-                            Title = title,
-                            ConfluenceLink = confluenceLink
-                        }
+                    { "alert", toSend }
+                })
+                .OnSuccess(response =>
+                {
+                    try
+                    {
+                        output = response.Require<Alert>("alert");
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warn(Owner.Will, "An alert was successfully sent, but the response that came back couldn't be parsed", exception: e);
                     }
                 })
-                .OnSuccess(response => output = response.Require<Alert>("alert"))
                 .OnFailure(response => Log.Error(Owner.Will, "Unable to send an alert to alert-service.", data: new RumbleJson
                 {
                     { "response", response }
                 }))
                 .Post();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Log.Error(Owner.Will, "Unable to send alert.");
+            Log.Error(Owner.Will, "Unable to send alert.", data: new
+            {
+                alert = toSend
+            }, exception: ex);
         }
 
 
