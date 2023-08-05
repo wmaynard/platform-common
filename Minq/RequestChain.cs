@@ -869,8 +869,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
             return output;
         }
-        catch
+        catch (Exception e)
         {
+            Log.Error(Owner.Default, "Unable to Upsert due to an exception", exception: e);
             Transaction?.TryAbort();
             return null;
         }

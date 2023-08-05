@@ -20,6 +20,7 @@ using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Data;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Minq;
 
 namespace Rumble.Platform.Common.Services;
 
@@ -551,4 +552,21 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     protected IMongoDatabase GetDatabase(string name) => _client.GetDatabase(name);
 
     protected IMongoCollection<T> GetCollection<T>(string name) where T : PlatformCollectionDocument => _database.GetCollection<T>(name);
+    
+    /// <summary>
+    /// Overridable method to handle incoming GDPR deletion requests.  GDPR requests may contain an account ID, an
+    /// email address, or both - but neither is guaranteed to be present.  When overriding this method, sanitize any
+    /// PII (personally identifiable information), whether by deletion or replacing with dummy text, and return the affected
+    /// record count.
+    /// </summary>
+    /// <param name="token">The token information of the user requesting a deletion request.</param>
+    /// <returns>The affected record count.</returns>
+    public virtual long ProcessGdprRequest(TokenInfo token, string dummyText)
+    {
+        Log.Verbose(Owner.Default, $"A GDPR request was received but no process has been defined", data: new
+        {
+            Service = GetType().Name
+        });
+        return 0;
+    }
 }

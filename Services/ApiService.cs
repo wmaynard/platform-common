@@ -316,7 +316,8 @@ public class ApiService : PlatformService
             {
                 Url = url,
                 Response = json,
-                Code = code
+                Code = code,
+                Request = payload
             }, exception: e);
             
             Alert(
@@ -398,6 +399,28 @@ public class ApiService : PlatformService
             Success = output != null,
             Token = output
         };
+    }
+
+    public bool InvalidateToken(TokenInfo token)
+    {
+        Request("token/admin/invalidate")
+            .AddAuthorization(DynamicConfig.Instance.AdminToken)
+            .SetPayload(new RumbleJson
+            {
+                { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, token.AccountId }
+            })
+            .OnSuccess(_ =>
+            {
+                Log.Local(Owner.Default, $"Token invalidated for {token.AccountId}.");
+                Get(out CacheService cache);
+                cache?.ClearToken(token.AccountId);
+            })
+            .OnFailure(response => Log.Warn(Owner.Default, "Unable to invalidate token", data: new
+            {
+                Token = token
+            }))
+            .Patch();
+        return true;
     }
 
     /// <summary>

@@ -1,14 +1,19 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 using RCL.Logging;
 using RCL.Services;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interfaces;
+using Rumble.Platform.Common.Minq;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -108,4 +113,51 @@ public abstract class PlatformService : IService, IPlatformService
     {
         { Name, "unimplemented" }
     };
+
+    internal static RumbleJson ProcessGdprRequest(TokenInfo token)
+    {
+        RumbleJson output = new RumbleJson();
+        long totalAffected = 0;
+        
+        if (token == null)
+        {
+            Log.Warn(Owner.Default, "A GDPR request came in with no PII to identify records.");
+            return output;
+        }
+
+        string dummyText = $"pii_removed_{Guid.NewGuid().ToString()}";
+        foreach (IGdprHandler service in Registry.Values.OfType<IGdprHandler>())
+        {
+            string name = service.GetType().Name ?? "unknown service";
+
+            long affected = 0;
+            try
+            {
+                affected = service.ProcessGdprRequest(token, dummyText);
+            }
+            catch (Exception e)
+            {
+                Log.Error(Owner.Default, "An exception was thrown during a GDPR request; investigation needed.", data: new
+                {
+                    Service = name,
+                    Token = token
+                }, exception: e);
+            }
+
+            #if DEBUG
+            output[name] = affected;
+            #endif
+            totalAffected += affected;
+        }
+        
+        if (totalAffected <= 0)
+            Log.Warn(Owner.Default, "A PII deletion request came in, but no records were affected; investigation needed.", data: new
+            {
+                Token = token
+            });
+
+        output["affectedDocuments"] = totalAffected;
+
+        return output;
+    }
 }

@@ -260,6 +260,9 @@ public abstract class PlatformController : Controller
         return Ok(output.Sort());
     }
 
+    [HttpDelete, Route(template: "gdpr"), RequireAuth]
+    public ActionResult ProcessGdprRequest() => Ok(PlatformService.ProcessGdprRequest(Token));
+
     protected virtual RumbleJson AdditionalHealthData { get; }
 
     public static object CollectionResponseObject(IEnumerable<object> objects)
