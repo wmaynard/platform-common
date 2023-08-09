@@ -74,13 +74,14 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "The request body or query parameters could not be parsed into RumbleJson, probably as a result of incomplete or invalid JSON.", data: new
+            string message = "The request body or query parameters could not be parsed into RumbleJson, probably as a result of incomplete or invalid JSON, or a 500 error page.";
+            Log.Error(Owner.Default, message, data: new
             {
                 Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
             }, exception: e);
             ApiService.Instance?.Alert(
                 title: "JSON Parse Failure",
-                message: "An incoming request failed to parse into JSON.  This is probably a result of incomplete or invalid JSON, or a 500 error page.",
+                message: message,
                 countRequired: PlatformEnvironment.IsDev ? 120 : 15,
                 timeframe: 600,
                 owner: Owner.Will,

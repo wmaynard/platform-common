@@ -78,7 +78,7 @@ public class ApiService : PlatformService
             {
                 if (code != -1)
                 {
-                    Log.Verbose(Owner.Will, $"Request failed; retrying.", data: new
+                    Log.Local(Owner.Will, $"Request failed; retrying in {request.ExponentialBackoffMs}ms", data: new
                     {
                         BackoffMS = request.ExponentialBackoffMs,
                         RetriesRemaining = request.Retries,
@@ -89,7 +89,7 @@ public class ApiService : PlatformService
 
                 response = await HttpClient.SendAsync(request);
                 code = (int)response.StatusCode;
-            } while ((code.Between(500, 599) || code.Between(300, 399)) && --request.Retries > 0);
+            } while ((code.Between(500, 599) || code.Between(300, 399)) && request.Retries-- > 0);
         }
         catch (Exception e)
         {
@@ -267,6 +267,7 @@ public class ApiService : PlatformService
 
         Request(url)
             .AddAuthorization(adminToken)
+            .SetRetries(5)
             .SetPayload(payload)
             .OnSuccess(_ => ConfigService.Instance?.Set(KEY_LAST_TOKEN_GENERATED, Timestamp.UnixTime))
             .OnFailure(response =>
@@ -312,14 +313,6 @@ public class ApiService : PlatformService
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "Unable to generate token.", data: new
-            {
-                Url = url,
-                Response = json,
-                Code = code,
-                Request = payload
-            }, exception: e);
-            
             Alert(
                 title: "Token Generation Failure",
                 message: "Tokens are not able to be generated from the ApiService.",
@@ -365,7 +358,7 @@ public class ApiService : PlatformService
             Request(PlatformEnvironment.Url($"/token/validate?origin={PlatformEnvironment.ServiceName}&endpoint={endpoint}"))
 #endif
                 .AddAuthorization(encryptedToken)
-                .SetRetries(0)
+                .SetRetries(5)
                 .OnFailure(response =>
                 {
                     message = response?.AsRumbleJson?.Optional<string>("message");
