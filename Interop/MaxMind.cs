@@ -32,8 +32,8 @@ public static class MaxMind
     {
         try
         {
-            Filename ??= DynamicConfig.Instance?.Optional<string>("Maxmind_Bucket") ?? FALLBACK_BUCKET;
-            BucketName ??= DynamicConfig.Instance?.Optional<string>("Maxmind_Filename") ?? FALLBACK_FILENAME;
+            Filename ??= DynamicConfig.Instance?.Optional<string>("Maxmind_Bucket") ?? FALLBACK_FILENAME;
+            BucketName ??= DynamicConfig.Instance?.Optional<string>("Maxmind_Filename") ?? FALLBACK_BUCKET;
         }
         catch (Exception e)
         {
