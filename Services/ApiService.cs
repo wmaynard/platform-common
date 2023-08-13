@@ -148,15 +148,23 @@ public class ApiService : PlatformService
     /// a selective ban will still allow a player to generate tokens; those tokens just won't have permissions to use certain
     /// services (e.g. Leaderboards).
     /// </param>
-    public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All) =>
+    public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All)
+    {
+        RumbleJson payload = new RumbleJson
+        {
+            { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
+            {
+                "ban", new RumbleJson
+                {
+                    { TokenInfo.FRIENDLY_KEY_PERMISSION_SET, audiences },
+                    { "expiration", duration }
+                }
+            },
+        };
+        
         Request("/token/admin/ban")
             .AddAuthorization(DynamicConfig.Instance?.AdminToken)
-            .SetPayload(new RumbleJson
-            {
-                { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
-                { TokenInfo.FRIENDLY_KEY_AUDIENCE, audiences }, // placeholder until token-service supports it
-                { "duration", duration }
-            })
+            .SetPayload(payload)
             .OnSuccess(response => Log.Info(Owner.Default, $"An account has been banned.", data: new
             {
                 AccountId = accountId
@@ -167,6 +175,7 @@ public class ApiService : PlatformService
                 {
                     AccountId = accountId,
                     Help = "This could be an admin token permissions issue or other failure.",
+                    Payload = payload,
                     Response = response.AsRumbleJson
                 };
                 if (PlatformEnvironment.IsProd)
@@ -175,7 +184,8 @@ public class ApiService : PlatformService
                     Log.Error(Owner.Default, "Unable to ban player.", data);
             })
             .Patch();
-    
+    }
+
     /// <summary>
     /// Tells token-service to unban the player in question.  This restores token generation for that account.
     /// Your service's admin token must have permissions to interact with token-service to do this.
