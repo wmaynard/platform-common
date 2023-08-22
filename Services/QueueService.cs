@@ -102,7 +102,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         filter: config => config.Type == TaskData.TaskType.Config,
         update: Builders<QueueConfig>.Update
             .Set(config => config.PrimaryServiceId, Id)
-            .Set(config => config.LastActive, Timestamp.UnixTimeMS)
+            .Set(config => config.LastActive, Timestamp.UnixTimeMs)
     );
 
     protected void DeleteAcknowledgedTasks() => _work.DeleteMany(task => task.Status == QueuedTask.TaskStatus.Acknowledged);
@@ -128,21 +128,16 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     if (!WorkPerformed(StartNewTask()))
                         break;
 
-                if (TryEmptyWaitlist() ||
-                    _sendTaskResultsWhenTheyAreCompleted)
+                if (TryEmptyWaitlist() || _sendTaskResultsWhenTheyAreCompleted)
                     try
                     {
                         if (!_sendTaskResultsWhenTheyAreCompleted)
-                        {
                             Log.Verbose(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
-                        }
 
                         T[] tasks = AcknowledgeTasks();
 
                         if (tasks.Length > 0)
-                        {
                             OnTasksCompleted(tasks);
-                        }
                     }
                     catch (Exception e)
                     {
@@ -207,7 +202,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 filter: config => true,
                 update: Builders<QueueConfig>.Update.PullFilter(
                     field: config => config.Waitlist,
-                    filter: Builders<string>.Filter.Where(id => successes.Contains(id))
+                    filter: Builders<string>.Filter.In(id => id, successes)
                 )
             ).ModifiedCount;
         
@@ -321,7 +316,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         filter: filter,
         update: Builders<QueuedTask>.Update.Combine(
             Builders<QueuedTask>.Update.Set(field: task => task.ClaimedBy, Id),
-            Builders<QueuedTask>.Update.Set(field: task => task.ClaimedOn, Timestamp.UnixTimeMS),
+            Builders<QueuedTask>.Update.Set(field: task => task.ClaimedOn, Timestamp.UnixTimeMs),
             Builders<QueuedTask>.Update.Set(field: task => task.Status, QueuedTask.TaskStatus.Claimed)
     ));
 
@@ -339,7 +334,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     private void DeleteOldTasks() => _work.DeleteMany(filter: Builders<QueuedTask>.Filter.And(
         Builders<QueuedTask>.Filter.Eq(task => task.Type, TaskData.TaskType.Work),
         Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Succeeded),
-        Builders<QueuedTask>.Filter.Lte(task => task.CreatedOn, Timestamp.UnixTimeMS - RETENTION_MS)
+        Builders<QueuedTask>.Filter.Lte(task => task.CreatedOn, Timestamp.UnixTimeMs - RETENTION_MS)
     ));
 
     /// <summary>
@@ -454,12 +449,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             Builders<QueueConfig>.Filter.Or(
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
-                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, Timestamp.UnixTimeMS - MS_TAKEOVER)
+                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, Timestamp.UnixTimeMs - MS_TAKEOVER)
             )
         ),
         update: Builders<QueueConfig>.Update.Combine(
             Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id),
-            Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMS)
+            Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMs)
         )
     ).ModifiedCount > 0;
 
@@ -528,7 +523,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         _config.UpdateOne(
             filter: Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
             update: Builders<QueueConfig>.Update.Combine(
-                Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMS),
+                Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMs),
                 Builders<QueueConfig>.Update.Set(config => config.Settings, new RumbleJson())
             ),
             options: new UpdateOptions
@@ -673,7 +668,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [CompoundIndex(GROUP_KEY_STATUS, priority: 2)]
         internal TaskType Type { get; set; }
 
-        protected TaskData() => CreatedOn = Timestamp.UnixTimeMS;
+        protected TaskData() => CreatedOn = Timestamp.UnixTimeMs;
     
         internal enum TaskType
         {

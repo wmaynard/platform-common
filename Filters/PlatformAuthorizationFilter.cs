@@ -46,7 +46,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             endpoint: context.GetEndpoint()
         );
 
-        context.Result = new BadRequestObjectResult(new ErrorResponse(
+        context.Result = new UnauthorizedObjectResult(new ErrorResponse(
             message: "unauthorized",
             data: auth.Exception,
             code: auth.Exception.Code

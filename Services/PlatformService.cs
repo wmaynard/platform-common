@@ -32,7 +32,7 @@ public abstract class PlatformService : IService, IPlatformService
     
     [BsonIgnore]
     [JsonIgnore]
-    public static long UnixTimeMS => Timestamp.UnixTimeMS;
+    public static long UnixTimeMS => Timestamp.UnixTimeMs;
 
     protected PlatformService(IServiceProvider services = null)
     {

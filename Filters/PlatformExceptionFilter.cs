@@ -17,6 +17,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Data;
 using Rumble.Platform.Data.Exceptions;
 
@@ -55,12 +56,16 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
             _ => $"Unhandled or unexpected exception. ({ex.GetType().Name})"
         };
         ErrorCode code = ErrorCode.RuntimeException;
+        InvalidTokenException tokenEx = null;
         if (ex is PlatformException platEx)
         {
             code = platEx.Code;
             data = platEx.Data;
             if (platEx.InnerException is ModelValidationException modelEx)
                 platEx.Data["errors"] = modelEx.Errors;
+
+            if (platEx is InvalidTokenException exception)
+                tokenEx = exception;
         }
 
         data["endpoint"] = context.GetEndpoint();
@@ -84,7 +89,14 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
         else
             Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
         
-        context.Result = new BadRequestObjectResult(new ErrorResponse(
+        if (tokenEx != null)
+            context.Result = new UnauthorizedObjectResult(new ErrorResponse(
+                message: "unauthorized",
+                data: tokenEx,
+                code: tokenEx.Code
+            ));
+        else
+            context.Result = new BadRequestObjectResult(new ErrorResponse(
             message: message,
             data: ex,
             code: code

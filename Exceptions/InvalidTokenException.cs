@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -20,11 +21,11 @@ public class InvalidTokenException : PlatformException
   
     [JsonInclude]
     public string VerificationEndpoint { get; private set; }
-    public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner)
+    public InvalidTokenException(string token, string endpoint, Exception inner = null) : base("Token is invalid.", inner, ErrorCode.Unauthorized)
     {
-      EncryptedToken = token?.Replace("Bearer ", "");
-      EmptyToken = string.IsNullOrEmpty(token);
-      VerificationEndpoint = endpoint;
+        EncryptedToken = token?.Replace("Bearer ", "");
+        EmptyToken = string.IsNullOrEmpty(token);
+        VerificationEndpoint = endpoint;
     }
 
     public InvalidTokenException(string token, TokenInfo info, string endpoint, Exception inner = null) 

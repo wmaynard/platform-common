@@ -18,7 +18,8 @@ public class CacheService : PlatformTimerService
     private const int MAX_CACHE_TIME_MS = 21_600_000; // 1 hour
     private RumbleJson Values { get; set; }
     private ConcurrentDictionary<string, long> Expirations { get; set; }
-    public static CacheService Instance { get; private set; } 
+    public static CacheService Instance { get; private set; }
+    public EventHandler<RumbleJson> OnObjectsRemoved;
 
     public CacheService() : base(intervalMS: 5_000, true)
     {
@@ -48,7 +49,7 @@ public class CacheService : PlatformTimerService
             expirationMS = MAX_CACHE_TIME_MS;
         }
         Values[key] = value;
-        Expirations[key] = Timestamp.UnixTimeMS + expirationMS;
+        Expirations[key] = Timestamp.UnixTimeMs + expirationMS;
     }
 
     public bool Clear(string key = null)
@@ -88,16 +89,21 @@ public class CacheService : PlatformTimerService
 
     protected override void OnElapsed()
     {
-        int removals = 0;
-        foreach (string key in Expirations.Where(pair => pair.Value <= Timestamp.UnixTimeMS).Select(pair => pair.Key))
+        RumbleJson removals = new RumbleJson();
+        foreach (string key in Expirations.Where(pair => pair.Value <= Timestamp.UnixTimeMs).Select(pair => pair.Key))
             try
             {
                 Expirations.Remove(key, out _);
-                Values.Remove(key, out _);
-                removals++;
+                Values.Remove(key, out object value);
+                removals[key] = value;
             }
             catch { }
-        if (removals > 0)
-            Log.Local(Owner.Default, $"Removed {removals} objects from the cache.");
+
+        if (removals.Count == 0)
+            return;
+        
+        Log.Local(Owner.Default, $"Removed {removals} objects from the cache.");
+        OnObjectsRemoved?.Invoke(this, removals);
+        
     }
 }

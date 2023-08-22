@@ -645,7 +645,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         try
         {
-            long start = Timestamp.UnixTimeMS;
+            long start = Timestamp.UnixTimeMs;
             int page = 0;
             
             BatchData<T> args;
@@ -665,7 +665,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 page++;
             } while (args.Continue);
     
-            long timeTaken = Timestamp.UnixTimeMS - start;
+            long timeTaken = Timestamp.UnixTimeMs - start;
             
             if (UsingTransaction && timeTaken > 20_000)
                 Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
@@ -830,6 +830,49 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         {
             Transaction?.TryAbort();
             return null;
+        }
+    }
+    
+    /// <summary>
+    /// Attempts to update a single record that matches your filter.  If no record was affected, one will be created, matching
+    /// the specified update and filter.
+    /// </summary>
+    /// <param name="query">A lambda expression for an update chain builder.</param>
+    /// <returns>The model that was updated or inserted (post-update).</returns>
+    /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
+    /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
+    public long UpsertMany(Action<UpdateChain<T>> query = null)
+    {
+        WarnOnUnusedCache(nameof(Count));
+        Consume();
+
+        if (ShouldAbort(nameof(Upsert)))
+            return default;
+
+        UpdateChain<T> updateChain = new UpdateChain<T>();
+        query?.Invoke(updateChain);
+        _update = updateChain.Update;
+
+        UpdateOptions options = new UpdateOptions
+        {
+            IsUpsert = true
+        };
+
+        try
+        {
+            long output = UsingTransaction
+                ? _collection.UpdateMany(Transaction.Session, _filter, _update, options).ModifiedCount
+                : _collection.UpdateMany(_filter, _update, options).ModifiedCount;
+
+            FireAffectedEvent(output);
+
+            return output;
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Default, "Unable to UpsertMany due to an exception", exception: e);
+            Transaction?.TryAbort();
+            return 0;
         }
     }
 
