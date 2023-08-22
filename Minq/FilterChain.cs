@@ -154,6 +154,28 @@ public class FilterChain<T> where T : PlatformDataModel
             .AddFilter(Builder.Regex(field, new Regex(value, options)));
     }
 
+    public FilterChain<T> StartsWith(Expression<Func<T, object>> field, string value, bool ignoreCase = true)
+    {
+        RegexOptions options = RegexOptions.Multiline | RegexOptions.CultureInvariant;
+
+        if (ignoreCase)
+            options |= RegexOptions.IgnoreCase;
+        
+        return Track(field, WEIGHT_EQUALITY)
+            .AddFilter(Builder.Regex(field, new Regex($"^{value}", options)));
+    }
+    
+    public FilterChain<T> EndsWith(Expression<Func<T, object>> field, string value, bool ignoreCase = true)
+    {
+        RegexOptions options = RegexOptions.Multiline | RegexOptions.CultureInvariant;
+
+        if (ignoreCase)
+            options |= RegexOptions.IgnoreCase;
+        
+        return Track(field, WEIGHT_EQUALITY)
+            .AddFilter(Builder.Regex(field, new Regex($"{value}$", options)));
+    }
+
     public FilterChain<T> DoesNotContain<U>(Expression<Func<T, IEnumerable<U>>> field, U value) => 
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.AnyNe(field, value));
