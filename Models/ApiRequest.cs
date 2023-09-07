@@ -34,6 +34,8 @@ public class ApiRequest
     internal RumbleJson Response { get; private set; }
     internal HttpMethod Method { get; private set; }
     internal RumbleJson Parameters { get; private set; }
+    private string _payloadPrefix;
+    private string _payloadSuffix;
     private readonly ApiService _apiService;
     public int Retries { get; internal set; }
     private int _originalRetries;
@@ -117,7 +119,13 @@ public class ApiRequest
         return this;
     }
 
-    public ApiRequest AddHeader(string key, string value) => AddHeaders(new RumbleJson() { { key, value } });
+    public ApiRequest AddDigestAuth(string url, string username, string password)
+    {
+        _apiService.AddDigestAuth(url, username, password);
+        return this;
+    }
+
+    public ApiRequest AddHeader(string key, string value) => AddHeaders(new RumbleJson { { key, value } });
 
     public ApiRequest AddHeaders(RumbleJson headers)
     {
@@ -133,6 +141,19 @@ public class ApiRequest
     public ApiRequest AddParameters(RumbleJson parameters)
     {
         Parameters.Combine(other: parameters, prioritizeOther: true);
+        return this;
+    }
+
+    /// <summary>
+    /// Some external APIs may require, for example, a body to be encapsulated in an array.  Use this method to accomplish that.
+    /// </summary>
+    /// <param name="prefix">The string you want to be added to the beginning of your RumbleJson request body.</param>
+    /// <param name="suffix">The string you want to be added to the end of your RumbleJson request body.</param>
+    /// <returns></returns>
+    public ApiRequest EncapsulatePayload(string prefix, string suffix)
+    {
+        _payloadPrefix = prefix;
+        _payloadSuffix = suffix;
         return this;
     }
 
@@ -322,7 +343,7 @@ public class ApiRequest
             if (NO_BODY.Contains(request.Method))
                 return output;
 
-            output.Content = new StringContent(request.Payload?.Json ?? "{}");
+            output.Content = new StringContent($"{request._payloadPrefix}{(request.Payload?.Json ?? "{}")}{request._payloadSuffix}");
             output.Content.Headers.Remove("Content-Type");
             output.Content.Headers.Add("Content-Type", "application/json");
 

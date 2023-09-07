@@ -25,6 +25,7 @@ public class ApiService : PlatformService
 {
     public static ApiService Instance { get; private set; }
     private HttpClient HttpClient { get; init; }
+    private CredentialCache CredentialCache { get; init; }
     internal RumbleJson DefaultHeaders { get; init; }
 
     private Dictionary<long, long> StatusCodes { get; init; }
@@ -33,9 +34,11 @@ public class ApiService : PlatformService
     public ApiService()
     {
         Instance = this;
+        CredentialCache = new CredentialCache();
         HttpClient = new HttpClient(new HttpClientHandler
         {
-            AutomaticDecompression = DecompressionMethods.All
+            AutomaticDecompression = DecompressionMethods.All,
+            Credentials = CredentialCache
         });
 
         AssemblyName exe = Assembly.GetExecutingAssembly().GetName();
@@ -46,6 +49,16 @@ public class ApiService : PlatformService
             { "Accept-Encoding", "gzip, deflate, br" }
         };
         StatusCodes = new Dictionary<long, long>();
+    }
+
+    internal void AddDigestAuth(string url, string username, string password)
+    {
+        const string TYPE = "Digest";
+        
+        Uri uri = new Uri(url);
+        if (CredentialCache.GetCredential(uri, TYPE) != null)
+            CredentialCache.Remove(uri, TYPE);
+        CredentialCache.Add(uri, authType: TYPE, cred: new NetworkCredential(username, password));
     }
 
     internal async Task<HttpResponseMessage> MultipartFormPost(string url, MultipartFormDataContent content) => await HttpClient.PostAsync(url, content);

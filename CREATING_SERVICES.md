@@ -121,11 +121,11 @@ All .NET Platform projects should conform to the same base structure.  While you
 }
 ```
 
-6. Finally, right click on your project > Edit > `Edit pet-shop-service.csproj`.  Edit the `<PropertyGroup>` sectionto match the following:
+6. Finally, right click on your project > Edit > `Edit pet-shop-service.csproj`.  Edit the `<PropertyGroup>` section to match the following:
 
 ```
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 		<Nullable>disable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Rumble.Platform.PetShopService</RootNamespace>
