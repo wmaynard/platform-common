@@ -136,7 +136,7 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonPropertyName("commonVersion")]
     public string CommonVersion { get; init; }
 
-    [JsonInclude, JsonPropertyName("throttleDetails")]
+    [JsonInclude, JsonPropertyName("throttleDetails"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] 
     public RumbleJson ThrottleDetails { get; private set; }
 
     private Log(LogType type, Owner owner, Exception exception = null)

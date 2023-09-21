@@ -334,7 +334,7 @@ public class ApiService : PlatformService
         {
             throw new TokenGenerationException("Response was null.");
         }
-        catch (Exception e)
+        catch (Exception)
         {
             Alert(
                 title: "Token Generation Failure",
