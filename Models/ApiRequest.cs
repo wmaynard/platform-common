@@ -233,6 +233,9 @@ public class ApiRequest
 
     private ApiResponse Send(HttpMethod method, out RumbleJson result, out int code)
     {
+        // When consuming internal services, add our current service name so we know where the request came from.
+        if (Url.Contains(PlatformEnvironment.ClusterUrl))
+            AddParameter("origin", PlatformEnvironment.ServiceName);
         Task<ApiResponse> task = SendAsync(method);
         task.Wait();
         ApiResponse output = task.Result;
