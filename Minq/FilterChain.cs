@@ -16,7 +16,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Minq;
 
-public class FilterChain<T> where T : PlatformDataModel
+public class FilterChain<T>
 {
     private const int WEIGHT_EQUALITY = -1;
     private const int WEIGHT_RANGE = 5;

@@ -8,7 +8,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Minq;
 
-public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCollectionDocument
+public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCollectionDocument, new()
 {
     private const int ONE_HOUR = 3_600_000;
     private const int FAILURE_TOLERANCE = 100;

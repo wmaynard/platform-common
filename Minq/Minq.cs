@@ -259,6 +259,8 @@ public class Minq<T> where T : PlatformCollectionDocument
         return new RequestChain<T>(this, filter);
     }
 
+    public RequestChain<T> ExactId(string id) => Where(query => query.EqualTo(doc => doc.Id, id));
+
     /// <summary>
     /// Returns a request that will affect all records on the database.  You can override this with further queries,
     /// but if you're going to do that, there's no point to this call.
@@ -313,7 +315,7 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     public bool Update(T document, bool insertIfNotFound = true) => Collection.ReplaceOne(
         filter: $"{{_id:ObjectId('{document.Id}')}}", 
-        replacement: document, options: new ReplaceOptions()
+        replacement: document, options: new ReplaceOptions
         {
             IsUpsert = insertIfNotFound
         }
@@ -439,6 +441,46 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     public U[] Project<U>(Expression<Func<T, U>> expression) => new RequestChain<T>(this).Project(expression);
 #endif
+
+    /// <summary>
+    /// Removes elements from a collection using a filter chain for an embedded object.  Note that this affects all
+    /// documents in the database.
+    /// </summary>
+    /// <param name="model">An expression that selects the collection object to query.</param>
+    /// <param name="query">The query to build the filter to remove items.</param>
+    /// <typeparam name="U"></typeparam>
+    /// <returns>The count of objects removed from all documents.</returns>
+    /// TODO: Add this to RequestChain to enable Transactions
+    public long RemoveElements<U>(Expression<Func<T, IEnumerable<U>>> model, Action<FilterChain<U>> query)
+    {
+        FilterChain<U> filter = new FilterChain<U>();
+        query.Invoke(filter);
+        
+        return Collection
+            .UpdateMany(
+                filter: Builders<T>.Filter.ElemMatch(model, filter.Filter),
+                update: Builders<T>.Update.PullFilter(model, filter.Filter)
+            ).ModifiedCount;
+    }
+
+    /// <summary>
+    /// Replaces the document in the database.  Note that this does not insert a document if one does not exist. 
+    /// </summary>
+    /// <param name="document"></param>
+    /// TODO: Add to RequestChain to enable transactions.
+    public void Replace(T document)
+    {
+        Collection.ReplaceOne(Builders<T>.Filter.Eq(dbDocument => dbDocument.Id, document.Id), document, new ReplaceOptions
+        {
+            IsUpsert = false
+        });
+    }
+
+    // public long RemoveElements<U>(Expression<Func<T, IEnumerable<U>>> query, FilterDefinition<U> filter) => Collection
+    //     .UpdateMany(
+    //         filter: Builders<T>.Filter.ElemMatch(query, filter),
+    //         update: Builders<T>.Update.PullFilter(query, filter)
+    //     ).ModifiedCount;
 
     /// <summary>
     /// Searches all text fields of your model.  Caution: this will create an index on all text fields, which can be

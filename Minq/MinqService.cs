@@ -7,7 +7,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Minq;
 
-public abstract class MinqService<Model> : PlatformService, IGdprHandler where Model : PlatformCollectionDocument
+public abstract class MinqService<Model> : PlatformService, IGdprHandler where Model : PlatformCollectionDocument, new()
 {
     protected readonly Minq<Model> mongo;
     
@@ -15,12 +15,27 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
 
     public void Insert(params Model[] models) => mongo.Insert(models);
     public void Update(Model model) => mongo.Update(model);
-    
-    public Model FromId(string id) => mongo
+
+    public virtual Model FromId(string id) => mongo
         .Where(query => query.EqualTo(model => model.Id, id))
         .Limit(1)
         .ToList()
         .FirstOrDefault();
+    
+    public virtual Model FromIdUpsert(string id)
+    {
+        Model output = FromId(id);
+
+        if (output != null)
+            return output;
+        
+        output = new Model();
+        mongo.Insert(output);
+
+        return output;
+    }
+
+    // public void Replace(Model model) => mongo.Replace(model); // Obsolete with Update(Model)
     
     /// <summary>
     /// Overridable method to handle incoming GDPR deletion requests.  GDPR requests may contain an account ID, an

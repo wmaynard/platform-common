@@ -4,12 +4,12 @@
 		<RootNamespace>Rumble.Platform.Common</RootNamespace>
 		<RepositoryUrl>https://github.com/cdre/platform-csharp-common</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.3.87</PackageVersion>
+		<PackageVersion>1.3.88</PackageVersion>
 		<Title>Rumble Platform Common</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 	  <LangVersion>10</LangVersion>
 	  <TargetFramework>net7.0</TargetFramework>
-	  <AssemblyVersion>1.3.87</AssemblyVersion>
+	  <AssemblyVersion>1.3.88</AssemblyVersion>
 	  <Company>Rumble Entertainment</Company>
 	  <Configurations>Debug;Release;Local</Configurations>
 	  <Platforms>AnyCPU</Platforms>
@@ -29,7 +29,7 @@
 	  <PackageReference Include="AWSSDK.S3" Version="3.7.201.12" />
 	  <PackageReference Include="MaxMind.Db" Version="3.0.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
-	  <PackageReference Include="rumble-json" Version="1.0.13" />
+	  <PackageReference Include="rumble-json" Version="1.0.14" />
 	  <PackageReference Include="RumbleCore" Version="1.0.23" />
 	  <PackageReference Include="StackExchange.Redis" Version="2.2.79" />
 	</ItemGroup>
