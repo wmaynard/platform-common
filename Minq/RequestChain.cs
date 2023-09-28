@@ -195,14 +195,19 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
     
     #region Chainables
+
     /// <summary>
     /// Used to combine method chains for a request.  Moderately discouraged to use this, as you can accomplish more
     /// readable queries by just using the initial FilterChain instead.
     /// </summary>
     /// <param name="builder">A filter method chain.</param>
+    /// <param name="condition">If this is specified, the FilterChain will only be added when it evaluates to true.</param>
     /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> And(Action<FilterChain<T>> builder)
+    public RequestChain<T> And(Action<FilterChain<T>> builder, bool condition = true)
     {
+        if (!condition)
+            return this;
+        
         FilterChain<T> and = new FilterChain<T>();
         builder.Invoke(and);
         _filter = Builders<T>.Filter.And(_filter, and.Filter);
@@ -257,9 +262,13 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// prior filter chains.
     /// </summary>
     /// <param name="builder">A filter method chain.</param>
+    /// <param name="condition">If this is specified, the FilterChain will only be added when it evaluates to true.</param>
     /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Not(Action<FilterChain<T>> builder)
+    public RequestChain<T> Not(Action<FilterChain<T>> builder, bool condition = true)
     {
+        if (!condition)
+            return this;
+        
         FilterChain<T> not = new FilterChain<T>();
         builder.Invoke(not);
         
@@ -310,9 +319,13 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// it's more readable to just use a second MINQ chain entirely.
     /// </summary>
     /// <param name="builder">A filter method chain.</param>
+    /// <param name="condition">If this is specified, the FilterChain will only be added when it evaluates to true.</param>
     /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> Or(Action<FilterChain<T>> builder)
+    public RequestChain<T> Or(Action<FilterChain<T>> builder, bool condition = true)
     {
+        if (!condition)
+            return this;
+        
         FilterChain<T> or = new FilterChain<T>();
         builder.Invoke(or);
         _filter = !FilterIsEmpty
@@ -788,6 +801,88 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return 0;
         }
     }
+
+    /// <summary>
+    /// Performs an update on all documents matching your specified filter, then returns the modified documents.  Note
+    /// that you can't set the same field twice with the same chain; for non-primitive types like arrays this will throw an exception.
+    /// IMPORTANT: There is a platform-common-enforced hard cap of 10k documents when using this.  If more than 10k
+    /// documents are found, this will throw an exception.  This is a performance limitation, as returning >10k documents
+    /// can easily overwhelm consuming services.
+    /// </summary>
+    /// <param name="query">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
+    /// <param name="affected">The number of records affected by the update.</param>
+    /// <returns>The number of records affected by the update.</returns>
+    /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
+    /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
+    public T[] UpdateAndReturn(Action<UpdateChain<T>> query, out long affected)
+    {
+        const int MAX_LIMIT = 10_000;
+        WarnOnUnusedCache(nameof(UpdateAndReturn));
+        Consume();
+        
+        if (_limit == 0)
+            Log.Warn(Owner.Will, $"Use {nameof(Limit)}() to avoid a potential performance issue with {nameof(UpdateAndReturn)}() with large data sets.", data: new
+            {
+                maxLimit = MAX_LIMIT
+            });
+
+        affected = 0;
+
+        if (ShouldAbort(nameof(UpdateAndReturn)))
+            return Array.Empty<T>();
+        
+        string[] ids = FindWithLimitAndSort()
+            .Project(Builders<T>.Projection.Expression(model => model.Id))
+            .ToList()
+            .ToArray();
+
+        if (ids.Length > MAX_LIMIT)
+            throw new PlatformException($"More documents found than are supported by {nameof(UpdateAndReturn)}.  Limit your query, or use {nameof(Update)}.");
+        
+        UpdateChain<T> updateChain = new UpdateChain<T>();
+        query.Invoke(updateChain);
+        _update = updateChain.Update;
+
+        try
+        {
+            FilterDefinition<T> filter = Builders<T>.Filter.In(document => document.Id, ids);
+            affected = (UsingTransaction
+                ? _collection.UpdateMany(Transaction.Session, filter, _update)
+                : _collection.UpdateMany(filter, _update)).ModifiedCount;
+
+            return _collection
+                .Find(filter)
+                .ToList()
+                .ToArray();
+        }
+        catch (MongoWriteException)
+        {
+            Transaction?.TryAbort();
+            if (Transaction != null)
+                affected = 0;
+            return Array.Empty<T>();
+        }
+        catch (MongoException)
+        {
+            Transaction?.TryAbort();
+            if (Transaction != null)
+                affected = 0;
+            return Array.Empty<T>();
+        }
+    }
+
+    /// <summary>
+    /// Performs an update on all documents matching your specified filter, then returns the modified documents.  Note
+    /// that you can't set the same field twice with the same chain; for non-primitive types like arrays this will throw an exception.
+    /// IMPORTANT: There is a platform-common-enforced hard cap of 10k documents when using this.  If more than 10k
+    /// documents are found, this will throw an exception.  This is a performance limitation, as returning >10k documents
+    /// can easily overwhelm consuming services.
+    /// </summary>
+    /// <param name="query">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
+    /// <returns>The number of records affected by the update.</returns>
+    /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
+    /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
+    public T[] UpdateAndReturn(Action<UpdateChain<T>> query) => UpdateAndReturn(query, out _);
     
     
     /// <summary>

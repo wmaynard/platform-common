@@ -266,7 +266,7 @@ public class FilterChain<T>
     
     public FilterChain<T> LengthLessThan(Expression<Func<T, object>> field, int size) => 
         Track(field, WEIGHT_RANGE)
-            .AddFilter(Builder.SizeLt(field, size));
+        .AddFilter(Builder.SizeLt(field, size));
     
     public FilterChain<T> LengthLessThanOrEqualTo(Expression<Func<T, object>> field, int size) =>
         Track(field, WEIGHT_RANGE)
