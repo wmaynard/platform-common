@@ -162,5 +162,20 @@ public class TokenInfo : PlatformDataModel
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public Ban[] Bans { get; set; }
 
-    public bool IsValidFor(Audience audience) => audience.IsFlagOf(PermissionSet);
+    public bool IsValidFor(Audience audience) => IsValidFor(audience, out _);
+    
+    public bool IsValidFor(Audience audience, out long? bannedUntil)
+    {
+        bannedUntil = null;
+        bool output = audience.IsFlagOf(PermissionSet);
+
+        if (!output && Bans != null && Bans.Any())
+            bannedUntil = Bans
+                .Where(ban => audience.IsFlagOf(ban.PermissionSet))
+                .Where(ban => ban.Expiration != null)
+                .MaxBy(ban => ban.Expiration)
+                ?.Expiration;
+
+        return output;
+    } 
 }

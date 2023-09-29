@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
+using Pipelines.Sockets.Unofficial.Arenas;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
@@ -87,6 +88,11 @@ public class AuthorizationResult
                 .Aggregate((a, b) => a | b);
             PermissionsMismatch = !Optional && auths.Any(auth => auth.Type == AuthType.AUDIENCE) && !(Token?.IsValidFor(required) ?? false);
         }
+
+        // PLATF-6462: This piece of code was missing from Bans V2.  Consequently, a banned account wasn't actually being
+        // checked to see whether or not it was valid.
+        if (Token != null)
+            PermissionsMismatch |= !Token.IsValidFor(PlatformEnvironment.ProjectAudience);
 
         if (KeyMismatch)
             Exception = new PlatformException("Key mismatch.", code: ErrorCode.KeyValidationFailed);

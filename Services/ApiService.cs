@@ -324,6 +324,17 @@ public class ApiService : PlatformService
 
         try
         {
+            // PLATF-6462: Second part to fixing the bans; when a service is requesting a new token be generated and includes
+            // itself in the token audiences, we need to reject the token's distribution.  If the requested audience does NOT
+            // include the current service, we can assume it's generating a token for other use cases, and may in fact still
+            // be valid - for example, DMZ creating admin tokens.
+            if (PlatformEnvironment.ProjectAudience != default && audiences.HasFlag(PlatformEnvironment.ProjectAudience))
+            {
+                TokenInfo token = json.Require<TokenInfo>("tokenInfo");
+                if (!token.IsValidFor(PlatformEnvironment.ProjectAudience, out long? expiration))
+                    throw new TokenBannedException("Token has been banned from the requesting resource.", expiration);
+            }
+
             return json.Require<RumbleJson>("authorization").Require<string>("token");
         }
         catch (KeyNotFoundException)
@@ -334,7 +345,11 @@ public class ApiService : PlatformService
         {
             throw new TokenGenerationException("Response was null.");
         }
-        catch (Exception)
+        catch (TokenBannedException)
+        {
+            throw;
+        }
+        catch (Exception e)
         {
             Alert(
                 title: "Token Generation Failure",

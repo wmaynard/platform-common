@@ -99,6 +99,7 @@ public class PlatformOptions
     /// </summary>
     public PlatformOptions SetTokenAudience(Audience name)
     {
+        PlatformEnvironment.ProjectAudience = name;
         ServiceName = name.GetDisplayName();
         return this;
     }

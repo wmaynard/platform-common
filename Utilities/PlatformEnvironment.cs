@@ -88,6 +88,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string Name => Optional(KEY_GITLAB_ENVIRONMENT_NAME);
     public static string Region => Optional(KEY_REGION);
     public static string OwnerName => PlatformStartup.Options?.ProjectOwner.GetDisplayName() ?? "Not specified.";
+    public static Audience ProjectAudience { get; internal set; }
     
     internal static string[] ServiceUrls => Environment
         .GetEnvironmentVariable("ASPNETCORE_URLS")
