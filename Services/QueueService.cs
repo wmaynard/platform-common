@@ -4,12 +4,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -186,8 +188,22 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         ?.ToArray()
         ?? new string[] { };
 
-    public void ClearSuccessfulTasks()
+    /// <summary>
+    /// If we have an active waitlist, run a query on outstanding tasks to see which tracked tasks have been completed.
+    /// Remove those from the waitlist.
+    /// </summary>
+    private void ClearSuccessfulTasks()
     {
+        // PLATF-6405: As part of a critical security patch, we upgraded from 2.13 -> 2.20.  Prior to 2.19, remote
+        // code execution was possible.  In their haste to patch this, it seems that they broke multiple serializers
+        // that we rely on - one of them caused this method to fall over when running a PullFilter.  Several workarounds
+        // were attempted but the PullFilter appears to have been permanently broken with these models.
+        // Rather than a pull filter approach, we'll load the waitlist and outstanding successful tasks in memory
+        // and just use a Set operator to get around this bug in the driver.
+        string[] waitlist = GetWaitlist();
+        if (!waitlist.Any())
+            return;
+        
         string[] successes = _work
             .Find(Builders<QueuedTask>.Filter.And(
                 Builders<QueuedTask>.Filter.Eq(task => task.Tracked, true),
@@ -196,18 +212,19 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             .Project(Builders<QueuedTask>.Projection.Expression(task => task.Id))
             .ToList()
             .ToArray();
+
+        string[] trimmed = waitlist.Except(successes).ToArray();
+        int affected = waitlist.Length - trimmed.Length;
+
+        if (affected == 0)
+            return;
         
-        long affected = _config
-            .UpdateOne(
-                filter: config => true,
-                update: Builders<QueueConfig>.Update.PullFilter(
-                    field: config => config.Waitlist,
-                    filter: Builders<string>.Filter.In(id => id, successes)
-                )
-            ).ModifiedCount;
+        _config.UpdateOne(
+            filter: config => true,
+            update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, trimmed)
+        );
         
-        if (affected > 0)
-            Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
+        Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
     }
 
     private void RemoveWaitlistOrphans()
@@ -587,7 +604,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         [BsonElement(KEY_WAITLIST)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]
-        public HashSet<string> Waitlist { get; set; }
+        public IEnumerable<string> Waitlist { get; set; }
         
         [BsonElement(KEY_LAST_TRACK_TIME)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 2)]
@@ -656,16 +673,13 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
         internal const string KEY_CREATED = "created";
         internal const string KEY_TYPE = "type";
-
-        [BsonElement(KEY_CREATED)]
-        [CompoundIndex(GROUP_KEY_STATUS, priority: 3)]
-        internal long CreatedOn { get; init; }
     
         [BsonElement(KEY_TYPE)]
         [CompoundIndex(GROUP_KEY_PRIMARY, priority: 1)]
         [CompoundIndex(GROUP_KEY_UPDATED, priority: 1)]
         [CompoundIndex(GROUP_KEY_OWNER, priority: 1)]
         [CompoundIndex(GROUP_KEY_STATUS, priority: 2)]
+        [AdditionalIndexKey(GROUP_KEY_STATUS, key: DB_KEY_CREATED_ON, priority: 3)]
         internal TaskType Type { get; set; }
 
         protected TaskData() => CreatedOn = Timestamp.UnixTimeMs;

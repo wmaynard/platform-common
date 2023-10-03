@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
@@ -381,6 +382,8 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         UpdateIndexWeights(filter);
         return this;
     }
+    
+    public RequestChain<T> ExactId(string id) => Where(query => query.EqualTo(doc => doc.Id, id));
     #endregion Chainables
 
     private void WarnOnFilterOverwrite(string method)
