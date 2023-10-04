@@ -124,14 +124,13 @@ public class SlackDiagnostics
         {
             await Client.Send(new SlackMessage(content), channel);
             foreach (string path in Attachments)
-                await Client.TryUpload(path);
+                await Client.TryUpload(path, channel);
         }
         catch (Exception e)
         {
             Utilities.Log.Error(Owner.Default, "An error occurred sending a SlackDiagnostics log.", exception: e);
         }
-
-
+        
         // Clean everything up
         try
         {

@@ -149,16 +149,29 @@ public class SlackMessageClient
             : await SendToSlack(message);
     }
 
-    public async Task<RumbleJson> TryUpload(string path)
+    /// <summary>
+    /// Sends an attachment to the channels specified.  If a channel is specified explicitly, the attachment will only
+    /// go to that specific channel.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="channel"></param>
+    /// <returns></returns>
+    /// <exception cref="FailedRequestException"></exception>
+    public async Task<RumbleJson> TryUpload(string path, string channel = null)
     {
         RumbleJson response = null;
-        foreach (string channel in Channels)
+        
+        string[] toSend = string.IsNullOrWhiteSpace(channel)
+            ? Channels.ToArray()
+            : new[] { channel };
+        
+        foreach (string _channel in toSend)
         {
             try
             {
                 MultipartFormDataContent multiForm = new MultipartFormDataContent();
                 multiForm.Add(new StringContent(Token.Replace("Bearer ", "")), name: "token"); // our token isn't a header here
-                multiForm.Add(new StringContent(channel), name: "channels");
+                multiForm.Add(new StringContent(_channel), name: "channels");
                 multiForm.Add(new StreamContent(File.OpenRead(path)), name: "file", Path.GetFileName(path));
 
                 HttpResponseMessage httpResponse = await ApiService.Instance.MultipartFormPost(POST_UPLOAD, multiForm);
