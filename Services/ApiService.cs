@@ -161,16 +161,18 @@ public class ApiService : PlatformService
     /// a selective ban will still allow a player to generate tokens; those tokens just won't have permissions to use certain
     /// services (e.g. Leaderboards).
     /// </param>
-    public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All)
+    /// <param name="reason">A value for internal use to communicate why the ban was issued.</param>
+    public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All, string reason = null)
     {
         RumbleJson payload = new RumbleJson
         {
             { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
             {
-                "ban", new RumbleJson
+                "ban", new Ban
                 {
-                    { TokenInfo.FRIENDLY_KEY_PERMISSION_SET, audiences },
-                    { "expiration", duration }
+                    Expiration = duration,
+                    Reason = reason,
+                    PermissionSet = (int)audiences
                 }
             },
         };
@@ -196,7 +198,7 @@ public class ApiService : PlatformService
                 else
                     Log.Error(Owner.Default, "Unable to ban player.", data);
             })
-            .Patch();
+            .Post();
     }
 
     /// <summary>
