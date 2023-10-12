@@ -2,26 +2,84 @@ using System;
 
 namespace Rumble.Platform.Common.Utilities;
 
+/// <summary>
+/// A helper class for code readability and ease of use working with UnixTimestamps.
+/// </summary>
+/// The number of getters here may seem redundant, but having plain English is helpful in understanding queries that are
+/// confusing enough to read already.
 public class Timestamp
 {
-    private const long ONE_MINUTE = 60;
-    private const long ONE_HOUR = 60 * ONE_MINUTE;
-    private const long ONE_DAY = 24 * ONE_HOUR;
-    private const long ONE_WEEK = 7 * ONE_DAY;
-    
-    
     public static long UnixTime => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     public static long UnixTimeMs => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-    public static long OneHourAgo => UnixTime - 3_600;
-
-    public static long AddDays(int days) => UnixTime + ONE_DAY * days;
-    public static long AddHours(int hours) => UnixTime + ONE_HOUR * hours;
-    public static long AddMinutes(int minutes) => UnixTime + ONE_MINUTE * minutes;
-    public static long AddWeeks(int weeks) => UnixTime + ONE_WEEK * weeks;
+    #region In the Future
+    public static long FiveMinutesFromNow => InTheFuture(minutes: 5);
+    public static long TenMinutesFromNow => InTheFuture(minutes: 10);
+    public static long FifteenMinutesFromNow => InTheFuture(minutes: 15);
+    public static long ThirtyMinutesFromNow => InTheFuture(minutes: 30);
+    public static long FortyFiveMinutesFromNow => InTheFuture(minutes: 45);
+    public static long OneHourFromNow => InTheFuture(hours: 1);
+    public static long TwoHoursFromNow => InTheFuture(hours: 2);
+    public static long ThreeHoursFromNow => InTheFuture(hours: 3);
+    public static long FourHoursFromNow => InTheFuture(hours: 4);
+    public static long FiveHoursFromNow => InTheFuture(hours: 5);
+    public static long SixHoursFromNow => InTheFuture(hours: 6);
+    public static long OneMonthFromNow => InTheFuture(months: 1);
+    public static long TwoMonthsFromNow => InTheFuture(months: 2);
+    public static long ThreeMonthsFromNow => InTheFuture(months: 3);
+    public static long FourMonthsFromNow => InTheFuture(months: 4);
+    public static long FiveMonthsFromNow => InTheFuture(months: 5);
+    public static long SixMonthsFromNow => InTheFuture(months: 6);
+    public static long SevenMonthsFromNow => InTheFuture(months: 7);
+    public static long EightMonthsFromNow => InTheFuture(months: 8);
+    public static long NineMonthsFromNow => InTheFuture(months: 9);
+    public static long TenMonthsFromNow => InTheFuture(months: 10);
+    public static long ElevenMonthsFromNow => InTheFuture(months: 11);
+    public static long OneYearFromNow => InTheFuture(years: 1);
+    #endregion In The Future
     
-    public static long SubtractDays(int days) => AddDays(-1 * days);
-    public static long SubtractHours(int hours) => AddHours(-1 * hours);
-    public static long SubtractMinutes(int minutes) => AddMinutes(-1 * minutes);
-    public static long SubtractWeeks(int weeks) => AddWeeks(-1 * weeks);
+    #region In the Past
+    public static long FiveMinutesAgo => InThePast(minutes: 5);
+    public static long TenMinutesAgo => InThePast(minutes: 10);
+    public static long FifteenMinutesAgo => InThePast(minutes: 15);
+    public static long ThirtyMinutesAgo => InThePast(minutes: 30);
+    public static long FortyFiveMinutesAgo => InThePast(minutes: 45);
+    public static long OneHourAgo => InThePast(hours: 1);
+    public static long TwoHoursAgo => InThePast(hours: 2);
+    public static long ThreeHoursAgo => InThePast(hours: 3);
+    public static long FourHoursAgo => InThePast(hours: 4);
+    public static long FiveHoursAgo => InThePast(hours: 5);
+    public static long SixHoursAgo => InThePast(hours: 6);
+    public static long OneMonthAgo => InThePast(months: 1);
+    public static long TwoMonthsAgo => InThePast(months: 2);
+    public static long ThreeMonthsAgo => InThePast(months: 3);
+    public static long FourMonthsAgo => InThePast(months: 4);
+    public static long FiveMonthsAgo => InThePast(months: 5);
+    public static long SixMonthsAgo => InThePast(months: 6);
+    public static long SevenMonthsAgo => InThePast(months: 7);
+    public static long EightMonthsAgo => InThePast(months: 8);
+    public static long NineMonthsAgo => InThePast(months: 9);
+    public static long TenMonthsAgo => InThePast(months: 10);
+    public static long ElevenMonthsAgo => InThePast(months: 11);
+    public static long OneYearAgo => InThePast(years: 1);
+    #endregion In The Past
+    
+    public static long InTheFuture(int seconds = 0, int minutes = 0, int hours = 0, int days = 0, int weeks = 0, int months = 0, int years = 0)
+        => DateTimeOffset.UtcNow
+            .AddYears(years)
+            .AddMonths(months)
+            .AddDays(7 * weeks + days)
+            .AddHours(hours)
+            .AddMinutes(minutes)
+            .AddSeconds(seconds)
+            .ToUnixTimeSeconds();
+    public static long InThePast(int seconds = 0, int minutes = 0, int hours = 0, int days = 0, int weeks = 0, int months = 0, int years = 0)
+        => DateTimeOffset.UtcNow
+            .AddYears(-1 * years)
+            .AddMonths(-1 * months)
+            .AddDays(-1 * (7 * weeks + days))
+            .AddHours(-1 * hours)
+            .AddMinutes(-1 * minutes)
+            .AddSeconds(-1 * seconds)
+            .ToUnixTimeSeconds();
 }

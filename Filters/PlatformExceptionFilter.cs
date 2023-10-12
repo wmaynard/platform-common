@@ -62,7 +62,7 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
             code = platEx.Code;
             data = platEx.Data;
             if (platEx.InnerException is ModelValidationException modelEx)
-                platEx.Data["errors"] = modelEx.Errors;
+                data["errors"] = modelEx.Errors;
 
             if (platEx is InvalidTokenException exception)
                 tokenEx = exception;

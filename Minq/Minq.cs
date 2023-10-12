@@ -424,6 +424,23 @@ public class Minq<T> where T : PlatformCollectionDocument
         serializerRegistry: BsonSerializer.SerializerRegistry
     ).ToString();
 
+    internal static bool TryRender(FilterDefinition<T> filter, out RumbleJson asJson, out string asString)
+    {
+        asJson = null;
+        asString = null;
+        
+        try
+        {
+            asString = Render(filter);
+            asJson = asString;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// Serializes an UpdateDefinition as a flat string.  This can be useful for debugging purposes but serves no other important
     /// function at the time of this writing.

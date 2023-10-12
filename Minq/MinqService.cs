@@ -35,6 +35,9 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
         return output;
     }
 
+    public void Commit(Transaction transaction) => transaction?.Commit();
+    public void Abort(Transaction transaction) => transaction?.Abort();
+
     // public void Replace(Model model) => mongo.Replace(model); // Obsolete with Update(Model)
     
     /// <summary>
