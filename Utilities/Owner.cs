@@ -30,7 +30,6 @@ public class OwnerInformation
         { Owner.Eitan, new OwnerInformation("Eitan", "Levy") },
         { Owner.Eric, new OwnerInformation("Eric", "Sheris") },
         { Owner.Ernesto, new OwnerInformation("Ernesto", "Rojo") },
-        { Owner.Nathan, new OwnerInformation("Nathan", "Mac") },
         { Owner.Sean, new OwnerInformation("Sean", "Chapel") },
         { Owner.Will, new OwnerInformation("Will", "Maynard") },
         { Owner.Ryan, new OwnerInformation("Ryan", "Shackelford") }

@@ -326,6 +326,8 @@ public class DynamicConfig : PlatformTimerService
             ?? GlobalValues.Optional<T>(key)
             ?? Search<T>(key);
 
+        // If the value evaluates to default but the optional paramater is specified, we need to make sure the DC
+        // variable exists.  The specified defaultValue acts as a fallback, and will be inserted for future runs.
         if (EqualityComparer<T>.Default.Equals(output, default) && !EqualityComparer<T>.Default.Equals(defaultValue, default))
         {
             EnsureExists(key, defaultValue.ToString());
@@ -339,7 +341,7 @@ public class DynamicConfig : PlatformTimerService
     {
         T output = Optional<T>(key);
 
-        if (!EqualityComparer<T>.Default.Equals(output, default))
+        if (!EqualityComparer<T>.Default.Equals(output, default) || ContainsKey(key))
             return output;
         throw new MissingJsonKeyException(key);
     }
