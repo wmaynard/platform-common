@@ -56,6 +56,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     internal readonly IMongoCollection<T> Collection;
     internal readonly IMongoCollection<CachedResult> CachedQueries;
     private bool CacheIndexesExist { get; set; }
+    public string CollectionName { get; init; }
 
     private IMongoCollection<BsonDocument> _collectionGeneric;
 
@@ -64,6 +65,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     public Minq(IMongoCollection<T> collection, IMongoCollection<CachedResult> cache)
     {
         Collection = collection;
+        CollectionName = collection.CollectionNamespace.CollectionName;
         CachedQueries = cache;
     }
 
@@ -258,6 +260,15 @@ public class Minq<T> where T : PlatformCollectionDocument
         
         return new RequestChain<T>(this, filter);
     }
+
+    /// <summary>
+    /// Creates a RequestChain for use in building a request in branching code paths.  Frequent use is discouraged.
+    /// This functionality may be removed at a later date.
+    /// </summary>
+    /// <returns></returns>
+    public RequestChain<T> CreateRequestChain() => new RequestChain<T>(this);
+
+    public T FirstOrDefault(Action<FilterChain<T>> query) => Where(query).FirstOrDefault();
 
     public RequestChain<T> ExactId(string id) => Where(query => query.EqualTo(doc => doc.Id, id));
 

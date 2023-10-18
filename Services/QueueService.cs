@@ -152,6 +152,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             catch (Exception e)
             {
                 Log.Error(Owner.Default, "Error executing primary node work", exception: e);
+                if (PlatformEnvironment.IsLocal)
+                    Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
             }
         }
         else

@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Timers;
+using RCL.Logging;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -46,5 +48,25 @@ public class Diagnostics
         catch { }
 
         return endpoint;
+    }
+
+    public static Timer CreateMemoryMonitor(int seconds, bool startImmediately = true)
+    {
+        Timer output = new (TimeSpan.FromSeconds(seconds));
+
+        output.Elapsed += (_, _) =>
+        {
+            Process process = Process.GetCurrentProcess();
+            
+            long bytes = process.WorkingSet64;
+
+            // Convert bytes to a human-readable format (e.g., MB)
+            double mb = bytes / (1024.0 * 1024.0);
+
+            Log.Local(Owner.Default, $"Memory Usage: {mb:F2} MB", emphasis: Log.LogType.VERBOSE);
+        };
+        if (startImmediately)
+            output.Start();
+        return output;
     }
 }

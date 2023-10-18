@@ -418,16 +418,21 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             if (stats.IsPartiallyCovered)
                 Log.Info(Owner.Will, "A MINQ query was partially covered by existing indexes; a new index will be added");
             else if (stats.IsNotCovered)
-                Log.Error(Owner.Will, "A MINQ query is not covered by any index; a new index will be added");
+                Log.Warn(Owner.Will, "A MINQ query is not covered by any index; a new index will be added");
             
             suggested.Name = $"{MinqIndex.INDEX_PREFIX}{next}";
             CreateIndexModel<BsonDocument> model = suggested.GenerateIndexModel();
             Parent.GenericCollection.Indexes.CreateOne(model);
+
+
+            Minq<T>.TryRender(_filter, out RumbleJson filterJson, out string filterString);
+            
             Log.Info(Owner.Will, "MINQ automatically created an index", data: new
             {
                 Collection = _collection.CollectionNamespace.CollectionName,
                 IndexName = suggested.Name,
-                Filter = (RumbleJson)Minq<T>.Render(_filter)
+                Filter = filterJson,
+                FilterAsString = filterString
             });
         }
         catch (Exception e)
@@ -581,6 +586,12 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return;
 
         T[] toInsert = models.Where(model => model != null).ToArray();
+        toInsert = toInsert.Select(insert =>
+        {
+            insert.CreatedOn = Timestamp.UnixTime;
+            return insert;
+        }).ToArray();
+        
         if (!toInsert.Any())
             throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
         try
@@ -805,6 +816,41 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
     }
 
+    public T UpdateAndReturnOne(Action<UpdateChain<T>> query)
+    {
+        WarnOnUnusedCache(nameof(UpdateAndReturnOne));
+        Consume();
+
+        if (ShouldAbort(nameof(Update)))
+            return null;
+
+        UpdateChain<T> updateChain = new();
+        query.Invoke(updateChain);
+        _update = updateChain.Update;
+
+        try
+        {
+            FindOneAndUpdateOptions<T> options = new()
+            {
+                IsUpsert = false,
+                ReturnDocument = MongoDB.Driver.ReturnDocument.After
+            };
+            
+            T output = UsingTransaction
+                ? _collection.FindOneAndUpdate(Transaction.Session, _filter, _update, options)
+                : _collection.FindOneAndUpdate(_filter, _update, options);
+            
+            if (output != null)
+                FireAffectedEvent(1);
+            
+            return output;
+        }
+        catch (MongoException)
+        {
+            Transaction?.TryAbort();
+            return null;
+        }
+    }
     /// <summary>
     /// Performs an update on all documents matching your specified filter, then returns the modified documents.  Note
     /// that you can't set the same field twice with the same chain; for non-primitive types like arrays this will throw an exception.

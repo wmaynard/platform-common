@@ -279,9 +279,29 @@ public class FilterChain<T>
         AddFilter($"{{ $expr: {{ lt: [ '${Render(field1)}', '${Render(field2)}' ] }} }}");
 
     // Unnecessary?
-    public void Not(){}
-    public void And(){}
-    public void Or(){}
+    public void Not(Action<FilterChain<T>> not)
+    {
+        FilterChain<T> filter = new FilterChain<T>();
+        not.Invoke(filter);
+
+        AddFilter(Builder.Not(filter.Filter));
+    }
+
+    public void And(Action<FilterChain<T>> and)
+    {
+        FilterChain<T> filter = new FilterChain<T>();
+        and.Invoke(filter);
+
+        AddFilter(filter.Filter);
+    }
+
+    public void Or(Action<FilterChain<T>> or)
+    {
+        FilterChain<T> filter = new FilterChain<T>();
+        or.Invoke(filter);
+
+        AddFilter(Builder.Or(filter.Filters));
+    }
 
     private FilterChain<T> AddFilter(FilterDefinition<T> filter)
     {
