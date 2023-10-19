@@ -2,9 +2,9 @@
 
 We've historically had a lot of trouble reproducing 503s.  Because of the nature of server errors, we can't get any logs from the server that's falling over.  Additionally, problems tend to be intermittent.
 
-As of platform-common-1.3.100, we have the ability to recreate this behavior in C# projects for consuming services through Dynamic Config (DC).  This is supported in `Filters/PlatformAuthorizationFilter.cs`.
+As of platform-common-1.3.100, we have the ability to recreate this behavior for consuming services through Dynamic Config (DC).  This is supported in `Filters/PlatformAuthorizationFilter.cs`.
 
-This functionality is only available in **nonprod** environments.
+This functionality is only available in **nonprod** environments.  For C# projects, it is automatically included when upgrading to 1.3.100+.
 
 ## Setting Up A Deliberate Failure
 

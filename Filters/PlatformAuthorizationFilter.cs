@@ -38,8 +38,14 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
         if (context.ActionDescriptor is not ControllerActionDescriptor)
             return;
 
-        if (ServerErrorIsForced(ref context))
+        if (ServerErrorIsForced(context.GetEndpoint(), out RumbleJson error))
+        {
+            context.Result = new BadRequestObjectResult(error)
+            {
+                StatusCode = (int)HttpStatusCode.ServiceUnavailable
+            };
             return;
+        }
 
         AuthorizationResult auth = AuthorizationResult.Evaluate(context);
 
@@ -60,16 +66,16 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             code: auth.Exception.Code
         ));
     }
-
+    
     // PLATF-6400: Ability to force HTTP 500s on specified endpoints in nonprod environments.
-    private static bool ServerErrorIsForced(ref AuthorizationFilterContext context)
+    public static bool ServerErrorIsForced(string endpoint, out RumbleJson error)
     {
+        error = null;
         if (PlatformEnvironment.IsProd)
             return false;
         _rando ??= new Random();
         try
         {
-            string endpoint = context.GetEndpoint();
             string[] blocked = DynamicConfig
                .Instance
                ?.ProjectValues
@@ -98,7 +104,7 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             if (random > percent)
                 return false;
             
-            RumbleJson error = new()
+            error = new()
             {
                 { "message", "This endpoint is configured to be a forced failure in dynamic config." },
                 { "endpoint", endpoint },
@@ -107,10 +113,6 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
                 { "key", KEY_FORCED_FAILURES }
             };
             
-            context.Result = new BadRequestObjectResult(error)
-            {
-                StatusCode = (int)HttpStatusCode.ServiceUnavailable
-            };
             Log.Warn(Owner.Default, "A forced server failure occurred", data: error);
             return true;
         }
