@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Net;
 using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +24,10 @@ namespace Rumble.Platform.Common.Filters;
 
 public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter, IActionFilter
 {
+    private const string KEY_FORCED_FAILURES = "forceServerErrorsOn";
+    private const string KEY_FORCED_FAILURE_PERCENT = "forceServerErrorsPercent";
     public const string KEY_TOKEN = "PlatformToken";
+    private static Random _rando;
 
     /// <summary>
     /// This fires before any endpoint begins its work.  If we need to check for authorization, do it here before any work is done.
@@ -31,6 +36,9 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
     {
         // We only care about endpoints for this filter, so anything outside of a Controller does not need to be checked.
         if (context.ActionDescriptor is not ControllerActionDescriptor)
+            return;
+
+        if (ServerErrorIsForced(ref context))
             return;
 
         AuthorizationResult auth = AuthorizationResult.Evaluate(context);
@@ -51,6 +59,66 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
             data: auth.Exception,
             code: auth.Exception.Code
         ));
+    }
+
+    // PLATF-6400: Ability to force HTTP 500s on specified endpoints in nonprod environments.
+    private static bool ServerErrorIsForced(ref AuthorizationFilterContext context)
+    {
+        if (PlatformEnvironment.IsProd)
+            return false;
+        _rando ??= new Random();
+        try
+        {
+            string endpoint = context.GetEndpoint();
+            string[] blocked = DynamicConfig
+               .Instance
+               ?.ProjectValues
+               ?.Optional<string>(KEY_FORCED_FAILURES)
+               ?.Split(',')
+               .Select(str => str.Trim())
+               .Where(str => !string.IsNullOrWhiteSpace(str))
+               .ToArray()
+               ?? Array.Empty<string>();
+            string percentAsString = DynamicConfig
+                .Instance
+                ?.ProjectValues
+                ?.Optional<string>(KEY_FORCED_FAILURE_PERCENT)
+                ?? "100";
+
+            int percent = int.TryParse(percentAsString, out int asInt)
+                ? asInt
+                : 100;
+            
+            // The endpoint is not blocked; resume normal flow.
+            if (!blocked.Any(path => endpoint.EndsWith(path)))
+                return false;
+
+            // If the RNG beats the percentage for the failure rate, resume normal flow.
+            int random = _rando.Next(1, 100);
+            if (random > percent)
+                return false;
+            
+            RumbleJson error = new()
+            {
+                { "message", "This endpoint is configured to be a forced failure in dynamic config." },
+                { "endpoint", endpoint },
+                { "failureChance", percent },
+                { "project", PlatformEnvironment.ProjectAudience.GetDisplayName() },
+                { "key", KEY_FORCED_FAILURES }
+            };
+            
+            context.Result = new BadRequestObjectResult(error)
+            {
+                StatusCode = (int)HttpStatusCode.ServiceUnavailable
+            };
+            Log.Warn(Owner.Default, "A forced server failure occurred", data: error);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, "Something went wrong checking for a forced server error in dynamic config.", exception: e);
+            return false;
+        }
     }
 
     /// <summary>
