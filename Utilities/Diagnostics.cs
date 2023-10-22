@@ -32,18 +32,19 @@ public class Diagnostics
                 .Take(lookBehind)
                 .Select(frame => frame?.GetMethod())
                 .Where(method => method?.DeclaringType != null) // Required to circumnavigate a NotImplementedException in C# Core (in DynamicMethod.GetCustomAttributes).
-                .First(method => method.CustomAttributes
-                .Any(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME));
+                .FirstOrDefault(method => method.CustomAttributes
+                    .Any(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME)
+                );
 
-            endpoint = "/" + string.Join('/',
-                method
-                .DeclaringType
-                .CustomAttributes
-                .Union(method.CustomAttributes)
-                .Where(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME)
-                .SelectMany(data => data.ConstructorArguments)
-                .Select(arg => arg.Value?.ToString())
-            );
+            if (method != null)
+                endpoint = "/" + string.Join('/', method
+                    .DeclaringType
+                    .CustomAttributes
+                    .Union(method.CustomAttributes)
+                    .Where(data => data.AttributeType.Name == ROUTE_ATTRIBUTE_NAME)
+                    .SelectMany(data => data.ConstructorArguments)
+                    .Select(arg => arg.Value?.ToString())
+                );
         }
         catch { }
 
@@ -53,16 +54,16 @@ public class Diagnostics
     public static Timer CreateMemoryMonitor(int seconds, bool startImmediately = true)
     {
         Timer output = new (TimeSpan.FromSeconds(seconds));
-
+        
         output.Elapsed += (_, _) =>
         {
             Process process = Process.GetCurrentProcess();
             
             long bytes = process.WorkingSet64;
-
+        
             // Convert bytes to a human-readable format (e.g., MB)
             double mb = bytes / (1024.0 * 1024.0);
-
+        
             Log.Local(Owner.Default, $"Memory Usage: {mb:F2} MB", emphasis: Log.LogType.VERBOSE);
         };
         if (startImmediately)

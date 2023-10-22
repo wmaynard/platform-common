@@ -165,7 +165,8 @@ public class ApiRequest
 
     public ApiRequest SetPayload(PlatformDataModel model)
     {
-        Payload.Combine(other: model.JSON, prioritizeOther: true);
+        // TODO: This is inefficient.  Serializing to strings -> RumbleJson -> string is not great.
+        Payload.Combine(other: model.ToJson(), prioritizeOther: true);
         return this;
     }
 

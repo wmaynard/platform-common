@@ -156,14 +156,6 @@ public class Log : PlatformDataModel
         Caller = Clean(new StackFrame(skipFrames: 3).GetMethod());
         Version = PlatformEnvironment.Version;
         CommonVersion = PlatformEnvironment.CommonVersion;
-        try // Particularly with Mongo, some Exceptions don't like being serialized.  There's probably a better way around this, but this works for now.
-        {
-            string json = JSON;
-        }
-        catch (InvalidCastException)
-        {
-            Exception = new PlatformSerializationException("JSON serialization failed.", Exception);
-        }
 
         Emphasis = LogType.NONE;
     }

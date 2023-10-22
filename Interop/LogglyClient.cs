@@ -42,10 +42,9 @@ public class LogglyClient
                 return;
             }
 
-            string json = log.JSON; // Occasionally the log is disposed before the request goes out; assign the string now.
             Task.Run(() => apiService
                 .Request(URL)
-                .SetPayload(payload: json)
+                .SetPayload(payload: log.ToJson())
                 .OnSuccess((_, _) => Graphite.Track(Graphite.KEY_LOGGLY_ENTRIES, 1, type: Graphite.Metrics.Type.FLAT))
                 .PostAsync()
             );

@@ -176,7 +176,7 @@ public class DynamicConfig : PlatformTimerService
             {
                 ClientID = ID,
                 ServiceName = PlatformEnvironment.ServiceName
-            }.JSON)
+            }.ToJson())
             .AddParameter(key: KEY_CLIENT_ID, value: ID)
             // .AddParameter(key: "name", PlatformEnvironment.ServiceName)
             .OnFailure(response =>

@@ -84,7 +84,7 @@ public class SlackMessageClient
 
         try
         {
-            RumbleJson payload = message.Compress().JSON;
+            RumbleJson payload = message.Compress().ToJson();
             payload["unfurl_links"] = false;
             payload["unfurl_media"] = false;
 
