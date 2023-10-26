@@ -69,6 +69,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             : secondaryNodeTaskCount;
         
         UpsertConfig();
+
+        if (!PlatformEnvironment.IsLocal)
+            return;
+        
+        Log.Local(Owner.Will, "Local environment detected; newer QueueService instances always confiscate control locally.");
+        Confiscate();
     }
 
     protected void InitDatabase()
@@ -261,12 +267,16 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// </summary>
     /// <param name="data">The data object necessary to perform work on the task.</param>
     protected void CreateTask(T data) => InsertTask(data, track: true);
+
+    protected void CreateTasks(params T[] data) => InsertTasks(true, data);
     
     /// <summary>
     /// Creates a task that a worker thread can then claim and process.  This does not trigger OnTasksCompleted();
     /// </summary>
     /// <param name="data">The data object necessary to perform work on the task.</param>
     protected void CreateUntrackedTask(T data) => InsertTask(data, track: false);
+
+    protected void CreateUntrackedTasks(params T[] data) => InsertTasks(false, data);
 
     /// <summary>
     /// 
@@ -370,16 +380,23 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// </summary>
     /// <param name="data">The data needed to perform work on the task.</param>
     /// <param name="track">If true, the config will execute OnTasksCompleted() once all tracked tasks are processed.</param>
-    private async void InsertTask(T data = null, bool track = false)
+    private async void InsertTask(T data = null, bool track = false) => InsertTasks(track, data);
+
+    private async void InsertTasks(bool track = false, params T[] data)
     {
-        QueuedTask document = new QueuedTask
-        {
-            Data = data,
-            Type = TaskData.TaskType.Work,
-            Status = QueuedTask.TaskStatus.NotStarted,
-            Tracked = track
-        };
-        await _work.InsertOneAsync(document);
+        if (!data.Any())
+            return;
+        
+        QueuedTask[] documents = data
+            .Select(d => new QueuedTask
+            {
+                Data = d,
+                Type = TaskData.TaskType.Work,
+                Status = QueuedTask.TaskStatus.NotStarted,
+                Tracked = track
+            })
+            .ToArray();
+        await _work.InsertManyAsync(documents);
 
         if (!track)
             return;
@@ -389,15 +406,15 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         QueueConfig config = await _config.FindOneAndUpdateAsync<QueueConfig>(
             filter: config => config.OnCompleteTime <= 0,
             update: Builders<QueueConfig>.Update
-                .Push(config => config.Waitlist, document.Id)
+                .PushEach(config => config.Waitlist, documents.Select(d => d.Id))
                 .Set(config => config.OnCompleteTime, Timestamp.UnixTime + (IntervalMs / 1_000)),
             options: new FindOneAndUpdateOptions<QueueConfig>
             {
                 ReturnDocument = ReturnDocument.After
             }
-        ) ?? await _config.FindOneAndUpdateAsync<QueueConfig>(                                      // If config is null, the update didn't take
-            filter: config => true,                                                                 // effect; this is because the OnCompleteTime
-            update: Builders<QueueConfig>.Update.Push(config => config.Waitlist, document.Id),      // was set by a previous task
+        ) ?? await _config.FindOneAndUpdateAsync<QueueConfig>(                                                          // If config is null, the update didn't take
+            filter: config => true,                                                                                     // effect; this is because the OnCompleteTime
+            update: Builders<QueueConfig>.Update.PushEach(config => config.Waitlist, documents.Select(d => d.Id)),      // was set by a previous task
             options: new FindOneAndUpdateOptions<QueueConfig>
             {
                 ReturnDocument = ReturnDocument.After

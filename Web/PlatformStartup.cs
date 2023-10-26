@@ -143,7 +143,7 @@ public abstract class PlatformStartup
 
         #if RELEASE
         if (PlatformEnvironment.SwarmMode)
-        Log.Info(Owner.Default, "Swarm mode is enabled.  Some features, such as Loggly and Graphite integration, are disabled for load testing.");
+            Log.Info(Owner.Default, "Swarm mode is enabled.  Some features, such as Loggly and Graphite integration, are disabled for load testing.");
         #endif
 
         Log.Local(Owner.Will, "PlatformOptions loaded.");
