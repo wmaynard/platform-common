@@ -294,7 +294,7 @@ public class ApiService : PlatformService
             .AddAuthorization(adminToken)
             .SetRetries(5)
             .SetPayload(payload)
-            .OnSuccess(_ => ConfigService.Instance?.Set(KEY_LAST_TOKEN_GENERATED, Timestamp.UnixTime))
+            .OnSuccess(_ => ConfigService.Instance?.Set(KEY_LAST_TOKEN_GENERATED, Timestamp.Now))
             .OnFailure(response =>
             {
                 Log.Error(Owner.Will, "Unable to generate token.", data: new
@@ -305,7 +305,7 @@ public class ApiService : PlatformService
                     Code = response.StatusCode
                 });
                 long lastGenerated = ConfigService.Instance?.Optional<long>(KEY_LAST_TOKEN_GENERATED) ?? 0;
-                if (lastGenerated > 0 && lastGenerated < Timestamp.UnixTime - FAILURE_THRESHOLD_SECONDS) // Only alert if tokens have been failing for over 5 minutes.
+                if (lastGenerated > 0 && lastGenerated < Timestamp.Now - FAILURE_THRESHOLD_SECONDS) // Only alert if tokens have been failing for over 5 minutes.
                     Alert(
                         title: "Token Service Bad Response",
                         message: $"Token has been failing for at least {FAILURE_THRESHOLD_SECONDS / 60} minutes",
@@ -351,7 +351,7 @@ public class ApiService : PlatformService
         {
             throw;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             Alert(
                 title: "Token Generation Failure",
@@ -479,7 +479,7 @@ public class ApiService : PlatformService
             });
         Alert toSend = new Alert
         {
-            CreatedOn = Timestamp.UnixTime,
+            CreatedOn = Timestamp.Now,
             Data = data,
             Escalation = Models.Alerting.Alert.EscalationLevel.None,
             Origin = PlatformEnvironment.ServiceName,

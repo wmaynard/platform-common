@@ -77,7 +77,7 @@ public class Minq<T> where T : PlatformCollectionDocument
             .Find(
                 Builders<CachedResult>.Filter.And(
                     Builders<CachedResult>.Filter.Eq(cache => cache.FilterAsString, Render(filter)),
-                    Builders<CachedResult>.Filter.Gte(cache => cache.Expiration, Timestamp.UnixTime)
+                    Builders<CachedResult>.Filter.Gte(cache => cache.Expiration, Timestamp.Now)
                 )
             )
             .ToList()
@@ -88,7 +88,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         
         // Delete all the cache entries over one day old.
         if (output)
-            CachedQueries.DeleteMany(Builders<CachedResult>.Filter.Lt(cache => cache.Expiration, Timestamp.UnixTime - 60 * 60 * 24));
+            CachedQueries.DeleteMany(Builders<CachedResult>.Filter.Lt(cache => cache.Expiration, Timestamp.Now - 60 * 60 * 24));
 
         return result != null;
     }

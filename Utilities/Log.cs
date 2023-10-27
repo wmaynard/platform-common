@@ -489,7 +489,7 @@ public class Log : PlatformDataModel
     {
         Message = ThrottledMessage;
 
-        long seconds = Timestamp.UnixTime - timestamp;
+        long seconds = Timestamp.Now - timestamp;
 
         ThrottleDetails = new RumbleJson
         {

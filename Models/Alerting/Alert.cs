@@ -29,7 +29,6 @@ public class Alert : PlatformCollectionDocument
     // public long EscalationPeriod { get; set; }
     public long LastEscalation { get; set; }
     public long LastSent { get; set; }
-    public long CreatedOn { get; set; }
     public Trigger Trigger { get; set; }
     
     public AlertStatus Status { get; set; }
@@ -53,8 +52,8 @@ public class Alert : PlatformCollectionDocument
         LastEscalation = 0;
         Status = AlertStatus.Pending;
         Escalation = EscalationLevel.None;
-        SendAfter = Timestamp.UnixTime;
-        CreatedOn = Timestamp.UnixTime;
+        SendAfter = Timestamp.Now;
+        CreatedOn = Timestamp.Now;
 
         Trigger = new Trigger { Count = 1 };
 
@@ -89,7 +88,7 @@ public class Alert : PlatformCollectionDocument
     public Alert Acknowledge()
     {
         Status = AlertStatus.Acknowledged;
-        SendAfter = Timestamp.UnixTime + SECONDS_BEFORE_ESCALATION * 2;
+        SendAfter = Timestamp.Now + SECONDS_BEFORE_ESCALATION * 2;
 
         return this;
     }
@@ -103,8 +102,8 @@ public class Alert : PlatformCollectionDocument
             EscalationLevel.First => EscalationLevel.Final,
             _ => EscalationLevel.First
         };
-        LastEscalation = Timestamp.UnixTime;
-        SendAfter = Timestamp.UnixTime + SECONDS_BEFORE_ESCALATION;
+        LastEscalation = Timestamp.Now;
+        SendAfter = Timestamp.Now + SECONDS_BEFORE_ESCALATION;
         return this;
     }
 
@@ -128,7 +127,7 @@ public class Alert : PlatformCollectionDocument
     {
         Status = AlertStatus.Pending;
         Escalation = EscalationLevel.None;
-        SendAfter = Timestamp.UnixTime + minutes * 60;
+        SendAfter = Timestamp.Now + minutes * 60;
 
         return this;
     }
@@ -159,7 +158,7 @@ public class Alert : PlatformCollectionDocument
 $@"```Incident ID: {Id}
     Service: {PlatformEnvironment.ServiceName}
         POC: {Owner.GetDisplayName()}
- Active For: {(Timestamp.UnixTime - CreatedOn).ToFriendlyTime()}
+ Active For: {(Timestamp.Now - CreatedOn).ToFriendlyTime()}
      Status: { status }
      Impact: { Impact.GetDisplayName() }";
         

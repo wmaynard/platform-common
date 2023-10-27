@@ -246,7 +246,7 @@ public class UpdateChain<T> where T : PlatformCollectionDocument
     /// <returns></returns>
     public UpdateChain<T> SetToCurrentTimestamp(Expression<Func<T, long>> field)
     {
-        Updates.Add(Builder.Set(field, Timestamp.UnixTime));
+        Updates.Add(Builder.Set(field, Timestamp.Now));
         return this;
     }
 }

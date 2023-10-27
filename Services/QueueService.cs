@@ -4,14 +4,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -25,14 +23,13 @@ public interface IConfiscatable
 public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData>, IConfiscatable where T : PlatformDataModel
 {
     private const int MAX_FAILURE_COUNT = 5;
-    private const int MS_TAKEOVER = 15 * 60 * 1000; // 15 minutes
-    private const int RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
     private const string COLLECTION_PREFIX = "queue_";
     protected string Id { get; init; }
     protected bool IsPrimary { get; private set; }
     
     private int PrimaryTaskCount { get; init; }
     private int SecondaryTaskCount { get; init; }
+    private bool PreferOffCluster { get; init; }
 
     private readonly IMongoCollection<QueueConfig> _config;
     private readonly IMongoCollection<QueuedTask> _work;
@@ -46,10 +43,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="primaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the primary node.</param>
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
     /// <param name="sendTaskResultsWhenTheyAreCompleted">tasks results are sent as they complete instead of all at once at the end</param>
-    protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0, bool sendTaskResultsWhenTheyAreCompleted = false) 
+    /// <param name="preferOffCluster">If set to true, the primary node work will execute in the "off-cluster" environment.</param>
+    protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0, bool sendTaskResultsWhenTheyAreCompleted = false, bool preferOffCluster = false) 
         : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
+        PreferOffCluster = preferOffCluster;
 
         collection = $"{COLLECTION_PREFIX}{collection}";
 
@@ -81,7 +80,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     {
         T[] data = _work
             .Find(filter: task => task.Status == QueuedTask.TaskStatus.Succeeded)
-            .Project<T>(Builders<QueuedTask>.Projection.Expression(task => task.Data))
+            .Project(Builders<QueuedTask>.Projection.Expression(task => task.Data))
             .ToList()
             .ToArray();
         
@@ -103,7 +102,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         filter: config => config.Type == TaskData.TaskType.Config,
         update: Builders<QueueConfig>.Update
             .Set(config => config.PrimaryServiceId, Id)
-            .Set(config => config.LastActive, Timestamp.UnixTimeMs)
+            .Set(config => config.LastActive, TimestampMs.Now)
     );
 
     protected void DeleteAcknowledgedTasks() => _work.DeleteMany(task => task.Status == QueuedTask.TaskStatus.Acknowledged);
@@ -172,16 +171,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         return _config.UpdateOne(
             filter: Builders<QueueConfig>.Filter.And(
-                Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.UnixTime),
+                Builders<QueueConfig>.Filter.Lte(config => config.OnCompleteTime, Timestamp.Now),
                 Builders<QueueConfig>.Filter.Size(config => config.Waitlist, 0)
             ),
             update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
         ).ModifiedCount > 0;
-    } 
-
-    private QueueConfig GetConfig() => _config
-        .Find(config => true)
-        .FirstOrDefault();
+    }
     
     private string[] GetWaitlist() => _config
         .Find(config => true)
@@ -260,17 +255,17 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// cycle will execute OnTasksCompleted().
     /// </summary>
     /// <param name="data">The data object necessary to perform work on the task.</param>
-    protected void CreateTask(T data) => InsertTask(data, track: true);
+    protected void CreateTask(T data) => InsertTask(data, track: true).Wait();
 
-    protected void CreateTasks(params T[] data) => InsertTasks(true, data);
+    protected void CreateTasks(params T[] data) => InsertTasks(true, data).Wait();
     
     /// <summary>
     /// Creates a task that a worker thread can then claim and process.  This does not trigger OnTasksCompleted();
     /// </summary>
     /// <param name="data">The data object necessary to perform work on the task.</param>
-    protected void CreateUntrackedTask(T data) => InsertTask(data, track: false);
+    protected void CreateUntrackedTask(T data) => InsertTask(data, track: false).Wait();
 
-    protected void CreateUntrackedTasks(params T[] data) => InsertTasks(false, data);
+    protected void CreateUntrackedTasks(params T[] data) => InsertTasks(false, data).Wait();
 
     /// <summary>
     /// 
@@ -339,7 +334,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         filter: filter,
         update: Builders<QueuedTask>.Update.Combine(
             Builders<QueuedTask>.Update.Set(field: task => task.ClaimedBy, Id),
-            Builders<QueuedTask>.Update.Set(field: task => task.ClaimedOn, Timestamp.UnixTimeMs),
+            Builders<QueuedTask>.Update.Set(field: task => task.ClaimedOn, TimestampMs.Now),
             Builders<QueuedTask>.Update.Set(field: task => task.Status, QueuedTask.TaskStatus.Claimed)
     ));
     
@@ -383,14 +378,13 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     private void DeleteOldTasks() => _work.DeleteMany(filter: Builders<QueuedTask>.Filter.And(
         Builders<QueuedTask>.Filter.Eq(task => task.Type, TaskData.TaskType.Work),
         Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Succeeded),
-        Builders<QueuedTask>.Filter.Lte(task => task.CreatedOn, Timestamp.UnixTimeMs - RETENTION_MS)
+        Builders<QueuedTask>.Filter.Lte(task => task.CreatedOn, TimestampMs.OneWeekAgo)
     ));
 
     /// <summary>
     /// Marks a task as completed.
     /// </summary>
     /// <param name="queuedTask">The task that was completed.</param>
-    /// <param name="data">The task that was completed.</param>
     /// <returns>True if the record was updated.  If a record wasn't modified, something else took it, which is
     /// indicative of an error.</returns>
     private bool FailTask(QueuedTask queuedTask) => UpdateTaskStatusAndData(queuedTask, success: false);
@@ -400,9 +394,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// </summary>
     /// <param name="data">The data needed to perform work on the task.</param>
     /// <param name="track">If true, the config will execute OnTasksCompleted() once all tracked tasks are processed.</param>
-    private async void InsertTask(T data = null, bool track = false) => InsertTasks(track, data);
+    private async Task InsertTask(T data = null, bool track = false) => await InsertTasks(track, data);
 
-    private async void InsertTasks(bool track = false, params T[] data)
+    private async Task InsertTasks(bool track = false, params T[] data)
     {
         if (!data.Any())
             return;
@@ -423,11 +417,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         // Add the tracked task's ID to the config's waitlist.
         // Set the minimum OnCompleteTime for the next Primary cycle.  
-        QueueConfig config = await _config.FindOneAndUpdateAsync<QueueConfig>(
+        QueueConfig _ = await _config.FindOneAndUpdateAsync<QueueConfig>(
             filter: config => config.OnCompleteTime <= 0,
             update: Builders<QueueConfig>.Update
                 .PushEach(config => config.Waitlist, documents.Select(d => d.Id))
-                .Set(config => config.OnCompleteTime, Timestamp.UnixTime + (IntervalMs / 1_000)),
+                .Set(config => config.OnCompleteTime, Timestamp.Now + (IntervalMs / 1_000)),
             options: new FindOneAndUpdateOptions<QueueConfig>
             {
                 ReturnDocument = ReturnDocument.After
@@ -495,22 +489,51 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
         return true;
     }
-    
+
     /// <summary>
     /// Returns true if this service is now the Primary node.
     /// </summary>
-    private bool TryUpdateConfig() => _config.UpdateOne(
+    private bool TryUpdateConfig()
+    {
+        bool output = _config.UpdateOne(
+            filter: Builders<QueueConfig>.Filter.And(
+                Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
+                Builders<QueueConfig>.Filter.Or(
+                    Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
+                    Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
+                    Builders<QueueConfig>.Filter.Lte(config => config.LastActive, PreferOffCluster && PlatformEnvironment.IsOffCluster
+                        ? TimestampMs.FifteenMinutesAgo
+                        : TimestampMs.ThirtyMinutesAgo
+                    )
+                )
+            ),
+            update: Builders<QueueConfig>.Update.Combine(
+                Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id),
+                Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now),
+                Builders<QueueConfig>.Update.Set(config => config.UpdatedFromEnvironment, PlatformEnvironment.ClusterUrl)
+            )
+        ).ModifiedCount > 0;
+
+        if (output && PreferOffCluster && !PlatformEnvironment.IsOffCluster)
+            Yield();
+        return output;
+    }
+
+    private bool Yield() => _config.UpdateOne(
         filter: Builders<QueueConfig>.Filter.And(
             Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
             Builders<QueueConfig>.Filter.Or(
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
-                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, Timestamp.UnixTimeMs - MS_TAKEOVER)
+                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, PreferOffCluster && PlatformEnvironment.IsOffCluster
+                    ? TimestampMs.FifteenMinutesAgo
+                    : TimestampMs.ThirtyMinutesAgo
+                )
             )
         ),
         update: Builders<QueueConfig>.Update.Combine(
-            Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id),
-            Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMs)
+            Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, $"{Id}_yielded"),
+            Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now)
         )
     ).ModifiedCount > 0;
 
@@ -518,7 +541,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     {
         long affected = _config.UpdateMany(
             filter: Builders<QueueConfig>.Filter.And(
-                Builders<QueueConfig>.Filter.Lte(config => config.LastTrackingTime, Timestamp.UnixTime - 1_800),
+                Builders<QueueConfig>.Filter.Lte(config => config.LastTrackingTime, Timestamp.Now - 1_800),
                 Builders<QueueConfig>.Filter.SizeGt(config => config.Waitlist, 0)
             ),
             update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, new HashSet<string>())
@@ -545,7 +568,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             filter: config => true,
             update: Builders<QueueConfig>.Update
                 .Pull(config => config.Waitlist, queuedTask.Id)
-                .Set(config => config.LastTrackingTime, Timestamp.UnixTime),
+                .Set(config => config.LastTrackingTime, Timestamp.Now),
             options: new FindOneAndUpdateOptions<QueueConfig>
             {
                 ReturnDocument = ReturnDocument.After
@@ -579,7 +602,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         _config.UpdateOne(
             filter: Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
             update: Builders<QueueConfig>.Update.Combine(
-                Builders<QueueConfig>.Update.Set(config => config.LastActive, Timestamp.UnixTimeMs),
+                Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now),
                 Builders<QueueConfig>.Update.Set(config => config.Settings, new RumbleJson())
             ),
             options: new UpdateOptions
@@ -625,6 +648,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         private const string KEY_WAITLIST = "wait";
         private const string KEY_MINIMUM_WAIT_TIME = "waitTime";
         private const string KEY_LAST_TRACK_TIME = "lastTrackTime";
+        private const string KEY_ENVIRONMENT = "env";
         
         [BsonElement(KEY_PRIMARY_ID)]
         [CompoundIndex(GROUP_KEY_PRIMARY, priority: 2)]
@@ -637,6 +661,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [BsonElement(KEY_MINIMUM_WAIT_TIME)]
         [SimpleIndex]
         internal long OnCompleteTime { get; set; }
+        
+        [BsonElement(KEY_ENVIRONMENT)]
+        internal string UpdatedFromEnvironment { get; set; }
         
         [BsonElement(KEY_SETTINGS)]
         public RumbleJson Settings { get; set; }
@@ -721,7 +748,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [AdditionalIndexKey(GROUP_KEY_STATUS, key: DB_KEY_CREATED_ON, priority: 3)]
         internal TaskType Type { get; set; }
 
-        protected TaskData() => CreatedOn = Timestamp.UnixTimeMs;
+        protected TaskData() => CreatedOn = TimestampMs.Now;
     
         internal enum TaskType
         {

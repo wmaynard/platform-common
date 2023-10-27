@@ -241,7 +241,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     public RequestChain<T> Cache(long seconds)
     {
         seconds = Math.Max(0, Math.Min(36_000, seconds));
-        CacheTimestamp = Timestamp.UnixTime + seconds;
+        CacheTimestamp = Timestamp.Now + seconds;
         return this;
     }
     
@@ -588,7 +588,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         T[] toInsert = models.Where(model => model != null).ToArray();
         toInsert = toInsert.Select(insert =>
         {
-            insert.CreatedOn = Timestamp.UnixTime;
+            insert.CreatedOn = Timestamp.Now;
             return insert;
         }).ToArray();
         
@@ -672,7 +672,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         try
         {
-            long start = Timestamp.UnixTimeMs;
+            long start = TimestampMs.Now;
             int page = 0;
             
             BatchData<T> args;
@@ -683,7 +683,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 {
                     Results = results,
                     Remaining = remaining,
-                    OperationRuntime = Timestamp.UnixTime - start,
+                    OperationRuntime = Timestamp.Now - start,
                     Processed = page * batchSize,
                     Total = page * batchSize + remaining + results.Length,
                     Continue = remaining > 0
@@ -692,7 +692,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 page++;
             } while (args.Continue);
     
-            long timeTaken = Timestamp.UnixTimeMs - start;
+            long timeTaken = TimestampMs.Now - start;
             
             if (UsingTransaction && timeTaken > 20_000)
                 Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
@@ -1038,7 +1038,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
         query?.Invoke(updateChain);
+        // updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.UnixTime);
         _update = updateChain.Update;
+        
 
         FindOneAndUpdateOptions<T> options = new FindOneAndUpdateOptions<T>
         {

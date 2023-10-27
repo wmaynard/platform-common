@@ -49,7 +49,7 @@ public class CacheService : PlatformTimerService
             expirationMS = MAX_CACHE_TIME_MS;
         }
         Values[key] = value;
-        Expirations[key] = Timestamp.UnixTimeMs + expirationMS;
+        Expirations[key] = TimestampMs.Now + expirationMS;
     }
 
     public bool Clear(string key = null)
@@ -90,7 +90,7 @@ public class CacheService : PlatformTimerService
     protected override void OnElapsed()
     {
         RumbleJson removals = new RumbleJson();
-        foreach (string key in Expirations.Where(pair => pair.Value <= Timestamp.UnixTimeMs).Select(pair => pair.Key))
+        foreach (string key in Expirations.Where(pair => pair.Value <= TimestampMs.Now).Select(pair => pair.Key))
             try
             {
                 Expirations.Remove(key, out _);

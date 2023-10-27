@@ -191,7 +191,7 @@ public class DynamicConfig : PlatformTimerService
             .OnSuccess(response =>
             {
                 AllValues = response;
-                LastUpdated = Timestamp.UnixTime;
+                LastUpdated = Timestamp.Now;
                 try
                 {
                     OnRefresh?.Invoke(this, ProjectValues);
@@ -439,7 +439,7 @@ public class DynamicConfig : PlatformTimerService
                 { "key", key },
                 { "value", fallback }
             })
-            .OnSuccess(_ => _guarantees.TryAdd(key, Timestamp.UnixTime))
+            .OnSuccess(_ => _guarantees.TryAdd(key, Timestamp.Now))
             .OnFailure(response => Log.Error(Owner.Default, "Unable to set default for DC key", data: new
             {
                 Key = key,

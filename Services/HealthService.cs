@@ -70,7 +70,7 @@ public class HealthService : PlatformTimerService
     private long WarningTime { get; set; }
     internal Reason FailureReason { get; private set; }
 
-    public bool IsFailing => (FailureReason != Reason.None) || (Warning && Timestamp.UnixTime - WarningTime > GRACE_PERIOD);
+    public bool IsFailing => (FailureReason != Reason.None) || (Warning && Timestamp.Now - WarningTime > GRACE_PERIOD);
 
     public float Health => Data.Count < MINIMUM_DATA_POINTS
         ? 100
@@ -133,7 +133,7 @@ public class HealthService : PlatformTimerService
     protected override void OnElapsed()
     {
         int hp = 0;
-        while (Data.Any() && Data.First().Expiration <= Timestamp.UnixTime && Data.TryDequeue(out Datapoint result))
+        while (Data.Any() && Data.First().Expiration <= Timestamp.Now && Data.TryDequeue(out Datapoint result))
             hp += result.PointsAwarded;
 
         if (hp > 0)
@@ -175,7 +175,7 @@ public class HealthService : PlatformTimerService
         foreach (PlatformTimerService timer in services.OfType<PlatformTimerService>())
             output.Combine(timer.HealthStatus);
 
-        long downTime = Timestamp.UnixTime - WarningTime;
+        long downTime = Timestamp.Now - WarningTime;
 
         if (Warning && (PlatformEnvironment.IsLocal || PlatformEnvironment.IsProd))
         {
@@ -220,7 +220,7 @@ public class HealthService : PlatformTimerService
             WarningTime = -1;
         else if (WarningTime < 0)
         {
-            WarningTime = Timestamp.UnixTime;
+            WarningTime = Timestamp.Now;
             Log.Info(Owner.Default, $"{PlatformEnvironment.ServiceName} has entered a bad state!");
         }
     }
@@ -236,7 +236,7 @@ public class HealthService : PlatformTimerService
         public Datapoint(int maxValue)
         {
             Id = Guid.NewGuid().ToString();;
-            Expiration = Timestamp.UnixTime + LIFETIME_SECONDS;
+            Expiration = Timestamp.Now + LIFETIME_SECONDS;
             MaxValue = maxValue;
         }
 

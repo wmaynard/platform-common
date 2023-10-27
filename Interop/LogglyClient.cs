@@ -77,7 +77,7 @@ public class LogglyClient
             stats.Count++;
 
             // Clear the cache if we exceeded the send frequency.  Otherwise keep adding to the count.
-            if (Timestamp.UnixTime - stats.Timestamp > ThrottleSendFrequency)
+            if (Timestamp.Now - stats.Timestamp > ThrottleSendFrequency)
             {
                 Log.Local(Owner.Will, "Log cache cleared.");
                 cache.Clear(key);
@@ -96,7 +96,7 @@ public class LogglyClient
         stats = new Stats
         {
             Count = 1,
-            Timestamp = Timestamp.UnixTime
+            Timestamp = Timestamp.Now
         };
         cache.Store(key, stats, expirationMS: CacheLifetime);
 

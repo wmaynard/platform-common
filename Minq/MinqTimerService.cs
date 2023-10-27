@@ -35,7 +35,7 @@ public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCol
         Timer.Stop();
         try
         {
-            Failures.RemoveAll(failure => failure < Timestamp.UnixTime - ONE_HOUR);
+            Failures.RemoveAll(failure => failure < Timestamp.Now - ONE_HOUR);
             if (CoolingOff)
                 CoolingOff = Failures.Any();
             if (!CoolingOff)
@@ -45,7 +45,7 @@ public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCol
         {
             Log.Error(Owner.Default, "MinqTimerService.OnElapsed failed.", exception: e);
 
-            Failures.Add(Timestamp.UnixTime);
+            Failures.Add(Timestamp.Now);
             CoolingOff = Failures.Count > FAILURE_TOLERANCE;
 
             if (CoolingOff)

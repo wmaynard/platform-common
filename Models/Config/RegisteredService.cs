@@ -50,7 +50,7 @@ public class RegisteredService : PlatformDataModel
 
     public RegisteredService()
     {
-        LastUpdated = Timestamp.UnixTime;
+        LastUpdated = Timestamp.Now;
         Deployment = PlatformEnvironment.Deployment;
     }
 

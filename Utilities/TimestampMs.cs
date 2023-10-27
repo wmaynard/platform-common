@@ -7,9 +7,9 @@ namespace Rumble.Platform.Common.Utilities;
 /// </summary>
 /// The number of getters here may seem redundant, but having plain English is helpful in understanding queries that are
 /// confusing enough to read already.
-public static class Timestamp
+public static class TimestampMs
 {
-    public static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    public static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     #region In the Future
     public static long FiveMinutesFromNow => InTheFuture(minutes: 5);
@@ -94,7 +94,7 @@ public static class Timestamp
             .AddHours(hours)
             .AddMinutes(minutes)
             .AddSeconds(seconds)
-            .ToUnixTimeSeconds();
+            .ToUnixTimeMilliseconds();
     public static long InThePast(int seconds = 0, int minutes = 0, int hours = 0, int days = 0, int weeks = 0, int months = 0, int years = 0)
         => DateTimeOffset.UtcNow
             .AddYears(-1 * years)
@@ -103,5 +103,5 @@ public static class Timestamp
             .AddHours(-1 * hours)
             .AddMinutes(-1 * minutes)
             .AddSeconds(-1 * seconds)
-            .ToUnixTimeSeconds();
+            .ToUnixTimeMilliseconds();
 }

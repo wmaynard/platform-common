@@ -26,14 +26,6 @@ public abstract class PlatformService : IService, IPlatformService
     private IServiceProvider _services;
     public string Name => GetType().Name;
 
-    [BsonIgnore]
-    [JsonIgnore]
-    public static long UnixTime => Timestamp.UnixTime;
-    
-    [BsonIgnore]
-    [JsonIgnore]
-    public static long UnixTimeMS => Timestamp.UnixTimeMs;
-
     protected PlatformService(IServiceProvider services = null)
     {
         Registry ??= new ConcurrentDictionary<Type, IPlatformService>();
