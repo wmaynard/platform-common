@@ -182,6 +182,34 @@ Tasks can be either **tracked** or **untracked**.
 
 There are two methods of creating tasks for processing.  The first is to use `CreateTask()`; this is the default option and is used elsewhere in this readme.  The second is to use `CreateUntrackedTask()`; this is a situational workaround to ignore the default flow above.  Untracked quests will not trigger the `OnTasksCompleted()` callback.
 
+## Preferring Off-Cluster Primary Nodes
+
+This is a very niche use case of the service, and only available in production environments.  Sometimes, it may be necessary to have a single instance of a project responsible for sensitive / process-heavy work.  Take, for example, the receipt-service `GoogleChargebackService`.
+
+* The service is responsible for making API calls to Google to look for chargeback notifications.
+* We have a rate limit that applies to all of our environments universally.  We can only hit Google so many times in a day before they stop sending us data.
+* The response from Google can contain a **lot** of data if there have been a lot of chargebacks.
+* Ensuring this extra traffic is happening in the off-cluster (where players are fewer in number or internal only) leaves more resources available to the more important cluster.
+
+This is just a very simple example.  Ideally, the primary node work doesn't do a lot of heavy lifting - especially since if it's creating tasks, those tasks are split across both environments as well.
+
+To turn this on, in your `QueueService` constructor, pass in `preferOffCluster: true`.
+
+If the following criteria are true:
+* The currently executing code is the primary node (it was able to update the config)
+* `PreferOffCluster` is true
+* The current deployment is `3xx` (prod)
+* The DynamicConfig value for `game-client.gameServerUrl` contains the current `ClusterUrl`
+
+... then we know that the current instance is a primary node, but is executing even though it's in the "on-cluster".  After it finishes its current run, it will yield its status so that an off-cluster instance can pick up the work.
+
+Note that this does introduce a gap in processing lasting the time it takes for a non-primary node to confiscate the config for itself.
+
+**Caution: if `PreferOffCluster` is set and there is no off-cluster deployed, this will force the QueueService into a cycle of processing once and yielding for twice the confiscation time.**
+
+Primary node work will still take place, but it may be **significantly** delayed this way.
+
+
 ## FAQs
 
 ### What Happens if the Primary Node Gets Overtaken While Working?

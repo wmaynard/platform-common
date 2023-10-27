@@ -117,7 +117,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
     protected sealed override void OnElapsed()
     {
-        IsPrimary = TryUpdateConfig();
+        IsPrimary = TryUpdateConfig(out bool shouldYield);
         if (IsPrimary)
             try
             {
@@ -146,6 +146,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 AbandonOldTrackedTasks();
                 ResetStalledTasks();
                 DeleteOldTasks();
+                if (shouldYield)
+                    Yield();
             }
             catch (Exception e)
             {
@@ -491,9 +493,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     }
 
     /// <summary>
-    /// Returns true if this service is now the Primary node.
+    /// Returns true if this service is now the Primary node.  The out parameter shouldYield, if true, indicates
+    /// that the currently-executing primary node is running in the environment most players are facing.  This will only
+    /// ever be true in prod.  For more details, read more in QUEUE_SERVICE.md.
     /// </summary>
-    private bool TryUpdateConfig()
+    private bool TryUpdateConfig(out bool shouldYield)
     {
         bool output = _config.UpdateOne(
             filter: Builders<QueueConfig>.Filter.And(
@@ -501,7 +505,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 Builders<QueueConfig>.Filter.Or(
                     Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
                     Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
-                    Builders<QueueConfig>.Filter.Lte(config => config.LastActive, PreferOffCluster && PlatformEnvironment.IsOffCluster
+                    Builders<QueueConfig>.Filter.Lte(config => config.LastActive, !PreferOffCluster || PlatformEnvironment.IsOffCluster
                         ? TimestampMs.FifteenMinutesAgo
                         : TimestampMs.ThirtyMinutesAgo
                     )
@@ -514,8 +518,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             )
         ).ModifiedCount > 0;
 
-        if (output && PreferOffCluster && !PlatformEnvironment.IsOffCluster)
-            Yield();
+        shouldYield = output 
+            && PreferOffCluster 
+            && PlatformEnvironment.IsProd 
+            && !PlatformEnvironment.IsOffCluster;
+        
         return output;
     }
 
