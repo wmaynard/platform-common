@@ -198,7 +198,13 @@ Tasks that hit exceptions are automatically retried up to 5 times.  After that, 
 
 ### What Happens if a Task is Claimed But Never Completes?
 
-Unfortunately, at this time, it'll end up as an orphan.  Stay tuned for a V2!
+This can happen when a server is shut down or otherwise dies mid-processing, so it never marks a Task as either failed or completed.  Instead, these claimed tasks will be stuck in limbo for a while.  This is known as a **stalled task**.
+
+As of platform-common-1.3.104, stalled tasks are reset to their unclaimed state after a period of 30 minutes.  This is a period long enough that it's reasonable to assume any processing has failed and is no reasonable process would be happening on it.
+
+When tasks are reset, a warning-level log is fired with a stalled task count.
+
+If this time limit becomes a problem, we can add additional logic to it, such as enabling the processing node to check in (it could do this by updating the `QueuedTask.ClaimedOn` timestamp to the current time), or alternatively, making the time configurable in `PlatformOptions` or `DynamicConfig`.
 
 ### How Long do Tasks Persist in Mongo?
 
@@ -207,3 +213,6 @@ Unfortunately, at this time, it'll end up as an orphan.  Stay tuned for a V2!
 ## Next Steps
 
 1. If the primary node work limit can safely be removed / there's no downside of the primary node switching, we can remove the work limits altogether.
+2. For further optimization, it might be beneficial to support claiming / processing more than one task at once (batch processing).  This would reduce the number of reads / writes on the database by a factor of the batch size.
+3. Translate the QueueService to MINQ for readability / automatic indexing.
+4. Tracked tasks are currently kept in an unbound array.  While the service was never intended to handle _very large numbers_ of tracked tasks, this can lead to performance problems if misused.  Updating this to a CountDocuments query is safer.

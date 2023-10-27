@@ -77,11 +77,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         Confiscate();
     }
 
-    protected void InitDatabase()
-    {
-        
-    }
-
     private T[] AcknowledgeTasks()
     {
         T[] data = _work
@@ -96,9 +91,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         ).ModifiedCount;
 
         if (affected > 0)
-        {
             Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
-        }
 
         return data;
     }
@@ -127,7 +120,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     {
         IsPrimary = TryUpdateConfig();
         if (IsPrimary)
-        {
             try
             {
                 Task.Run(PrimaryNodeWork).Wait();
@@ -153,6 +145,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     }
                 
                 AbandonOldTrackedTasks();
+                ResetStalledTasks();
                 DeleteOldTasks();
             }
             catch (Exception e)
@@ -161,7 +154,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 if (PlatformEnvironment.IsLocal)
                     Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
             }
-        }
         else
             for (int count = SecondaryTaskCount; count > 0; count--)
                 if (!(WorkPerformed(StartNewTask()) || WorkPerformed(RetryTask())))
@@ -187,7 +179,9 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         ).ModifiedCount > 0;
     } 
 
-    private QueueConfig GetConfig() => _config.Find(config => true).FirstOrDefault();
+    private QueueConfig GetConfig() => _config
+        .Find(config => true)
+        .FirstOrDefault();
     
     private string[] GetWaitlist() => _config
         .Find(config => true)
@@ -348,6 +342,32 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             Builders<QueuedTask>.Update.Set(field: task => task.ClaimedOn, Timestamp.UnixTimeMs),
             Builders<QueuedTask>.Update.Set(field: task => task.Status, QueuedTask.TaskStatus.Claimed)
     ));
+    
+    
+    /// <summary>
+    /// If a server is shut down unexpectedly, tasks can get orphaned.  This method assumes that no task will take over
+    /// 30 minutes to process.  If any task is marked as Claimed but has not completed after this time, this method
+    /// resets the task so it can be claimed again.
+    /// </summary>
+    private void ResetStalledTasks()
+    {
+        long affected = _work.UpdateMany(
+            filter: Builders<QueuedTask>.Filter.And(
+                Builders<QueuedTask>.Filter.Lte(task => task.ClaimedOn, Timestamp.ThirtyMinutesAgo),
+                Builders<QueuedTask>.Filter.Eq(task => task.Status, QueuedTask.TaskStatus.Claimed)
+            ),
+            update: Builders<QueuedTask>.Update
+                .Unset(task => task.ClaimedOn)
+                .Unset(task => task.ClaimedBy)
+                .Set(task => task.Status, QueuedTask.TaskStatus.NotStarted)
+        ).ModifiedCount;
+        if (affected > 0)
+            Log.Warn(Owner.Default, "A queue stalled on at least one task and reset them for processing.", data: new
+            {
+                Help = "This likely happened because a service instance was in the middle of processing and was forcefully shut down.  If the claiming server is still running, however, it's possible that this will result in duplication of work.",
+                StalledTaskCount = affected
+            });
+    }
 
     /// <summary>
     /// Marks a task as completed.
