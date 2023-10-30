@@ -21,7 +21,6 @@ public class FilterChain<T>
     private const int WEIGHT_EQUALITY = -1;
     private const int WEIGHT_RANGE = 5;
     public Dictionary<string, int> IndexWeights = new Dictionary<string, int>();
-    public Dictionary<string, long> _foo;
     
     internal enum FilterType { And, Not, Or }
     internal FilterType Type { get; set; }
@@ -295,6 +294,34 @@ public class FilterChain<T>
         AddFilter(filter.Filter);
     }
 
+    // TODO: The way the or generates the filters is incorrect - or rather, not behaving as intended.
+    // Consider the following query:
+    // player.Rank = mongo
+    //     .Count(query => query
+    //         .GreaterThan(info => info.Score, player.Score)
+    //         .Or(or => or
+    //             .EqualTo(info => info.Score, player.Score)
+    //             .LessThan(info => info.Timestamp, player.Timestamp)
+    //         )
+    //     ) + 1;
+    // This generates a query where the OR clause is being ignored, because it renders as
+    // { pts: { ... }, $or: [ ... ] }
+    // instead of
+    // { $or: [ pts: { ... }, $and: { ... } ] }
+    //
+    // This can currently be resolved by re-writing the query as:
+    // player.Rank = mongo
+    //     .Count(query => query
+    //         .Or(or => or
+    //             .GreaterThan(info => info.Score, player.Score)
+    //             .And(and => and
+    //                 .EqualTo(info => info.Score, player.Score)
+    //                 .LessThan(info => info.Timestamp, player.Timestamp)
+    //             )
+    //         )
+    //     ) + 1;
+    //
+    // ...however, MINQ should be smart enough to perform this rewrite on its own when used in the chain.
     public void Or(Action<FilterChain<T>> or)
     {
         FilterChain<T> filter = new FilterChain<T>();
