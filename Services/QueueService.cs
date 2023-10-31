@@ -104,6 +104,24 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             .Set(config => config.PrimaryServiceId, Id)
             .Set(config => config.LastActive, TimestampMs.Now)
     );
+    
+    public void WipeDatabase()
+    {
+        if (!PlatformEnvironment.IsLocal || PlatformEnvironment.MongoConnectionString.Contains("-prod"))
+        {
+            Log.Critical(Owner.Default, "Code attempted to wipe a database outside of a local environment.  This is not allowed.");
+            return;
+        }
+
+        _config.UpdateMany(
+            filter: Builders<QueueConfig>.Filter.Empty,
+            update: Builders<QueueConfig>.Update
+                .Set(config => config.Settings, new RumbleJson())
+                .Set(config => config.LastActive, 0)
+                .Set(config => config.PrimaryServiceId, null)
+        );
+        _work.DeleteMany(Builders<QueuedTask>.Filter.Eq(task => task.Type, TaskData.TaskType.Work));
+    }
 
     protected void DeleteAcknowledgedTasks() => _work.DeleteMany(task => task.Status == QueuedTask.TaskStatus.Acknowledged);
 
@@ -151,7 +169,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Default, "Error executing primary node work", exception: e);
+                Log.Error(Owner.Default, $"Error executing primary node work, {e.Message}", exception: e);
                 if (PlatformEnvironment.IsLocal)
                     Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
             }
