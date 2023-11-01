@@ -721,13 +721,19 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         try
         {
+            // PLATF-6498: Rather than use actual Mongo Projection, we have to load all the results in memory and use
+            // LINQ to make the conversion.  This is a problem at the driver level.  In Mongo's driver 2.13.0, the
+            // Mongo projection worked just fine, but after we made the critical security upgrade to 2.20.0, it began
+            // throwing exceptions.
+            // This should be addressed at a future date.
             return FindWithLimitAndSort()
-                .Project(Builders<T>.Projection.Expression(expression))
                 .ToList()
+                .Select(expression.Compile())
                 .ToArray();
         }
-        catch
+        catch (Exception e)
         {
+            Log.Local(Owner.Will, e.Message, emphasis: Log.LogType.ERROR);
             Transaction?.TryAbort();
             return Array.Empty<U>();
         }
