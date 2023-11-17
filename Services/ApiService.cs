@@ -253,7 +253,7 @@ public class ApiService : PlatformService
         GeoIPData geoData = null;
         try
         {
-            geoData = GeoIPData.FromAddress((string)new HttpContextAccessor().HttpContext.Items[PlatformResourceFilter.KEY_IP_ADDRESS]);
+            geoData = GeoIPData.FromAddress((string)new HttpContextAccessor().HttpContext?.Items[PlatformResourceFilter.KEY_IP_ADDRESS]);
         }
         catch (Exception e)
         {

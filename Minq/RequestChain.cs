@@ -90,7 +90,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         _ when UsingTransaction => _collection.Find(Transaction.Session, _filter).Limit(_limit),
         _ => _collection.Find(_filter).Limit(_limit)
     }).ApplySortDefinition(_sort);
-    
+
     /// <summary>
     /// Fires off either the RecordsAffected or the NoneAffected event, where appropriate.
     /// </summary>
@@ -358,7 +358,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     {
         if (_sort != null)
             Log.Warn(Owner.Default, $"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
-        SortChain<T> chain = new SortChain<T>();
+        SortChain<T> chain = new ();
         sort.Invoke(chain);
 
         _sort = chain.Sort;
@@ -1044,6 +1044,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
         query?.Invoke(updateChain);
+        updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.Now);
         // updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.UnixTime);
         _update = updateChain.Update;
         

@@ -51,6 +51,9 @@ public static class MaxMind
     public static GeoIPData Lookup(string ipAddress)
     {
         Initialize();
+
+        if (string.IsNullOrWhiteSpace(ipAddress))
+            return null;
         
         try
         {
