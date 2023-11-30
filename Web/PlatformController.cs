@@ -103,6 +103,21 @@ public abstract class PlatformController : Controller
     [NonAction]
     public OkObjectResult Ok(params PlatformDataModel[] objects)
     {
+        if (objects.Length == 1)
+            return Ok(objects.FirstOrDefault()?.ResponseObject);
+        
+        // If all the objects are the same datatype, pluralize the type name as a key and return all the objects as
+        // an array.  This might come up with weird key names on words that end in 's', or otherwise aren't pluralized
+        // with an 's'.
+        if (objects.Length > 1 && objects.DistinctBy(obj => obj.GetType()).Count() == 1)
+        {
+            string name = objects.First().GetType().Name;
+            return Ok(new RumbleJson
+            {
+                {$"{name[0..1].ToLower()}{name[1..]}s", objects} // TODO: This is a naive pluralization of the type name for keys.
+            });
+        }
+        
         RumbleJson output = new RumbleJson();
         foreach (PlatformDataModel model in objects.Where(obj => obj != null))
             output.Combine(model.ResponseObject);

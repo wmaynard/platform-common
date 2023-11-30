@@ -193,12 +193,14 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <summary>
     /// Uses an existing Transaction to use for Mongo queries.  Transactions are generally not supported on localhost; use a
     /// deployed environment connection string to test them.  If you need a new Transaction, use the other overload with
-    /// an out parameter.
+    /// an out parameter.  If you're working with Transactions, make sure you use them as appropriate on non-modifying queries.
+    /// If you modify data in a transaction that hasn't been committed yet, non-modifying queries will NOT reflect
+    /// those changes without being included in the Transaction.
     /// </summary>
     /// <param name="transaction">The MINQ Transaction to use.</param>
     /// <param name="abortOnFailure">If true and MINQ encounters an exception, the transaction will be aborted.</param>
     /// <returns>A new RequestChain for method chaining.</returns>
-    public RequestChain<T> WithTransaction(Transaction transaction, bool abortOnFailure = true) => new RequestChain<T>(this)
+    public RequestChain<T> WithTransaction(Transaction transaction, bool abortOnFailure = true) => new (this)
     {
         Transaction = transaction,
         AbortTransactionOnFailure = abortOnFailure
@@ -277,11 +279,11 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// but if you're going to do that, there's no point to this call.
     /// </summary>
     /// <returns>The RequestChain for method chaining.</returns>
-    public RequestChain<T> All() => new RequestChain<T>(this, new FilterChain<T>().All());
+    public RequestChain<T> All() => new(this, new FilterChain<T>().All());
 
     public long Count(Action<FilterChain<T>> query)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         query.Invoke(filter);
 
         return Collection.CountDocuments(filter.Filter);
@@ -292,7 +294,10 @@ public class Minq<T> where T : PlatformCollectionDocument
         T[] toInsert = models.Where(model => model != null).ToArray();
         if (!toInsert.Any())
             throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
-        
+
+        long timestamp = Timestamp.Now;
+        foreach (T model in models)
+            model.CreatedOn = timestamp;
         Collection.InsertMany(toInsert);
     }
     

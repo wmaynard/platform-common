@@ -19,7 +19,6 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
     public virtual Model FromId(string id) => mongo
         .Where(query => query.EqualTo(model => model.Id, id))
         .Limit(1)
-        .ToList()
         .FirstOrDefault();
     
     public virtual Model FromIdUpsert(string id)

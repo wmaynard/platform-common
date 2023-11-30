@@ -789,11 +789,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// Performs an update on all documents matching your specified filter.  Note that you can't set the same field twice
     /// with the same chain; for non-primitive types like arrays this will throw an exception.
     /// </summary>
-    /// <param name="query">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
+    /// <param name="update">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
     /// <returns>The number of records affected by the update.</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public long Update(Action<UpdateChain<T>> query)
+    public long Update(Action<UpdateChain<T>> update)
     {
         WarnOnUnusedCache(nameof(Update));
         Consume();
@@ -802,7 +802,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return 0;
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
-        query.Invoke(updateChain);
+        update.Invoke(updateChain);
         _update = updateChain.Update;
         
         try
@@ -822,7 +822,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
     }
 
-    public T UpdateAndReturnOne(Action<UpdateChain<T>> query)
+    public T UpdateAndReturnOne(Action<UpdateChain<T>> update)
     {
         WarnOnUnusedCache(nameof(UpdateAndReturnOne));
         Consume();
@@ -831,7 +831,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return null;
 
         UpdateChain<T> updateChain = new();
-        query.Invoke(updateChain);
+        update.Invoke(updateChain);
         _update = updateChain.Update;
 
         try
@@ -857,6 +857,32 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return null;
         }
     }
+
+    public long UpdateRelative(Expression<Func<T, long>> field, long value)
+    {
+        MergeStageOptions<T> options = new ()
+        {
+            WhenMatched = MergeStageWhenMatched.Merge,
+            WhenNotMatched = MergeStageWhenNotMatched.Discard
+        };
+        // PipelineStageDefinition<T, T>[] pipeline = new[]
+        // {
+        //     PipelineStageDefinitionBuilder.Match(_filter),
+        //     new BsonDocument("{}"),
+        //     PipelineStageDefinitionBuilder.Merge<T>(_collection.CollectionNamespace.CollectionName, options)
+        //     
+        // };
+
+        string renderedField = Minq<T>.Render(field);
+        _collection
+            .Aggregate()
+            .Match(_filter)
+            .AppendStage<T>($"{{ $addFields: {{ {renderedField}: {{ $add: ['${renderedField}', '{value}'] }} }} }}")
+            .Merge(_collection, mergeOptions: options);
+        
+        return 0;
+    }
+
     /// <summary>
     /// Performs an update on all documents matching your specified filter, then returns the modified documents.  Note
     /// that you can't set the same field twice with the same chain; for non-primitive types like arrays this will throw an exception.
@@ -864,12 +890,12 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// documents are found, this will throw an exception.  This is a performance limitation, as returning >10k documents
     /// can easily overwhelm consuming services.
     /// </summary>
-    /// <param name="query">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
+    /// <param name="update">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
     /// <param name="affected">The number of records affected by the update.</param>
     /// <returns>The number of records affected by the update.</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public T[] UpdateAndReturn(Action<UpdateChain<T>> query, out long affected)
+    public T[] UpdateAndReturn(Action<UpdateChain<T>> update, out long affected)
     {
         const int MAX_LIMIT = 10_000;
         WarnOnUnusedCache(nameof(UpdateAndReturn));
@@ -895,7 +921,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             throw new PlatformException($"More documents found than are supported by {nameof(UpdateAndReturn)}.  Limit your query, or use {nameof(Update)}.");
         
         UpdateChain<T> updateChain = new UpdateChain<T>();
-        query.Invoke(updateChain);
+        update.Invoke(updateChain);
         _update = updateChain.Update;
 
         try
@@ -933,11 +959,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// documents are found, this will throw an exception.  This is a performance limitation, as returning >10k documents
     /// can easily overwhelm consuming services.
     /// </summary>
-    /// <param name="query">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
+    /// <param name="update">A lambda expression for an update chain builder.  Set all of your fields in one chain with it.</param>
     /// <returns>The number of records affected by the update.</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public T[] UpdateAndReturn(Action<UpdateChain<T>> query) => UpdateAndReturn(query, out _);
+    public T[] UpdateAndReturn(Action<UpdateChain<T>> update) => UpdateAndReturn(update, out _);
     
     
     /// <summary>
@@ -987,11 +1013,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// Attempts to update a single record that matches your filter.  If no record was affected, one will be created, matching
     /// the specified update and filter.
     /// </summary>
-    /// <param name="query">A lambda expression for an update chain builder.</param>
+    /// <param name="update">A lambda expression for an update chain builder.</param>
     /// <returns>The model that was updated or inserted (post-update).</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public long UpsertMany(Action<UpdateChain<T>> query = null)
+    public long UpsertMany(Action<UpdateChain<T>> update = null)
     {
         WarnOnUnusedCache(nameof(Count));
         Consume();
@@ -1000,7 +1026,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return default;
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
-        query?.Invoke(updateChain);
+        update?.Invoke(updateChain);
         _update = updateChain.Update;
 
         UpdateOptions options = new UpdateOptions
@@ -1034,7 +1060,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>The model that was updated or inserted (post-update).</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
-    public T Upsert(Action<UpdateChain<T>> query = null)
+    public T Upsert(Action<UpdateChain<T>> update = null)
     {
         WarnOnUnusedCache(nameof(Count));
         Consume();
@@ -1043,7 +1069,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return default;
 
         UpdateChain<T> updateChain = new UpdateChain<T>();
-        query?.Invoke(updateChain);
+        update?.Invoke(updateChain);
         updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.Now);
         // updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.UnixTime);
         _update = updateChain.Update;
@@ -1117,25 +1143,3 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     }
     #endregion Terminal Commands
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -20,7 +20,7 @@ public class MongoQueryStats : PlatformDataModel
 
     public bool IsNotCovered => !IndexScan && CollectionScan;
     public bool IsPartiallyCovered => IndexScan && CollectionScan;
-    public bool IsFullyCovered => IndexScan && !CollectionScan;
+    public bool IsFullyCovered => IndexScan || !CollectionScan;
 
     // When Mongo is initializing, every PlatformDataModel is created with the smallest constructor available to it.
     // Consequently, null reference errors can cause exceptions from the normal constructor on startup.  This silences

@@ -68,12 +68,11 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             : secondaryNodeTaskCount;
         
         UpsertConfig();
-
-        if (!PlatformEnvironment.IsLocal)
-            return;
         
-        Log.Local(Owner.Will, "Local environment detected; newer QueueService instances always confiscate control locally.");
+        #if DEBUG
+        Log.Local(Owner.Will, "Debug build detected; newer QueueService instances always confiscate control locally.", emphasis: Log.LogType.CRITICAL);
         Confiscate();
+        #endif
     }
 
     private T[] AcknowledgeTasks()
