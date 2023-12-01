@@ -16,17 +16,17 @@
     * `/appsettings.Development.json`
     * `/Program.cs`
 
-[New Project Screenshot](Tutorial_NewProject.png)
+![New Project Screenshot](Tutorial_NewProject.png)
 
 ## Update the Project Properties
 
 To open the properties window, right click on the project and select `Properties`.
 
-[Project Properties Screenshot](Tutorial_ProjectProperties.png)
+![Project Properties Screenshot](Tutorial_ProjectProperties.png)
 
 While you're here, we have two things to update:
 
-[Application Section Screenshot](Tutorial_PropertiesApplicationSection.png)
+![Application Section Screenshot](Tutorial_PropertiesApplicationSection.png)
 
 ### Disable Nullable Reference Types
 

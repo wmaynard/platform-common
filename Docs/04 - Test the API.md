@@ -6,7 +6,7 @@ Now that you've set up a couple of endpoints, it's time to see how they work.  F
 
 Postman is a big tool, and one that's mostly out of scope for this tutorial.  For the purposes of this guide, we won't be dealing with organization or setup of any advanced features.  However, we will cover the basics.  Refer to the below screenshot with highlights:
 
-[Tutorial_NewPostmanRequest](New Postman Request)
+![Tutorial_NewPostmanRequest](Tutorial_NewPostmanRequest.png)
 
 From top to bottom and left to right, the highlighted boxes are:
 
@@ -154,7 +154,7 @@ Note that we didn't set up any actual logic yet.  These requests are currently v
 
 Open up MongoDB Compass.  The default connection string should already be set to `mongodb://localhost:27017/`.  Connect to the database.  On the left, you'll see the `petShop` database.  When selected, it will drop down with the available Collections, including our `pets` collection.
 
-[MongoDB Compass](Tutorial_MongoDBCompass.png)
+![MongoDB Compass](Tutorial_MongoDBCompass.png)
 
 You'll see all of the raw data for our pets here - and probably notice that their data keys match our `DB_KEY` values instead of the `FRIENDLY_KEY`s we see in Postman.  If you'd like, you can add more pets with Postman and click the `Find` button to reload the data.
 

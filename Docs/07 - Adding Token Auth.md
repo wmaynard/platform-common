@@ -40,7 +40,7 @@ HTTP 401
 
 Adding a token to the request will now indicate that the _request is coming from the account the token represents_.  In the case of the token referenced in our last step, adding our previously-generated token as auth means the request will come from `SideshowBob`.  To do this, look for the `Authorization` tab in Postman, select `Bearer Token`, and paste the token into the text box:
 
-[Postman Authorization Tab](Tutorial_AddingAuth.png)
+![Postman Authorization Tab](Tutorial_AddingAuth.png)
 
 Note that you should use a token _you_ generated; the one in this documentation is almost certainly expired.  Fire off the request again and you should see the unauthorized message vanish.
 

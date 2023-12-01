@@ -258,6 +258,6 @@ POST /shop/pets/add
 
 At this point, go ahead and click the little green bug icon in Rider to compile and run the project.  Before continuing, you should see some console output like the below:
 
-[Sample Console Output](Tutorial_ConsoleOutput.png)
+![Sample Console Output](Tutorial_ConsoleOutput.png)
 
 If there aren't any big red errors, it's time to [Test the API](04%20-%20Test%20the%20API.md).
