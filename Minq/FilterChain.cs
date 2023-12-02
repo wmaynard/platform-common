@@ -245,7 +245,7 @@ public class FilterChain<T>
     /// <returns></returns>
     public FilterChain<T> Where<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : PlatformDataModel
     {
-        FilterChain<U> filter = new FilterChain<U>();
+        FilterChain<U> filter = new();
         builder.Invoke(filter);
         
         return AddFilter(Builder.ElemMatch(field, filter.Filter));
@@ -280,7 +280,7 @@ public class FilterChain<T>
     // Unnecessary?
     public void Not(Action<FilterChain<T>> not)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         not.Invoke(filter);
 
         AddFilter(Builder.Not(filter.Filter));
@@ -288,44 +288,38 @@ public class FilterChain<T>
 
     public void And(Action<FilterChain<T>> and)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         and.Invoke(filter);
+        
+        if (filter.Filters.Count <= 1)
+            Log.Warn(Owner.Default, "FilterChain.And called with one or fewer filters; this is probably an oversight.", data: new
+            {
+                Help = "And() creates a && operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective.  It will work as is, but should be refactored out."
+            });
 
         AddFilter(filter.Filter);
     }
-
-    // TODO: The way the or generates the filters is incorrect - or rather, not behaving as intended.
-    // Consider the following query:
-    // player.Rank = mongo
-    //     .Count(query => query
-    //         .GreaterThan(info => info.Score, player.Score)
-    //         .Or(or => or
-    //             .EqualTo(info => info.Score, player.Score)
-    //             .LessThan(info => info.Timestamp, player.Timestamp)
-    //         )
-    //     ) + 1;
-    // This generates a query where the OR clause is being ignored, because it renders as
-    // { pts: { ... }, $or: [ ... ] }
-    // instead of
-    // { $or: [ pts: { ... }, $and: { ... } ] }
-    //
-    // This can currently be resolved by re-writing the query as:
-    // player.Rank = mongo
-    //     .Count(query => query
-    //         .Or(or => or
-    //             .GreaterThan(info => info.Score, player.Score)
-    //             .And(and => and
-    //                 .EqualTo(info => info.Score, player.Score)
-    //                 .LessThan(info => info.Timestamp, player.Timestamp)
-    //             )
-    //         )
-    //     ) + 1;
-    //
-    // ...however, MINQ should be smart enough to perform this rewrite on its own when used in the chain.
+    
+    /// <summary>
+    /// Uses a FilterChain to create a query where one of the supplied filters must be true.  It's VERY important
+    /// to understand the order of operations here.  When you add this method to a filter chain, it creates a self-contained
+    /// filter; it does not modify filters that appear before it in the chain.  For example:<br /><br />
+    /// A &amp;&amp; (B || C):<br /><br />
+    /// query.GreaterThan(...).Or(or =&gt; or.EqualTo(...).Exists(...))<br /><br />
+    /// A || (B &amp;&amp; C):<br /><br />
+    /// query.Or(or =&gt; or.GreaterThan(...).And(and =&gt; and.EqualTo(...).Exists(...))
+    /// </summary>
+    /// <param name="or"></param>
     public void Or(Action<FilterChain<T>> or)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         or.Invoke(filter);
+        
+        if (filter.Filters.Count <= 1)
+            Log.Warn(Owner.Default, "FilterChain.Or called with one or fewer filters; this is probably an oversight.", data: new
+            {
+                Help = "Or() creates a || operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective."
+            });
 
         AddFilter(Builder.Or(filter.Filters));
     }
