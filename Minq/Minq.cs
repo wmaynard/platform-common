@@ -51,6 +51,9 @@ public class Minq<T> where T : PlatformCollectionDocument
         internal T[] Results { get; set; }
         [BsonElement(DB_KEY_MINQ_CACHE_EXPIRATION)]
         internal long Expiration { get; set; }
+        
+        [BsonElement("nextUpdate")]
+        public long NextCacheUpdate { get; set; }
     }
     internal static MongoClient Client { get; set; }
     internal readonly IMongoCollection<T> Collection;
@@ -87,8 +90,14 @@ public class Minq<T> where T : PlatformCollectionDocument
         bool output = result != null;
         
         // Delete all the cache entries over one day old.
+        // Also, mark all output documents with the cache expiration.  If a document does not have a cache expiration,
+        // we know the query resulted in a newly cached query.
         if (output)
+        {
             CachedQueries.DeleteMany(Builders<CachedResult>.Filter.Lt(cache => cache.Expiration, Timestamp.Now - 60 * 60 * 24));
+            foreach (T document in cachedData)
+                document.CachedUntil = result.Expiration;
+        }
 
         return result != null;
     }
@@ -154,7 +163,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     {
         TryCreateCacheIndexIfNecessary();
         
-        FindOneAndUpdateOptions<CachedResult> options = new FindOneAndUpdateOptions<CachedResult>
+        FindOneAndUpdateOptions<CachedResult> options = new()
         {
             IsUpsert = true,
             ReturnDocument = ReturnDocument.After

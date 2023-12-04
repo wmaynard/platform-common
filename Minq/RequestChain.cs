@@ -776,6 +776,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     
             List<T> output = FindWithLimitAndSort().ToList();
             Parent.Cache(_filter, output.ToArray(), CacheTimestamp, Transaction);
+            // Mark each document with the cache's expiration.
+            foreach (T document in output)
+                document.CachedUntil = CacheTimestamp;
             return output;
         }
         catch
