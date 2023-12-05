@@ -81,5 +81,8 @@ public enum ErrorCode
     [Display(Name = "1112")] Locked = 1112,
 
     // 2000: Leaderboard Service
-    [Display(Name = "2001")] LeaderboardUnavailable = 2001
+    [Display(Name = "2001")] LeaderboardUnavailable = 2001,
+    
+    // 3000: Mail Service
+    [Display(Name = "3001")] Ineligible = 3001
 }
