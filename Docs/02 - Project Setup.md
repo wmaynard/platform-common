@@ -113,7 +113,7 @@ environment.json
 
 ```
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Nullable>disable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Rumble.Platform.PetShopService</RootNamespace>

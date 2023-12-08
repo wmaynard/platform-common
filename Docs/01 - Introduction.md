@@ -35,7 +35,7 @@ Below are terms that we'll be using throughout the tutorial.  These are crucial 
 1. Postman is installed.
 2. MongoDB is installed.
 3. MongoDB Compass is installed.
-4. .NET 7.0+ is installed.
+4. .NET 8.0+ is installed.
 5. You have set up a Rider solution as per the **Getting Started** section of the [README](../README.md) file.
 6. Your NuGet is configured to use gitlab as a supplemental source as per the **Adding the Library** section of the [README](../README.md) file.
 
