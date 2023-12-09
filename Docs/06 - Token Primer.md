@@ -10,7 +10,7 @@ It must be said that while this is done for tutorial purposes, in a real-world s
 
 In your `CustomerController`, add a reference to the `ApiService`, the primary way Platform servers speak to each other and hit internal endpoints:
 
-```
+```csharp
 #pragma warning disable
 private readonly ApiService _api;              // <--- NEW
 private readonly CustomerService _customers;
@@ -19,7 +19,7 @@ private readonly CustomerService _customers;
 
 Then add a new endpoint, `/login`:
 
-```
+```csharp
 [HttpPost, Route("login")]
 public ObjectResult Login()
 {
@@ -56,7 +56,7 @@ This endpoint also introduces `RumbleJson` - the default data structure Platform
 
 ### Hit the `/login` Endpoint
 
-```
+```json
 POST /customers/login
 {
     "screenname": "SideshowBob",
@@ -72,7 +72,7 @@ HTTP 200
 
 Here we're getting a token back that represents our customer - and this can now be used as authentication within other Platform services.  While this cryptic-looking string may not make sense to human eyes on its own, you can paste it into [JWT.io](https://jwt.io) to look at what it contains:
 
-```
+```json
 {
   "aid": "6568488af23a6b55769cdbd6",           // Matches our customer.Id in our database
   "exp": 1701765130,

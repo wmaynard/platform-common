@@ -411,7 +411,7 @@ For projects that need to serve their own web pages, these routing rules are use
 2. Clone all Platform projects you plan on working on to this directory, including `platform-csharp-common`.
 3. Open Rider.  Create an empty solution named `Platform` in the same directory.
 4. In the Solution window, right click on `Platform` > `Add` >  `Add Existing Project...`.
-5. Add the cloned projects to the solution.
+5. Add any cloned projects to the solution.
 
 Your directory structure should look like:
 

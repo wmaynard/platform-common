@@ -39,7 +39,7 @@ Since we don't have any pets added to our database yet, let's start with the `/a
 
 In Postman, create a new request, and add the following:
 
-```
+```json
 POST /shop/pets/add
 {
     "pet": {
@@ -53,7 +53,7 @@ POST /shop/pets/add
 
 You'll receive a response similar to the following, appearing in the bottom panel in Postman:
 
-```
+```json
 HTTP 200
 {
     "pet": {
@@ -72,7 +72,7 @@ HTTP 200
 
 Add another pet so we have at least two.  Just modify the currently-open request and change a couple values:
 
-```
+```json
 POST /shop/pets/add
 {
     "pet": {
@@ -86,7 +86,7 @@ POST /shop/pets/add
 
 ### Listing Pets
 
-```
+```json
 GET /shop/pets
 
 HTTP 200
@@ -120,7 +120,7 @@ If you added more pets on your own, you'll see them all (or, rather, up to the 5
 
 To test our final endpoint, we have to do something a little different: we'll need to use an existing pet's ID to adopt them out.  Grab one of the `id` fields, since they won't match the examples in this tutorial, and use them in the following request:
 
-```
+```json
 PATCH /shop/pets/adopt
 {
     "id": "6567b70e241c2152a466c05c"

@@ -8,7 +8,7 @@ Next, we'll explore how we deal with data in and data out through the use of Mod
 
 First, we need to define what our data needs to look like.  Let's start by adding a `Pet` with some initial properties to our `Models` directory:
 
-```
+```csharp
 public class Pet : PlatformCollectionDocument     // Inheriting PlatformCollectionDocument is a requirement for MINQ.
 {
     public string Name { get; set; }
@@ -39,7 +39,7 @@ We've created very basic properties to track information on pets.  However, we'r
 
 As per Platform best practices, we should have different keys, one `FRIENDLY_KEY` and one `DB_KEY`. Database keys are shorthand and can be useful to keep Mongo clean and not looking like a word-wall.  This also makes writing manual queries faster.  A DB key also makes our data slightly more secure in that, as a different value, a consuming client that sees the JSON keys can't know what the backend data structure looks like.  Just to demonstrate it here, if someone found a way to remotely execute queries on our Mongo instance and managed to set a pet's `price` to 1, it wouldn't actually affect our system, since Mongo stores the value as `cost`!  It may not be a _big_ barrier, but every little bit helps. 
 
-```
+```csharp
 ...
 // Naming here is subjective.  The keys should be abbreviated or shortened where possible,
 // but should still be relatively easy to read.  Use your judgment.
@@ -84,7 +84,7 @@ public float Price { get; set; }
 
 While this looks like an intimidating amount of work just for data persistence, keep in mind that it won't often change.  Before we move on, let's add one more property.  We want to track how many days an animal has been in the pet store.  However, since we have an `IntakeDate`, it doesn't make sense to store this as a separate value or record it in MongoDB.  We can calculate it as needed with a getter property.
 
-```
+```csharp
 ...
 public const string FRIENDLY_KEY_DAYS_IN_CARE = "daysInCare";
 ...
@@ -98,7 +98,7 @@ public int DaysInCare => (int)TimeSpan
 
 And finally, to provide useful errors to the client, all models should have a `Validate()` method:
 
-```
+```csharp
 protected override void Validate(out List<string> errors)
 {
     errors = new List<string>();
@@ -115,7 +115,7 @@ Now we're ready to create our database messenger.
 
 With our `Pet` model completed, we now need to add a respective `PetService` to our `Services` directory.  This class will act as our interface to and from MongoDB.  All services are **singletons**; only one instance of them can ever exist at one time.  The base class already gives you the basic CRUD operations - create, read, update, and delete - but anything else will need to be created.
 
-```
+```csharp
 public class PetService : MinqService<Pet>
 {
     public PetService() : base("pets") { }
@@ -133,7 +133,7 @@ MINQ (Mongo Integrated Query) is a special utility added to platform-common to m
 
 Let's define some basic database queries:
 
-```
+```csharp
 public Pet[] GetPets() => mongo
     .All()
     .Sort(sort => sort.OrderBy(pet => pet.IntakeDate))
@@ -143,7 +143,7 @@ public Pet[] GetPets() => mongo
 public Pet Adopt(string id) => mongo
     .Where(query => query.EqualTo(pet => pet.Id, id))
     .Limit(1)
-    .UpdateAndReturnOne(update => update.Set(pet => pet.AdoptedDate, Timestamp.Now));
+    .UpdateAndReturnOne(update => update.Set(pet => pet.AdoptedOn, Timestamp.Now));
 ```
 
 <hr>
@@ -164,7 +164,7 @@ The `TopController` won't be used extensively in this tutorial, but the class is
 
 Add a new class, `TopController.cs`, to your `Controllers` directory.  Make it inherit from `PlatformController` and a `Route` attribute.  Beyond that, we don't need to do anything for this tutorial with the class.  It might seem silly to have an empty code file, but the `PlatformController` class has a hidden endpoint that's automatically added.  This is the `/health` endpoint - functionality that K8S needs to keep our servers up and running in the cloud.  Health endpoints contain information about system status and can be used to diagnose failing servers.
 
-```
+```csharp
 [Route("shop")]
 public class TopController : PlatformController { }
 ```
@@ -173,9 +173,9 @@ public class TopController : PlatformController { }
 
 This is where your initial endpoints will go for our pets.  As before, add a new controller, named `PetController`.
 
-```
+```csharp
 [Route("shop/pets")]
-public class PetpController : PlatformController
+public class PetController : PlatformController
 {
     #pragma warning disable
     private readonly PetService _pets;
@@ -189,7 +189,7 @@ There's some wizardry afoot here, and it needs an explanation.  These APIs in .N
 
 Now let's add some endpoints to round out our server.  We need to list all of the Pets in our care, add a Pet to our shop, and adopt one out.
 
-```
+```csharp
 ...
 [HttpGet]                                           // Without an additional Route attribute, this defaults to the controller's base of "/shop/pets".
 public ObjectResult List() => Ok(_pets.GetPets());
@@ -235,14 +235,14 @@ You can use more empty lines if you need to - use common sense - but a vast majo
 Back to the code we added, the `Require<Type>` function is a feature of platform-common.  This looks through the HTTP request's body for a specific key, and then tries to return the specified Type to you.  It's performing two important roles in the above endpoints:
 
 1. In `/pets/adopt`, it's simply pulling in a string value with the key of `id` from the body.  This request looks like:
-```
+```json
 POST /shop/pets/adopt
 {
     "id": "deadbeefdeadbeefdeadbeef"
 }
 ```
 2. In `/shop/pets/add`, it's doing something more interesting: it's creating a `Pet` from the JSON in the body.  The controller tries to automatically cast this JSON into one of our objects.  This body could look like:
-```
+```json
 POST /shop/pets/add
 {
     "pet": {               // This JSON key matches the string we use in Require<T>().

@@ -65,7 +65,7 @@ environment.json
 ```
 4. In `/environment.json`, add the below values.  Note that many of them contain sensitive information, hence adding the file to `.gitignore`.  This JSON file acts as a way to mock CI variables.  You don't need to worry about this for the tutorial - just copy the below contents over - but when you need more CI variables, you will also need to add them here.  You will, however, need to ask for the Game / Rumble keys to complete this JSON file.
 
-```
+```json
 {
   "RUMBLE_COMPONENT": "pet-service",
   "RUMBLE_REGISTRATION_NAME": "Pet Service Tutorial",
@@ -111,7 +111,7 @@ environment.json
 ```
 5. Finally, right click on your project > Edit > `Edit pet-shop-service.csproj`.  Add the `AssemblyVersion` and `Deterministic` XML values as below:
 
-```
+```xml
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>disable</Nullable>
@@ -136,7 +136,7 @@ This is some under-the-hood magic to give us automatic version numbers, useful f
 
 With .NET 5, this step was unnecessary; however, .NET 6 changed the default project structure.  This is solved easily enough: right-click on your project and add `Startup.cs`.  From here, we will build out our service configuration.
 
-```
+```csharp
 using RCL.Logging;
 using Rumble.Platform.Common.Web;
 
@@ -157,7 +157,7 @@ Let's make an example change to the configuration.  Not all services have the sa
 
 We can accomplish this by continuing the method chain for `PlatformOptions`:
 
-```
+```csharp
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Web;
@@ -181,7 +181,7 @@ public class Startup : PlatformStartup
 
 .NET 6 began using a different template for their default `Program.cs` file, so replace the contents with the following code, which was the previous standard:
 
-```
+```csharp
 using System.Reflection;
 
 namespace Rumble.Platform.PetShopService;
@@ -216,7 +216,7 @@ Normally, `/appsettings.json` contains some log rules and `/appsettings.Developm
 1. Delete `/appsettings.Development.json`.
 2. Replace the content of `/appsettings.json` with the following:
 
-```
+```json
 {
   "Logging": {
     "LogLevel": {

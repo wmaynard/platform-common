@@ -6,19 +6,19 @@ Now that we've covered a token crash course, it's time to harden our server and 
 
 Back in your `PetController` class, take a look at your `/adopt` endpoint.  You'll see we have two attributes above it:
 
-```
+```csharp
 [HttpPatch, Route("adopt")]
 ```
 
 We're going to add a third one:
 
-```
+```csharp
 [HttpPatch, Route("adopt"), RequireAuth]
 ```
 
 Your endpoint now requires a token to be sent with the request!  If you'd like, you can restart your server and try your Postman request again - it'll keep failing until you add a token as authorization:
 
-```
+```json
 HTTP 401
 {
     "message": "unauthorized",
@@ -48,7 +48,7 @@ Note that you should use a token _you_ generated; the one in this documentation 
 
 Now that our `/adopt` endpoint is locked down and represents an actual user of our system, we can actually remove `customerId`!  When a token is used for requests, you can grab information from it within Controller methods by using the `Token` property.  Let's modify our endpoint again:
 
-```
+```csharp
 [HttpPatch, Route("adopt"), RequireAuth]
 public ObjectResult Adopt()
 {
@@ -84,7 +84,7 @@ The strings we're using here are just for debug and would make really poor logs 
 
 We're going to do something a little different here.  Since adding pets to our stock is really something that only an employee should be able to do and not a customer, we're going to lock it down with an admin token instead:
 
-```
+```csharp
 [HttpPost, Route("add"), RequireAuth(AuthType.ADMIN_TOKEN)]
 public ObjectResult Add()
 {

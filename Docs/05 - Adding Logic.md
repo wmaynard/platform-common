@@ -16,7 +16,7 @@ Within C# Platform projects, the standard operating procedure is to **throw an e
 
 We've even snuck one of these exceptions into the code already, though it wasn't explicitly typed out.  If you try adding a pet with a `name` set to `null`, omitted, or a whitespace string, you'll see the following response:
 
-```
+```json
 HTTP 400
 {
     "message": "Pet failed validation",
@@ -68,7 +68,7 @@ We'll add a guarantee that a pet that was previously adopted can no longer be ad
 
 In `PetService.cs`, we have the following method:
 
-```
+```csharp
 public Pet Adopt(string id) => mongo
     .ExactId(id)
     .UpdateAndReturnOne(update => update.Set(pet => pet.AdoptedOn, Timestamp.Now));
@@ -76,7 +76,7 @@ public Pet Adopt(string id) => mongo
 
 We can achieve this by adding a mere two lines to our operation:
 
-```
+```csharp
 public Pet Adopt(string id) => mongo
     .ExactId(id)
     .And(query => query.FieldDoesNotExist(pet => pet.AdoptedOn))
@@ -92,7 +92,7 @@ public Pet Adopt(string id) => mongo
 
 Restart your server, then go ahead and try to adopt a pet twice.  You'll get a 400 response:
 
-```
+```json
 HTTP 400
 {
     "message": "Pet does not exist or has already been adopted",
@@ -120,7 +120,7 @@ The method chaining, expression-style code may look and feel foreign to you if y
 
 MINQ adds a **lot** of quality-of-life updates to working with MongoDB, though the most immediately noticeable improvement is just how much cleaner the method chain is when compared to stock Mongo DB code.  Compare the `Adopt()` equivalent without MINQ:
 
-``` 
+```csharp
 public Pet Adopt(string id)
 {
     FilterDefinitionBuilder<Pet> filterBuilder = Builders<Pet>.Filter;
@@ -154,7 +154,7 @@ We're a caring adoption agency, and as a result we'll want to follow up with our
 
 Add a new class to your `Models` directory and call it `Customer`.  In it, we'll want some fields:
 
-```
+```csharp
 public class Customer : PlatformCollectionDocument
 {
     internal const string DB_KEY_NAME = "name";
@@ -191,7 +191,7 @@ If you wish to add your own validation, you're welcome to add the overload yours
 
 Add a new class to your `Services` directory and call it `CustomerService`:
 
-```
+```csharp
 public class CustomerService : MinqService<Customer>
 {
     public CustomerService() : base("customers") { }
@@ -218,7 +218,7 @@ public class CustomerService : MinqService<Customer>
 
 With our new model and service in place, it's time to add the functionality to our controller:
 
-```
+```csharp
 #pragma warning disable
 private readonly PetService _pets;
 private readonly CustomerService _customers;    // <--- NEW
@@ -231,7 +231,7 @@ With our access in place, we can use Customers in our endpoints.
 
 Using the `/add` endpoint as a template, this should look familiar:
 
-```
+```csharp
 [HttpPost, Route("register")]
 public ObjectResult Register()
 {
@@ -259,7 +259,7 @@ In the end, you should have a `/shop/customers/register` endpoint working.
 
 We can change our endpoint now to load the Customer from our database, and add it to our `PetService.Adopt()` call:
 
-```
+```csharp
 [HttpPatch, Route("adopt")]
 public ObjectResult Adopt()
 {
@@ -276,7 +276,7 @@ public ObjectResult Adopt()
 
 Of course, you'll also need to modify your Pet model as well:
 
-```
+```csharp
 ...
 public string OwnerId { get; set; }
 ...
@@ -284,7 +284,7 @@ public string OwnerId { get; set; }
 
 And finally, update the `PetService.Adopt()` method to accept the new parameter:
 
-```
+```csharp
 public Pet Adopt(string id, string ownerId) => mongo
     .ExactId(id)
     .And(query => query.FieldDoesNotExist(pet => pet.AdoptedOn))
