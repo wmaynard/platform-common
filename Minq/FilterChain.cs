@@ -210,6 +210,19 @@ public class FilterChain<T>
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.AnyIn(field, value));
     
+    /// <summary>
+    /// Creates a condition where the database field contains all elements of the provided array.  This method does NOT
+    /// guarantee that the database field and the array are exact content matches; the database may have more values in it.
+    /// To guarantee an exact content match, use ContainsExactly().
+    /// </summary>
+    /// <param name="field"></param>
+    /// <param name="value"></param>
+    /// <typeparam name="U"></typeparam>
+    /// <returns></returns>
+    public FilterChain<T> ContainsAll<U>(Expression<Func<T, IEnumerable<U>>> field, IEnumerable<U> value) => 
+        Track(field, WEIGHT_EQUALITY)
+        .AddFilter(Builder.All(field, value));
+    
     public FilterChain<T> DoesNotContainOneOf<U>(Expression<Func<T, IEnumerable<U>>> field, IEnumerable<U> value) => 
         Track(field, WEIGHT_EQUALITY)
         .AddFilter(Builder.AnyNin(field, value));

@@ -10,6 +10,7 @@ using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Filters;
 
@@ -30,6 +31,30 @@ public abstract class PlatformFilter : IFilterMetadata
                 Log.Info(Owner.Default, "Tried to access a token from a Filter, but nothing exists in the HttpContext", exception: e);
                 return null;
             }
+        }
+    }
+
+    protected RumbleJson Body
+    {
+        get
+        {
+            try
+            {
+                object body = null;
+                new HttpContextAccessor()
+                    .HttpContext
+                    ?.Items
+                    .TryGetValue(PlatformResourceFilter.KEY_BODY, out body);
+                
+                if (body != null)
+                    return (RumbleJson)body;
+            }
+            catch (Exception e)
+            {
+                Log.Info(Owner.Will, "Tried to access the request body from a Filter, but nothing exists in the HttpContext", exception: e);
+            }
+
+            return new RumbleJson();
         }
     }
 

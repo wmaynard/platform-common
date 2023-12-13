@@ -254,7 +254,7 @@ POST /shop/pets/add
 
 `Require<Type>()` will throw an exception if the key does not exist, preventing any work in the endpoint from being performed.  If you want to avoid this, you can use `Optional<Type>()` instead - though this isn't required for the tutorial.
 
-## Run the Server
+## Step 4: Run the Server
 
 At this point, go ahead and click the little green bug icon in Rider to compile and run the project.  Before continuing, you should see some console output like the below:
 

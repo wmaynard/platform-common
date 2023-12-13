@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
@@ -445,6 +446,10 @@ public class Log : PlatformDataModel
             SwarmMessagePrinted = true;
             return;
         }
+#endif
+#if DEBUG
+        if (exception is MongoCommandException mongo)
+            Local(owner, mongo.Message, emphasis: LogType.ERROR);
 #endif
             
         Owner actual = owner == RCL.Logging.Owner.Default
