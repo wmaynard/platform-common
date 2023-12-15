@@ -25,7 +25,10 @@ public class FilterChain<T>
     internal enum FilterType { And, Not, Or }
     internal FilterType Type { get; set; }
     internal FilterDefinitionBuilder<T> Builder { get; init; }
-    internal FilterDefinition<T> Filter => Builder.And(Filters);
+
+    internal FilterDefinition<T> Filter => Filters.Any()
+        ? Builder.And(Filters)
+        : Builder.Empty;
 
     internal int HashCode => Filter.Render(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),

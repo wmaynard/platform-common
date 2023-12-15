@@ -400,7 +400,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private void EvaluateFilter()
     {
         MinqIndex[] existing = Parent.RefreshIndexes(out int next);
-        MinqIndex suggested = new MinqIndex(_indexWeights);
+        MinqIndex suggested = new(_indexWeights);
 
         if (suggested.IsProbablyCoveredBy(existing))
             return;
@@ -410,6 +410,13 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             return;
 
         Explain(out MongoQueryStats stats);
+
+        if (stats == null)
+        {
+            Log.Warn(Owner.Will, "MongoQueryStats was null; investigation needed, auto-indexing disabled for this query.");
+            return;
+        }
+
         try
         {
             if (stats.IsFullyCovered)

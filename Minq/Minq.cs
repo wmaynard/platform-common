@@ -266,7 +266,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <returns></returns>
     public RequestChain<T> Where(Action<FilterChain<T>> query)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         query.Invoke(filter);
         
         return new RequestChain<T>(this, filter);
