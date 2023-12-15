@@ -531,8 +531,9 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// if your search turns up with more than 1000 results, you may not get the one you're looking for.
     /// </summary>
     /// <param name="term">The term to search for.</param>
+    /// <param name="limit">The maximum number of records to return.  Hard cap of 1000.</param>
     /// <returns>An array of models matching your search.</returns>
-    public T[] Search(string term)
+    public T[] Search(string term, int limit = 1_000)
     {
         MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
         Expression<Func<T, object>>[] info = infos
@@ -567,14 +568,15 @@ public class Minq<T> where T : PlatformCollectionDocument
             })
             .ToArray();
 
-        RequestChain<T> request = new RequestChain<T>(this);
+        RequestChain<T> request = new(this);
 
         foreach (Expression<Func<T, object>> expression in info)
             request.Or(builder => builder.ContainsSubstring(expression, term));
 
-        request.Limit(1_000);
-
-        List<T> output = request.ToList();
+        List<T> output = request
+            .Limit(Math.Max(1, limit))
+            .Sort(sort => sort.OrderByDescending(model => model.CreatedOn))
+            .ToList();
         // TODO: Weigh and score results, return in descending order.
         // TODO: Create Search() overload with specific fields
 

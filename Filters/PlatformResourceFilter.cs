@@ -56,7 +56,7 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
                 else                                                // Request is using JSON (preferred).
                 {
                     using Stream stream = context.HttpContext.Request.BodyReader.AsStream();
-                    using StreamReader reader = new StreamReader(stream);
+                    using StreamReader reader = new (stream);
 
                     json = reader.ReadToEnd();
 
@@ -77,7 +77,8 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
             string message = "The request body or query parameters could not be parsed into RumbleJson, probably as a result of incomplete or invalid JSON, or a 500 error page.";
             Log.Error(Owner.Default, message, data: new
             {
-                Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it."
+                Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it.",
+                RawString = json
             }, exception: e);
             ApiService.Instance?.Alert(
                 title: "JSON Parse Failure",
