@@ -112,5 +112,5 @@ public class AuthorizationResult
         context.HttpContext.Items[PlatformAuthorizationFilter.KEY_TOKEN] = Token;
     }
 
-    public static AuthorizationResult Evaluate(ActionContext context) => new AuthorizationResult(context);
+    public static AuthorizationResult Evaluate(ActionContext context) => new(context);
 }

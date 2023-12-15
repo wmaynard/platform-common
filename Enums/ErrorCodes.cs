@@ -17,6 +17,7 @@ public enum ErrorCode
     [Display(Name = "0004")] DownForMaintenance = 0004,
     [Display(Name = "0005")] Uninitialized = 0005,
     [Display(Name = "0006")] InvalidParameter = 0006,
+    [Display(Name = "0007")] TooManyRequests = 0007,
       // 10: Serialization
       [Display(Name = "0010")] GenericDataConversion = 0010,
       [Display(Name = "0011")] SerializationFailure = 0011,

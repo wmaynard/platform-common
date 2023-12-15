@@ -87,6 +87,15 @@ public class CacheService : PlatformTimerService
         return Values.ContainsKey(key);
     }
 
+    public bool HasValue<T>(string key, out T value, out long msRemaining)
+    {
+        bool output = HasValue(key, out value);
+        msRemaining = output
+            ? Expirations.GetValueOrDefault(key) - TimestampMs.Now
+            : 0;
+        return output;
+    }
+
     protected override void OnElapsed()
     {
         RumbleJson removals = new RumbleJson();

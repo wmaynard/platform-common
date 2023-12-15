@@ -39,11 +39,9 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
     /// <param name="context"></param>
     public void OnException(ExceptionContext context)
     {
-        if (context.Exception == null)
-            return;
-
         Exception ex = context.Exception;
-        RumbleJson data = new RumbleJson();
+        
+        RumbleJson data = new();
         string origin = (string)context.HttpContext.Items[PlatformResourceFilter.KEY_REQUEST_ORIGIN];
 
         string message = ex switch

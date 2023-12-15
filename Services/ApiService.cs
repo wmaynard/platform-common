@@ -70,7 +70,7 @@ public class ApiService : PlatformService
     /// <param name="retries">How many times to retry the request if it fails.</param>
     public ApiRequest Request(string url, int retries = ApiRequest.DEFAULT_RETRIES) => Request(url, retries, prependEnvironment: true);
 
-    internal ApiRequest Request(string url, int retries, bool prependEnvironment) => new ApiRequest(this, url, retries, prependEnvironment);
+    internal ApiRequest Request(string url, int retries, bool prependEnvironment) => new(this, url, retries, prependEnvironment);
 
     internal RumbleJson Send(HttpRequestMessage message) => null;
 
@@ -115,7 +115,7 @@ public class ApiService : PlatformService
                 }, exception: e);
         }
 
-        ApiResponse output = new ApiResponse(response, request);
+        ApiResponse output = new(response, request);
         request.Complete(output);
         Record(output.StatusCode);
         return output;
@@ -141,7 +141,7 @@ public class ApiService : PlatformService
         }
     }
 
-    public override RumbleJson HealthStatus => new RumbleJson
+    public override RumbleJson HealthStatus => new()
     {
         { Name, new RumbleJson
             {
@@ -164,13 +164,13 @@ public class ApiService : PlatformService
     /// <param name="reason">A value for internal use to communicate why the ban was issued.</param>
     public void BanPlayer(string accountId, long? duration = null, Audience audiences = Audience.All, string reason = null)
     {
-        RumbleJson payload = new RumbleJson
+        RumbleJson payload = new()
         {
             { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
             {
                 "ban", new Ban
                 {
-                    Expiration = duration,
+                    Expiration = Timestamp.Now + duration,
                     Reason = reason,
                     PermissionSet = (int)audiences
                 }
@@ -180,10 +180,17 @@ public class ApiService : PlatformService
         Request("/token/admin/ban")
             .AddAuthorization(DynamicConfig.Instance?.AdminToken)
             .SetPayload(payload)
-            .OnSuccess(response => Log.Info(Owner.Default, $"An account has been banned.", data: new
+            .OnSuccess(response =>
             {
-                AccountId = accountId
-            }))
+                Log.Info(Owner.Default, $"An account has been banned.", data: new
+                {
+                    AccountId = accountId,
+                    Reason = reason
+                });
+                
+                Get(out CacheService cache);
+                cache.ClearToken(accountId);
+            })
             .OnFailure(response =>
             {
                 object data = new
@@ -273,7 +280,7 @@ public class ApiService : PlatformService
         string url = PlatformEnvironment.Url("/secured/token/generate");
 #endif
         
-        RumbleJson payload = new RumbleJson
+        RumbleJson payload = new()
         {
             { TokenInfo.FRIENDLY_KEY_ACCOUNT_ID, accountId },
             { TokenInfo.FRIENDLY_KEY_SCREENNAME, screenname },

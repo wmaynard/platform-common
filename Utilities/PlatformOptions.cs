@@ -39,6 +39,7 @@ public class PlatformOptions
     internal string RegistrationName { get; set; }
     internal Func<Task> BeforeStartup { get; set; }
     internal Action<PlatformOptions> OnApplicationReady { get; set; }
+    internal double MaximumRequestsPerSecond { get; set; }
     // internal bool StartupLogsSuppressed { get; private set; }
     
     internal bool AspNetServicesEnabled { get; set; }
@@ -188,6 +189,20 @@ public class PlatformOptions
         WarningThreshold = warnMS;
         ErrorThreshold = errorMS;
         CriticalThreshold = criticalMS;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the maximum individual requests per second per non-admin account per instance of this server.  As an example, if set to 0.5,
+    /// prolonged activity of hitting the server more than twice per second will begin a cooloff period where the account cannot access ANY
+    /// resources.  This RPS limit is more generous when servers scale up since there will be more servers to handle requests.  Returns an
+    /// error code of HTTP 418 I'm a teapot when triggered.
+    /// </summary>
+    /// <param name="rps"></param>
+    /// <returns></returns>
+    public PlatformOptions SetIndividualRps(double rps)
+    {
+        MaximumRequestsPerSecond = rps;
         return this;
     }
 

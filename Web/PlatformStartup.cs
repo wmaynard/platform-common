@@ -182,6 +182,8 @@ public abstract class PlatformStartup
             // Still, best practice would be to bypass anything necessary before the call to base.ConfigureServices.
             if (Options.EnabledFilters.HasFlag(CommonFilter.Authorization))
                 config.Filters.Add(new PlatformAuthorizationFilter());
+            if (Options.MaximumRequestsPerSecond > 0)
+                config.Filters.Add(new PlatformRpsFilter(Options));
             if (Options.EnabledFilters.HasFlag(CommonFilter.Resource))
                 config.Filters.Add(new PlatformResourceFilter());
             if (Options.EnabledFilters.HasFlag(CommonFilter.Exception))
