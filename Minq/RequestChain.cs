@@ -402,6 +402,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         MinqIndex[] existing = Parent.RefreshIndexes(out int next);
         MinqIndex suggested = new(_indexWeights);
 
+        if (suggested.Fields.Count == 0)
+            return;
+
         if (suggested.IsProbablyCoveredBy(existing))
             return;
         

@@ -533,20 +533,22 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <param name="term">The term to search for.</param>
     /// <param name="limit">The maximum number of records to return.  Hard cap of 1000.</param>
     /// <returns>An array of models matching your search.</returns>
-    public T[] Search(string term, int limit = 1_000)
+    public T[] Search(string term, int limit = 1_000, Expression<Func<T, object>> foo = null)
     {
+        throw new NotImplementedException();
+        
         MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
         Expression<Func<T, object>>[] info = infos
             .Select(ci =>
             {
                 try
                 {
-                    UnaryExpression body = Expression.Convert(ci.Accessor, typeof(object));
+                    // UnaryExpression body = Expression.Convert(ci.Accessor, typeof(object));
                     ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
-                    Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(body, param);
+                    Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(ci.Accessor, param);
                     
 
-                    // TODO: By default, the Mongo driver can't handle this.  There's an apparent bug in the following file:
+                    // TODO: The Mongo driver can't handle this.  There's an apparent bug in the following file:
                     // MongoDB.Driver.Linq.Linq3Implementation.Misc.SymbolTable.
                     // In TryGetSymbol(), the if condition is:
                     //     if (s.Parameter == parameter).
@@ -582,6 +584,57 @@ public class Minq<T> where T : PlatformCollectionDocument
 
         return output.ToArray();
     }
+
+    public T[] SearchDebug(Expression<Func<T, object>> source = null)
+    {
+        MemberInfoAccess[] members = GetStringAccessors(typeof(T));
+        MemberInfoAccess member = members.First();
+        UnaryExpression body = Expression.Convert(member.Accessor, typeof(object));
+        ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
+        
+        Expression<Func<T, object>> reflected = Expression.Lambda<Func<T, object>>(member.Accessor, param);
+        
+        RequestChain<T> request = new(this);
+
+        try
+        {
+
+            request.Or(builder =>
+            {
+                builder.ContainsSubstring(source, "foo");
+                builder.ContainsSubstring(reflected, "foo");
+            });
+        }
+        catch (Exception e)
+        {
+        }
+        
+
+        return Array.Empty<T>();
+    }
+    
+    // public T[] Search(Expression<Func<T, object>> foo)
+    // {
+    //     MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
+    //     
+    //
+    //     // Find the MemberInfoAccess corresponding to the property in the expression
+    //     MemberInfoAccess bar = infos.FirstOrDefault(info => info.acc info.PropertyName == ((MemberExpression)foo.Body).Member.Name);
+    //
+    //     if (bar == null)
+    //     {
+    //         // Handle the case where the specified property is not found
+    //         throw new ArgumentException($"Property {((MemberExpression)foo.Body).Member.Name} not found in type {typeof(T).Name}");
+    //     }
+    //
+    //     UnaryExpression body = Expression.Convert(bar.Accessor, typeof(object));
+    //     ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
+    //     Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(body, param);
+    //
+    //     // Now you can use 'output' as needed, e.g., return an array of results
+    //
+    //     return null;
+    // }
 
     /// <summary>
     /// Returns an array of objects representing properties and fields of a given type, along with the expression accessor
