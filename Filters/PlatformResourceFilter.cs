@@ -31,7 +31,14 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
         ReadBody(context);
     }
 
-    public void OnResourceExecuted(ResourceExecutedContext context) { }
+    public void OnResourceExecuted(ResourceExecutedContext context)
+    {
+        context.HttpContext.Items.Remove(KEY_BODY);
+        context.HttpContext.Items.Remove(KEY_REQUEST_ORIGIN);
+        context.HttpContext.Items.Remove(KEY_IP_ADDRESS);
+        context.HttpContext.Items.Remove(KEY_GEO_IP_DATA);
+        context.HttpContext.Items.Remove(KEY_AUTHORIZATION);
+    }
 
     // Read the query parameters and request body and place them into a RumbleJson for later use in the endpoint.
     private static void ReadBody(ActionContext context)
@@ -39,7 +46,7 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
         string json = "";
         try
         {
-            RumbleJson query = new RumbleJson();
+            RumbleJson query = new();
             RumbleJson body = null;
             foreach (KeyValuePair<string, StringValues> pair in context.HttpContext.Request.Query)
                 query[pair.Key] = pair.Value.ToString();

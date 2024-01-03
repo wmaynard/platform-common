@@ -121,7 +121,7 @@ public class DynamicConfigClient : IService
         string clientConfigUrl = Path.Combine(_configServiceUrl, "clientConfig");
 
         HttpClientService httpClientService = ServicesManager.Get<HttpClientService>();
-        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, clientConfigUrl);
+        HttpRequestMessage request = new (HttpMethod.Get, clientConfigUrl);
         
         try
         {
@@ -145,8 +145,8 @@ public class DynamicConfigClient : IService
         JsonDocument configJson;
         try
         {
-            Stream responseData = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            StreamReader streamReader = new StreamReader(responseData);
+            await using Stream responseData = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using StreamReader streamReader = new(responseData);
             string configData = await streamReader.ReadToEndAsync();
             configJson = JsonDocument.Parse(configData);
             response.Dispose();
@@ -369,7 +369,7 @@ public class DynamicConfigClient : IService
         try
         {
             Stream responseData = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            StreamReader streamReader = new StreamReader(responseData);
+            using StreamReader streamReader = new(responseData);
             configData = await streamReader.ReadToEndAsync();
             response.Dispose();
         }

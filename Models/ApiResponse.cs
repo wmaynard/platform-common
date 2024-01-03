@@ -139,8 +139,8 @@ public class ApiResponse
         {
             if (!Success)
                 return null;
-            Stream stream = await Response.Content.ReadAsStreamAsync();
-            await using MemoryStream ms = new MemoryStream();
+            await using Stream stream = await Response.Content.ReadAsStreamAsync();
+            await using MemoryStream ms = new();
             await stream.CopyToAsync(ms);
             return ms.ToArray();
         }

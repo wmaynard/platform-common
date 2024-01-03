@@ -88,7 +88,7 @@ namespace Rumble.Platform.Common.Filters;
 
         if (context.ControllerHasAttribute<IgnorePerformance>())
         {
-            Log.Local(Owner.Default, $"Performance metrics ignored for {name}.");
+            Log.Verbose(Owner.Default, $"Performance metrics ignored for {name}.");
             return;
         }
 

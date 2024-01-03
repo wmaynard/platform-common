@@ -2,10 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Rumble.Platform.Common.Services;
-using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Models.Config;
@@ -54,6 +51,10 @@ public class Section : PlatformCollectionDocument
     [BsonElement(DB_KEY_FRIENDLY_NAME)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FRIENDLY_NAME)]
     public string FriendlyName { get; set; }
+    
+    [BsonElement("updated")]
+    [JsonPropertyName("updatedOn"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public long UpdatedOn { get; set; }
   
     // public List<DynamicConfig.DC2ClientInformation> ActiveClients { get; set; }
 
