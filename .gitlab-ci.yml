@@ -35,7 +35,7 @@ sonarqube-check:
       - .sonar/cache
   script: 
       - "apt-get update"
-      - "apt-get install --yes openjdk-11-jre"
+      - "apt-get install --yes openjdk-17-jre"
       - "dotnet tool install --global dotnet-sonarscanner"
       - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name gitlab "https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json"
       - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name platform "$CI_SERVER_URL/api/v4/groups/5/-/packages/nuget/index.json"
