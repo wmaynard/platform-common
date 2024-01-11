@@ -4,6 +4,10 @@ namespace Rumble.Platform.Common.Utilities;
 
 public static class IntervalMs
 {
+    public static int OneMinute => Calculate(minutes: 1);
+    public static int TwoMinute => Calculate(minutes: 2);
+    public static int ThreeMinute => Calculate(minutes: 3);
+    public static int FourMinute => Calculate(minutes: 4);
     public static int FiveMinutes => Calculate(minutes: 5);
     public static int TenMinutes => Calculate(minutes: 10);
     public static int FifteenMinutes => Calculate(minutes: 15);

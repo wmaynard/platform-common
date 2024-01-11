@@ -60,7 +60,7 @@ public static class PagerDuty
     /// <param name="alert">The alert to send.  A valid alert must, at a minimum, contain a Title and a Message.</param>
     /// <param name="level">Red alerts will blow up on-call engineer's phones.  Yellow alerts are email-only and are not
     /// aggressive, intended to wait for the next business day if the alert happens outside of regular work hours.</param>
-    /// <returns>The created PagerDutyIncident.</returns>
+    /// <returns>The created or existing PagerDutyIncident.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if you specify an invalid urgency level.</exception>
     public static PagerDutyIncident CreateIncident(Alert alert, Urgency level = Urgency.RedAlert)
     {

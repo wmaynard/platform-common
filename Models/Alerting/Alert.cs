@@ -13,46 +13,65 @@ namespace Rumble.Platform.Common.Models.Alerting;
 
 public class Alert : PlatformCollectionDocument
 {
-    public static long SECONDS_BEFORE_ESCALATION => DynamicConfig
-        .Instance
-        ?.Optional<long>("secondsBeforeEscalation")
-        ?? 1_800;
+    [BsonElement("owner")]
     public Owner Owner { get; set; }
+    
+    [BsonElement("title")]
     public string Title { get; set; }
+    
     [BsonIgnore]
     public string PagerDutyTitle => $"{PlatformEnvironment.ServiceName}-{PlatformEnvironment.Deployment} | {Title}";
+    
+    [BsonElement("msg")]
     public string Message { get; set; }
+    
+    [BsonElement("impact")]
     public ImpactType Impact { get; set; }
+    
+    [BsonElement("origin")]
     public string Origin { get; set; }
+    
+    [BsonElement("data")]
     public RumbleJson Data { get; set; }
-    public long SendAfter { get; set; }
-    // public long EscalationPeriod { get; set; }
-    public long LastEscalation { get; set; }
-    public long LastSent { get; set; }
+    
+    [BsonElement("sentOn")]
+    public long SentOn { get; set; }
+    
+    [BsonElement("trigger")]
     public Trigger Trigger { get; set; }
     
+    [BsonElement("status")]
     public AlertStatus Status { get; set; }
-    public AlertType Type { get; set; }
-    public EscalationLevel Escalation { get; set; }
+    
+    
     /// <summary>
     /// The link to the playbook doc guiding the responder.
     /// </summary>
+    [BsonElement("help")]
     public string ConfluenceLink { get; set; }
     
-    // [BsonIgnore]
+    [BsonElement("exp")]
     public long Expiration { get; private set; }
     
+    [BsonElement("env")]
+    public string Environment { get; private set; }
+    
+    [BsonElement("pdEvent")]
+    public string PagerDutyEventId { get; set; }
+    
+    [BsonElement("pdAuth")]
     public string PagerDutyToken { get; private set; }
+    
+    [BsonElement("pdSvc")]
     public string PagerDutyServiceId { get; private set; }
+    
+    [BsonElement("pdPolicy")]
     public string PagerDutyEscalationPolicy { get; private set; }
 
     public Alert()
     {
         Origin = PlatformEnvironment.ServiceName ?? "Not specified";
-        LastEscalation = 0;
         Status = AlertStatus.Pending;
-        Escalation = EscalationLevel.None;
-        SendAfter = Timestamp.Now;
         CreatedOn = Timestamp.Now;
 
         Trigger = new Trigger { Count = 1 };
@@ -60,6 +79,7 @@ public class Alert : PlatformCollectionDocument
         PagerDutyToken = PlatformEnvironment.PagerDutyToken;
         PagerDutyServiceId = PlatformEnvironment.PagerDutyServiceId;
         PagerDutyEscalationPolicy = PlatformEnvironment.PagerDutyEscalationPolicy;
+        Environment = PlatformEnvironment.ClusterUrl;
     }
 
     protected override void Validate(out List<string> errors)
@@ -72,148 +92,22 @@ public class Alert : PlatformCollectionDocument
         if (Trigger == null)
             errors.Add("A trigger definition is required.");
 
-        if ((int)Type == 0)
-            Type = AlertType.All;
-
-        // EscalationPeriod = Math.Min(5_000, Math.Max(0, EscalationPeriod));
         Trigger ??= new Trigger
         {
             Count = 1, 
             CountRequired = 1, 
             Timeframe = 300
         };
+        
+        Trigger.Count = Math.Max(Trigger.Count, 1);
         Expiration = CreatedOn + Trigger.Timeframe;
     }
-
-    public Alert Acknowledge()
-    {
-        Status = AlertStatus.Acknowledged;
-        SendAfter = Timestamp.Now + SECONDS_BEFORE_ESCALATION * 2;
-
-        return this;
-    }
-
-    public Alert Escalate()
-    {
-        Status = AlertStatus.Escalated;
-        Escalation = Escalation switch
-        {
-            EscalationLevel.None => EscalationLevel.First,
-            EscalationLevel.First => EscalationLevel.Final,
-            _ => EscalationLevel.First
-        };
-        LastEscalation = Timestamp.Now;
-        SendAfter = Timestamp.Now + SECONDS_BEFORE_ESCALATION;
-        return this;
-    }
-
-    public Alert Resolve()
-    {
-        Status = AlertStatus.Resolved;
-        SendAfter = long.MaxValue;
-
-        return this;
-    }
-
-    public Alert Cancel()
-    {
-        Status = AlertStatus.Canceled;
-        SendAfter = long.MaxValue;
-
-        return this;
-    }
-
-    public Alert Snooze(int minutes)
-    {
-        Status = AlertStatus.Pending;
-        Escalation = EscalationLevel.None;
-        SendAfter = Timestamp.Now + minutes * 60;
-
-        return this;
-    }
-
-    public override string ToString() => $"{Status.GetDisplayName()} | {Escalation.GetDisplayName()} | {Impact.GetDisplayName()} | {Title} | {Message}";
-
-    public SlackMessage ToSlackMessage(string channel)
-    {
-        string ping = null;
-        try
-        {
-            ping = Escalation switch
-            {
-                EscalationLevel.None => SlackUser.Find(Owner).Tag,
-                _ => "<!here>"
-            };
-        }
-        catch (Exception)
-        {
-            ping = "<!here>";
-        }
-
-        string status = Status == AlertStatus.Pending
-            ? AlertStatus.Sent.GetDisplayName()
-            : Status.GetDisplayName();
-
-        string details = 
-$@"```Incident ID: {Id}
-    Service: {PlatformEnvironment.ServiceName}
-        POC: {Owner.GetDisplayName()}
- Active For: {(Timestamp.Now - CreatedOn).ToFriendlyTime()}
-     Status: { status }
-     Impact: { Impact.GetDisplayName() }";
-        
-        if (Data != null)
-            details += $"\n       Data:\n{Data.Json}";
-        details += "```";
-
-        SlackMessage output = new SlackMessage
-        {
-            Blocks = new List<SlackBlock>
-            {
-                new SlackBlock(SlackBlock.BlockType.HEADER, Title),
-                new SlackBlock($"{ping} {Message}"),
-                new SlackBlock(details),
-                new SlackBlock(SlackBlock.BlockType.DIVIDER),
-#if DEBUG
-                new SlackBlock($"<{PlatformEnvironment.Url($"https://localhost:5201/alert/acknowledge?id={Id}")}|Acknowledge>"),
-                new SlackBlock($"<{PlatformEnvironment.Url($"https://localhost:5201/alert/resolve?id={Id}")}|Resolve>"),
-                new SlackBlock($"<{PlatformEnvironment.Url($"https://localhost:5201/alert/cancel?id={Id}")}|Cancel>"),
-#else
-                new SlackBlock($"<{PlatformEnvironment.Url($"alert/acknowledge?id={Id}")}|Acknowledge>"),
-                new SlackBlock($"<{PlatformEnvironment.Url($"alert/resolve?id={Id}")}|Resolve>"),
-                new SlackBlock($"<{PlatformEnvironment.Url($"alert/cancel?id={Id}")}|Cancel>"),
-#endif
-            },
-            Channel = channel
-        };
-
-        return output.Compress();
-    }
-
-    public enum EscalationLevel
-    {
-        None = 100,
-        First = 200,
-        Final = 300
-    }
-    
-    [Flags]
-    public enum AlertType
-    {
-        Slack = 0b0001,
-        Email = 0b0010,
-        All = 0b1111_1111
-    }
+    public override string ToString() => $"{Status.GetDisplayName()} | {Impact.GetDisplayName()} | {Title} | {Message}";
     
     public enum AlertStatus
     {
         Pending = 100,
         Sent = 200,
-        Acknowledged = 201,
-        Escalated = 202,
-        PendingResend = 203,
-        Resolved = 300,
-        TriggerNotMet = 301,
-        Canceled = 400,
+        TriggerNotMet = 300
     }
 }
