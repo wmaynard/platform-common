@@ -85,7 +85,8 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
             Log.Error(Owner.Default, message, data: new
             {
                 Details = "This can be the result of a request body exceeding its allowed buffer size.  Check nginx.ingress.kubernetes.io/client-body-buffer-size and consider increasing it.",
-                RawString = json
+                RawString = json,
+                Headers = context.HttpContext.Request.Headers
             }, exception: e);
             ApiService.Instance?.Alert(
                 title: "JSON Parse Failure",

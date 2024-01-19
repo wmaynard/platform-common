@@ -484,7 +484,7 @@ public class ApiService : PlatformService
             {
                 Title = title
             });
-        Alert toSend = new Alert
+        Alert toSend = new()
         {
             CreatedOn = Timestamp.Now,
             Data = data,
