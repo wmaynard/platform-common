@@ -43,4 +43,5 @@ public enum Audience
     [Display(Name = "guild-service")]           GuildService            = 0b0000_1000_0000_0000_0000_0000,
     [Display(Name = "telemetry-service")]       TelemetryService        = 0b0001_0000_0000_0000_0000_0000,
     [Display(Name = "catalog-service")]         CatalogService          = 0b0010_0000_0000_0000_0000_0000,
+    [Display(Name = "voucher-service")]         VoucherService          = 0b0100_0000_0000_0000_0000_0000,
 }
