@@ -400,7 +400,7 @@ need fixing or fields that may be candidates for obsolescence / removal.");
 
     internal static void Validate(PlatformOptions options, out List<string> errors)
     {
-        List<string> output = new List<string>();
+        List<string> output = new();
 
         void test(string key, string value)
         {

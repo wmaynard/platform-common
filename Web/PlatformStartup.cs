@@ -131,6 +131,7 @@ public abstract class PlatformStartup
             Log.Local(Owner.Default, e.Message, emphasis: Log.LogType.ERROR);
         }
         RumbleJson.ValidateOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.ModelValidationOnDeserialize);
+        RumbleJson.SanitizeStringsOnDeserialize = Options.EnabledFeatures.HasFlag(CommonFeature.AutoTrimIncomingRequestStrings);
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
         Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);

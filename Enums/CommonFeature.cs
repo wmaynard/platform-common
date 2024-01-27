@@ -14,5 +14,6 @@ public enum CommonFeature
     Graphite                            = 0b_0000_0100_0000,
     ModelValidationOnDeserialize        = 0b_0000_1000_0000,
     HealthCheckOnStartup                = 0b_0001_0000_0000,
-    ExitOnMissingEnvironmentVariables   = 0b_0010_0000_0000
+    ExitOnMissingEnvironmentVariables   = 0b_0010_0000_0000,
+    AutoTrimIncomingRequestStrings      = 0b_0100_0000_0000
 }

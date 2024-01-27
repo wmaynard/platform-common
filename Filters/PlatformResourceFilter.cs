@@ -11,6 +11,7 @@ using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Filters;
@@ -49,7 +50,9 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
             RumbleJson query = new();
             RumbleJson body = null;
             foreach (KeyValuePair<string, StringValues> pair in context.HttpContext.Request.Query)
-                query[pair.Key] = pair.Value.ToString();
+                query[pair.Key] = PlatformStartup.Options.EnabledFeatures.HasFlag(CommonFeature.AutoTrimIncomingRequestStrings)
+                    ? pair.Value.ToString().Trim()
+                    : pair.Value.ToString();
 
             if (!NO_BODY.Contains(context.HttpContext.Request.Method))
             {
