@@ -59,7 +59,7 @@ public static class MaxMind
         {
             IPAddress ip = IPAddress.Parse(ipAddress); 
 
-            using Reader reader = new Reader(Filename); 
+            using Reader reader = new (Filename); 
             Dictionary<string, object> dict = reader.Find<Dictionary<string, object>>(ip);
             RumbleJson data = RumbleJson.FromDictionary(dict);
             return new GeoIPData(ipAddress, data);
@@ -88,13 +88,13 @@ public static class MaxMind
     {
         try
         {
-            BasicAWSCredentials credentials = new BasicAWSCredentials(
+            BasicAWSCredentials credentials = new (
                 accessKey: PlatformEnvironment.Require<string>("AWS_SES_ACCESS_KEY"),
                 secretKey: PlatformEnvironment.Require<string>("AWS_SES_SECRET_KEY")
             );
-            AmazonS3Client client = new AmazonS3Client(credentials, region: RegionEndpoint.USEast1);
+            AmazonS3Client client = new (credentials, region: RegionEndpoint.USEast1);
 
-            GetObjectRequest request = new GetObjectRequest
+            GetObjectRequest request = new ()
             {
                 BucketName = DynamicConfig.Instance?.Optional<string>("Maxmind_Bucket") ?? FALLBACK_BUCKET,
                 Key = DynamicConfig.Instance?.Optional<string>("Maxmind_Filename") ?? FALLBACK_FILENAME
