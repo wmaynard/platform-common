@@ -6,7 +6,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformTimerService : PlatformService
+public abstract class PlatformTimerService : PlatformService, IDisposable
 {
     private readonly Timer _timer;
     protected readonly double IntervalMs;
@@ -61,5 +61,10 @@ public abstract class PlatformTimerService : PlatformService
                 Log.Error(Owner.Default, "Unable to set timer service interval.", exception: e);
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
     }
 }

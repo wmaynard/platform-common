@@ -19,7 +19,7 @@ using WebRequest = System.Net.WebRequest;
 namespace Rumble.Platform.Common.Interop;
 
 [Obsolete(message: "Use the Rumble.Platform.Common.Services.DynamicConfig singleton instead to move to DynamicConfigV2.")]
-public class DynamicConfigClient : IService
+public class DynamicConfigClient : IService, IDisposable
 {
     private string _configServiceUrl;
     private string _secret;
@@ -388,5 +388,10 @@ public class DynamicConfigClient : IService
         {
             _updateCancelToken.Cancel();
         }
+    }
+
+    public void Dispose()
+    {
+        _updateCancelToken?.Dispose();
     }
 }

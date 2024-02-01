@@ -201,9 +201,13 @@ public class ApiService : PlatformService
                     Response = response.AsRumbleJson
                 };
                 if (PlatformEnvironment.IsProd)
+                {
                     Log.Critical(Owner.Will, "Unable to ban player.", data);
+                }
                 else
+                {
                     Log.Error(Owner.Default, "Unable to ban player.", data);
+                }
             })
             .Post();
     }

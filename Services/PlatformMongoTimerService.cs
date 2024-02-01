@@ -7,7 +7,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T> where T : PlatformCollectionDocument
+public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T>, IDisposable where T : PlatformCollectionDocument
 {
     private readonly Timer _timer;
     protected double IntervalMs { get; init; }
@@ -44,4 +44,9 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T> whe
     {
         { Name, Status }
     };
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
 }

@@ -85,20 +85,27 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
             Log.Critical(Owner.Default, message, data: data, exception: ex);
         }
         else
+        {
             Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);
-        
+        }
+
         if (tokenEx != null)
+        {
             context.Result = new UnauthorizedObjectResult(new ErrorResponse(
-                message: "unauthorized",
-                data: tokenEx,
-                code: tokenEx.Code
-            ));
+                                                                            message: "unauthorized",
+                                                                            data: tokenEx,
+                                                                            code: tokenEx.Code
+                                                                           ));
+        }
         else
+        {
             context.Result = new BadRequestObjectResult(new ErrorResponse(
-            message: message,
-            data: ex,
-            code: code
-        ));
+                                                                          message: message,
+                                                                          data: ex,
+                                                                          code: code
+                                                                         ));
+        }
+
         context.ExceptionHandled = true;
         Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, context.GetEndpoint(), Graphite.Metrics.Type.FLAT);
     }

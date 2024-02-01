@@ -537,6 +537,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     {
         throw new NotImplementedException();
         
+        /*
         MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
         Expression<Func<T, object>>[] info = infos
             .Select(ci =>
@@ -583,6 +584,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         // TODO: Create Search() overload with specific fields
 
         return output.ToArray();
+        */
     }
 
     public T[] SearchDebug(Expression<Func<T, object>> source = null)
@@ -605,7 +607,7 @@ public class Minq<T> where T : PlatformCollectionDocument
                 builder.ContainsSubstring(reflected, "foo");
             });
         }
-        catch (Exception e)
+        catch (Exception)
         {
         }
         

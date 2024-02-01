@@ -192,7 +192,7 @@ public class SlackMessageClient
         return response;
     }
 
-    public async void Send(List<SlackBlock> content) => await Send(new SlackMessage(content));
-    public async void Send(List<SlackBlock> content, List<SlackAttachment> attachments) => await Send(new SlackMessage(content, attachments.ToArray()));
+    public async Task Send(List<SlackBlock> content) => await Send(new SlackMessage(content));
+    public async Task Send(List<SlackBlock> content, List<SlackAttachment> attachments) => await Send(new SlackMessage(content, attachments.ToArray()));
 }
 

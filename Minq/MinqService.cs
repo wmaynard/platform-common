@@ -37,11 +37,16 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
     public long WipeDatabase()
     {
         long output = 0;
-        
+
         if (!PlatformEnvironment.IsLocal || PlatformEnvironment.MongoConnectionString.Contains("-prod"))
+        {
             Log.Critical(Owner.Default, "Code attempted to wipe a database outside of a local environment.  This is not allowed.");
+        }
         else
+        {
             output = mongo.All().Delete();
+        }
+
         return output;
     }
 
