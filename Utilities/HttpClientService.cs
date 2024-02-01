@@ -6,7 +6,7 @@ using RCL.Services;
 
 namespace Rumble.Platform.Common.Utilities;
 
-public class HttpClientService : IService
+public class HttpClientService : IService, IDisposable
 {
     private HttpClient _httpClient = null;
     
@@ -61,7 +61,12 @@ public class HttpClientService : IService
 
     public void OnDestroy()
     {
-        _httpClient.CancelPendingRequests();
-        _httpClient.Dispose();
+        _httpClient?.CancelPendingRequests();
+        _httpClient?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
     }
 }
