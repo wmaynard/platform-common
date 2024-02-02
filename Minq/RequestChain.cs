@@ -16,6 +16,7 @@ using MongoDB.Driver.Core.Operations;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
@@ -209,7 +210,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (!condition)
             return this;
         
-        FilterChain<T> and = new FilterChain<T>();
+        FilterChain<T> and = new();
         builder.Invoke(and);
         _filter = Builders<T>.Filter.And(_filter, and.Filter);
         UpdateIndexWeights(and);
@@ -270,7 +271,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (!condition)
             return this;
         
-        FilterChain<T> not = new FilterChain<T>();
+        FilterChain<T> not = new();
         builder.Invoke(not);
         
         _filter = Builders<T>.Filter.And(_filter, Builders<T>.Filter.Not(not.Filter));
@@ -563,7 +564,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// </summary>
     /// <returns>The first model matching the specified query.</returns>
     /// <exception cref="IndexOutOfRangeException">Thrown when no records are found.</exception>
-    public T First() => FirstOrDefault() ?? throw new IndexOutOfRangeException("No models found.");
+    public T First() => FirstOrDefault() ?? throw new PlatformException("No models found.", code: ErrorCode.MongoRecordNotFound);
 
     public T FirstOrDefault()
     {
@@ -611,6 +612,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             else
                 _collection.InsertMany(toInsert);
             FireAffectedEvent(models.Length);
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch
         {
@@ -814,7 +829,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (ShouldAbort(nameof(Update)))
             return 0;
 
-        UpdateChain<T> updateChain = new UpdateChain<T>();
+        UpdateChain<T> updateChain = new();
         update.Invoke(updateChain);
         _update = updateChain.Update;
         
@@ -827,6 +842,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FireAffectedEvent(output);
             
             return output;
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch (MongoWriteException)
         {
@@ -863,6 +892,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 FireAffectedEvent(1);
             
             return output;
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch (MongoException)
         {
@@ -949,6 +992,24 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 .ToList()
                 .ToArray();
         }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (Transaction != null)
+                affected = 0;
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (Transaction != null)
+                affected = 0;
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
         catch (MongoWriteException)
         {
             Transaction?.TryAbort();
@@ -1015,6 +1076,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
             return model;
         }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
         catch
         {
             Transaction?.TryAbort();
@@ -1038,11 +1113,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (ShouldAbort(nameof(Upsert)))
             return default;
 
-        UpdateChain<T> updateChain = new UpdateChain<T>();
+        UpdateChain<T> updateChain = new();
         update?.Invoke(updateChain);
         _update = updateChain.Update;
 
-        UpdateOptions options = new UpdateOptions
+        UpdateOptions options = new()
         {
             IsUpsert = true
         };
@@ -1056,6 +1131,21 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FireAffectedEvent(output);
 
             return output;
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch (Exception e)
         {
@@ -1081,14 +1171,14 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (ShouldAbort(nameof(Upsert)))
             return default;
 
-        UpdateChain<T> updateChain = new UpdateChain<T>();
+        UpdateChain<T> updateChain = new();
         update?.Invoke(updateChain);
         updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.Now);
         // updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.UnixTime);
         _update = updateChain.Update;
         
 
-        FindOneAndUpdateOptions<T> options = new FindOneAndUpdateOptions<T>
+        FindOneAndUpdateOptions<T> options = new()
         {
             IsUpsert = true,
             ReturnDocument = MongoDB.Driver.ReturnDocument.After
@@ -1103,6 +1193,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FireAffectedEvent(1);
 
             return output;
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch (Exception e)
         {
@@ -1133,7 +1237,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             ? Builders<T>.Filter.Empty
             : Builders<T>.Filter.Eq(t => t.Id, model.Id);
 
-        ReplaceOptions options = new ReplaceOptions
+        ReplaceOptions options = new()
         {
             IsUpsert = true
         };
@@ -1147,6 +1251,20 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FireAffectedEvent(result.ModifiedCount);
 
             return model;
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            Transaction?.TryAbort();
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            Transaction?.TryAbort();
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
         }
         catch
         {

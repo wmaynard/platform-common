@@ -13,7 +13,7 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
     
     protected MinqService(string collection) => mongo = Minq<Model>.Connect(collection);
 
-    public void Insert(params Model[] models) => mongo.Insert(models);
+    public virtual void Insert(params Model[] models) => mongo.Insert(models);
     public void Update(Model model) => mongo.Update(model);
 
     public virtual Model FromId(string id) => mongo

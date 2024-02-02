@@ -13,6 +13,7 @@ using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using RCL.Data;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
@@ -277,7 +278,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// This functionality may be removed at a later date.
     /// </summary>
     /// <returns></returns>
-    public RequestChain<T> CreateRequestChain() => new RequestChain<T>(this);
+    public RequestChain<T> CreateRequestChain() => new (this);
 
     public T FirstOrDefault(Action<FilterChain<T>> query) => Where(query).FirstOrDefault();
 
@@ -300,14 +301,39 @@ public class Minq<T> where T : PlatformCollectionDocument
     
     public void Insert(params T[] models)
     {
-        T[] toInsert = models.Where(model => model != null).ToArray();
-        if (!toInsert.Any())
-            throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
+        try
+        {
+            T[] toInsert = models.Where(model => model != null).ToArray();
+            if (!toInsert.Any())
+                throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
 
-        long timestamp = Timestamp.Now;
-        foreach (T model in models)
-            model.CreatedOn = timestamp;
-        Collection.InsertMany(toInsert);
+            long timestamp = Timestamp.Now;
+            foreach (T model in models)
+                model.CreatedOn = timestamp;
+            Collection.InsertMany(toInsert);
+        }
+        catch (MongoBulkWriteException<T> e)
+        {
+            // MongoDB.Driver.ServerErrorCategory.DuplicateKey;
+            T failure = null;
+            try
+            {
+                failure = models[^(e.Result.ProcessedRequests.Count - 1)];
+            }
+            catch (Exception exception)
+            {
+                Log.Error(Owner.Will, "Unable to get failed model from write exception", exception);
+            }
+            if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
+                throw new UniqueConstraintException<T>(failure, e);
+            throw;
+        }
+        catch (MongoCommandException e)
+        {
+            if (e.CodeName == ServerErrorCategory.DuplicateKey.GetDisplayName())
+                throw new UniqueConstraintException<T>(null, e);
+            throw;
+        }
     }
     
     public static Minq<T> Connect(string collectionName)
@@ -401,7 +427,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     internal MinqIndex[] RefreshIndexes(out int nextIndex)
     {
         nextIndex = 0;
-        List<MinqIndex> output = new List<MinqIndex>();
+        List<MinqIndex> output = new();
         
         using (IAsyncCursor<BsonDocument> cursor = Collection.Indexes.List())
             while (cursor.MoveNext())
@@ -495,7 +521,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// TODO: Add this to RequestChain to enable Transactions
     public long RemoveElements<U>(Expression<Func<T, IEnumerable<U>>> model, Action<FilterChain<U>> query)
     {
-        FilterChain<U> filter = new FilterChain<U>();
+        FilterChain<U> filter = new();
         query.Invoke(filter);
         
         return Collection
@@ -600,7 +626,6 @@ public class Minq<T> where T : PlatformCollectionDocument
 
         try
         {
-
             request.Or(builder =>
             {
                 builder.ContainsSubstring(source, "foo");
@@ -644,8 +669,8 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <returns></returns>
     private MemberInfoAccess[] GetStringAccessors(IReflect type, Expression ex = null)
     {
-        List<MemberInfo> members = new List<MemberInfo>();
-        List<MemberInfoAccess> cInfo = new List<MemberInfoAccess>();
+        List<MemberInfo> members = new();
+        List<MemberInfoAccess> cInfo = new();
         try
         {
             PropertyInfo[] props = type
