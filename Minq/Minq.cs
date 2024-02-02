@@ -607,10 +607,7 @@ public class Minq<T> where T : PlatformCollectionDocument
                 builder.ContainsSubstring(reflected, "foo");
             });
         }
-        catch (Exception)
-        {
-        }
-        
+        catch (Exception) { }
 
         return Array.Empty<T>();
     }

@@ -180,7 +180,7 @@ public class ApiService : PlatformService
         Request("/token/admin/ban")
             .AddAuthorization(DynamicConfig.Instance?.AdminToken)
             .SetPayload(payload)
-            .OnSuccess(response =>
+            .OnSuccess(_ =>
             {
                 Log.Info(Owner.Default, $"An account has been banned.", data: new
                 {
@@ -201,13 +201,9 @@ public class ApiService : PlatformService
                     Response = response.AsRumbleJson
                 };
                 if (PlatformEnvironment.IsProd)
-                {
                     Log.Critical(Owner.Will, "Unable to ban player.", data);
-                }
                 else
-                {
                     Log.Error(Owner.Default, "Unable to ban player.", data);
-                }
             })
             .Post();
     }

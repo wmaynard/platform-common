@@ -21,22 +21,22 @@ public class PlatformOptions
     public const int DEFAULT_THROTTLE_THRESHOLD = 100;
     public const int DEFAULT_THROTTLE_PERIOD    = 3_600; // 1 hour
 
-    internal Owner  ProjectOwner     { get; set; }
-    internal string ServiceName      { get; set; }
+    internal Owner ProjectOwner { get; set; }
+    internal string ServiceName { get; set; }
     internal Type[] DisabledServices { get; set; }
 
-    internal CommonFilter            EnabledFilters           { get; set; }
-    internal CommonFeature           EnabledFeatures          { get; set; }
-    internal bool                    WebServerEnabled         { get; set; }
-    internal int                     WarningThreshold         { get; set; }
-    internal int                     ErrorThreshold           { get; set; }
-    internal int                     CriticalThreshold        { get; set; }
-    internal int                     LogThrottleThreshold     { get; set; }
-    internal int                     LogThrottlePeriodSeconds { get; set; }
-    internal string                  RegistrationName         { get; set; }
-    internal Func<Task>              BeforeStartup            { get; set; }
-    internal Action<PlatformOptions> OnApplicationReady       { get; set; }
-    internal double                  MaximumRequestsPerSecond { get; set; }
+    internal CommonFilter EnabledFilters { get; set; }
+    internal CommonFeature EnabledFeatures { get; set; }
+    internal bool WebServerEnabled { get; set; }
+    internal int WarningThreshold { get; set; }
+    internal int ErrorThreshold { get; set; }
+    internal int CriticalThreshold { get; set; }
+    internal int LogThrottleThreshold { get; set; }
+    internal int LogThrottlePeriodSeconds { get; set; }
+    internal string RegistrationName { get; set; }
+    internal Func<Task> BeforeStartup { get; set; }
+    internal Action<PlatformOptions> OnApplicationReady { get; set; }
+    internal double MaximumRequestsPerSecond { get; set; }
     // internal bool StartupLogsSuppressed { get; private set; }
     
     internal bool AspNetServicesEnabled { get; set; }
@@ -230,28 +230,28 @@ public class PlatformOptions
     {
         if (DisabledServices.Any())
             Log.Local(ProjectOwner, "Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
-                                                                                                                                                                                                                                        {
-                                                                                                                                                                                                                                            DisabledServices = DisabledServices.Select(type => type.Name)
-                                                                                                                                                                                                                                        }, emphasis: Log.LogType.WARN);
+            {
+                DisabledServices = DisabledServices.Select(type => type.Name)
+            }, emphasis: Log.LogType.WARN);
         if (!EnabledFilters.IsFullSet())
             Log.Info(ProjectOwner, "Some platform-common filters have been disabled.  This is a new feature and may have unintended side effects.", data: new
-                                                                                                                                                          {
-                                                                                                                                                              DisabledFilters = EnabledFilters.Invert().GetFlags()
-                                                                                                                                                          });
+            {
+                DisabledFilters = EnabledFilters.Invert().GetFlags()
+            });
         if (LogThrottleThreshold < MINIMUM_THROTTLE_THRESHOLD)
         {
             Log.Info(ProjectOwner, "The log throttling threshold is too low and will be set to a minimum.", data: new
-                                                                                                                  {
-                                                                                                                      MinimumThreshold = MINIMUM_THROTTLE_THRESHOLD
-                                                                                                                  });
+            {
+                MinimumThreshold = MINIMUM_THROTTLE_THRESHOLD
+            });
             LogThrottleThreshold = MINIMUM_THROTTLE_THRESHOLD;
         }
         if (LogThrottlePeriodSeconds < MINIMUM_THROTTLE_PERIOD)
         {
             Log.Info(ProjectOwner, "The log throttling period is too low and will be set to a minimum.", data: new
-                                                                                                               {
-                                                                                                                   MinimumPeriod = MINIMUM_THROTTLE_PERIOD
-                                                                                                               });
+            {
+                MinimumPeriod = MINIMUM_THROTTLE_PERIOD
+            });
             LogThrottlePeriodSeconds = MINIMUM_THROTTLE_PERIOD;
         }
         if (EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling) && DisabledServices.Contains(typeof(CacheService)))
@@ -271,7 +271,7 @@ public class PlatformOptions
         {
             SlackDiagnostics
                 .Log(title: "Invalid startup options.", message:
-                     @"Audience has not yet been set in ConfigureOptions().  This is a security requirement.  As part of token hardening, every service must initialize itself with a token audience.
+@"Audience has not yet been set in ConfigureOptions().  This is a security requirement.  As part of token hardening, every service must initialize itself with a token audience.
 In your Startup.cs file, call:
 
 ```
@@ -296,6 +296,6 @@ For more information see https://gitlab.cdrentertainment.com/platform-services/t
     }
 
     private T[] Flags<T>(T enums) where T : Enum => ((T[])Enum.GetValues(typeof(T)))
-                                                    .Where(service => enums.HasFlag(service))
-                                                    .ToArray();
+        .Where(service => enums.HasFlag(service))
+        .ToArray();
 }
