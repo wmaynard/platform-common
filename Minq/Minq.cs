@@ -16,6 +16,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -272,6 +273,8 @@ public class Minq<T> where T : PlatformCollectionDocument
         
         return new RequestChain<T>(this, filter);
     }
+
+    public RequestChain<T> Limit(int limit) => new RequestChain<T>(this).Limit(limit);
 
     /// <summary>
     /// Creates a RequestChain for use in building a request in branching code paths.  Frequent use is discouraged.
@@ -551,67 +554,11 @@ public class Minq<T> where T : PlatformCollectionDocument
     //     ).ModifiedCount;
 
     /// <summary>
-    /// Searches all text fields of your model.  Caution: this will create an index on all text fields, which can be
-    /// extremely expensive.  This is a WIP feature; if you need performance, consider writing your own at this time.
-    /// A hard limit of 1000 records is returned currently.  Since the records are not evaluated for relevance before that,
-    /// if your search turns up with more than 1000 results, you may not get the one you're looking for.
+    /// See RequestChain.Search().
     /// </summary>
-    /// <param name="term">The term to search for.</param>
-    /// <param name="limit">The maximum number of records to return.  Hard cap of 1000.</param>
+    /// <param name="terms">The terms to search for.</param>
     /// <returns>An array of models matching your search.</returns>
-    public T[] Search(string term, int limit = 1_000, Expression<Func<T, object>> foo = null)
-    {
-        throw new NotImplementedException();
-        
-        /*
-        MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
-        Expression<Func<T, object>>[] info = infos
-            .Select(ci =>
-            {
-                try
-                {
-                    // UnaryExpression body = Expression.Convert(ci.Accessor, typeof(object));
-                    ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
-                    Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(ci.Accessor, param);
-                    
-
-                    // TODO: The Mongo driver can't handle this.  There's an apparent bug in the following file:
-                    // MongoDB.Driver.Linq.Linq3Implementation.Misc.SymbolTable.
-                    // In TryGetSymbol(), the if condition is:
-                    //     if (s.Parameter == parameter).
-                    // However, this object equality means that only expressions created from Builders<T> work; if you
-                    // create them separately, as we've done here, you'll get an exception.  It's possible to fix this by
-                    // changing the conditional to:
-                    //     if (s.Parameter.Type == parameter.Type)
-                    // Unfortunately, this likely requires us to maintain our own fork.  It's unknown currently if there's
-                    // a way to get Builders<T> to work with us or otherwise let us use our own reflected expressions.
-                    // Render(output);  // this is just a test to see if Mongo can validate our expression.
-                    
-                    return output;
-                }
-                catch (Exception e)
-                {
-                    Log.Warn(Owner.Will, "Unable to create MINQ accessor expression", exception: e);
-                    return null;
-                }
-            })
-            .ToArray();
-
-        RequestChain<T> request = new(this);
-
-        foreach (Expression<Func<T, object>> expression in info)
-            request.Or(builder => builder.ContainsSubstring(expression, term));
-
-        List<T> output = request
-            .Limit(Math.Max(1, limit))
-            .Sort(sort => sort.OrderByDescending(model => model.CreatedOn))
-            .ToList();
-        // TODO: Weigh and score results, return in descending order.
-        // TODO: Create Search() overload with specific fields
-
-        return output.ToArray();
-        */
-    }
+    public T[] Search(params string[] terms) => new RequestChain<T>(this).Search(terms);
 
     public T[] SearchDebug(Expression<Func<T, object>> source = null)
     {
@@ -636,29 +583,6 @@ public class Minq<T> where T : PlatformCollectionDocument
 
         return Array.Empty<T>();
     }
-    
-    // public T[] Search(Expression<Func<T, object>> foo)
-    // {
-    //     MemberInfoAccess[] infos = GetStringAccessors(typeof(T));
-    //     
-    //
-    //     // Find the MemberInfoAccess corresponding to the property in the expression
-    //     MemberInfoAccess bar = infos.FirstOrDefault(info => info.acc info.PropertyName == ((MemberExpression)foo.Body).Member.Name);
-    //
-    //     if (bar == null)
-    //     {
-    //         // Handle the case where the specified property is not found
-    //         throw new ArgumentException($"Property {((MemberExpression)foo.Body).Member.Name} not found in type {typeof(T).Name}");
-    //     }
-    //
-    //     UnaryExpression body = Expression.Convert(bar.Accessor, typeof(object));
-    //     ParameterExpression param = Expression.Parameter(typeof(T), typeof(T).Name);
-    //     Expression<Func<T, object>> output = Expression.Lambda<Func<T, object>>(body, param);
-    //
-    //     // Now you can use 'output' as needed, e.g., return an array of results
-    //
-    //     return null;
-    // }
 
     /// <summary>
     /// Returns an array of objects representing properties and fields of a given type, along with the expression accessor
@@ -712,7 +636,7 @@ public class Minq<T> where T : PlatformCollectionDocument
                 Member = sp
             }));
 
-            List<MemberInfo> nonPrimitives = new List<MemberInfo>();
+            List<MemberInfo> nonPrimitives = new();
             nonPrimitives.AddRange(props.Where(prop => !prop.PropertyType.IsPrimitive));
             nonPrimitives.AddRange(fields.Where(field => !field.FieldType.IsPrimitive));
             nonPrimitives = nonPrimitives.Except(members).ToList();

@@ -13,45 +13,32 @@ public class BuildDateAttribute : Attribute
 
     public BuildDateAttribute(string dt)
     {
-      DateTime = DateTime.ParseExact(dt, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None);
+        DateTime = DateTime.ParseExact(dt, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
-    
+
     public static DateTime? Get(Assembly assembly)
     {
-      try
-      {
-        var attr = assembly.GetCustomAttribute<BuildDateAttribute>();
-        return attr.DateTime;
-      }
-      catch (Exception)
-      {
-        Log.Info(Owner.Sean, "Missing git build attribute", localIfNotDeployed: true);
-        return default;
-      }
+        BuildDateAttribute attr = assembly.GetCustomAttribute<BuildDateAttribute>();
+        if (attr == null)
+            Log.Info(Owner.Sean, "Missing git build attribute", localIfNotDeployed: true);
+                
+        return attr?.DateTime;
     }
 }
-  
+
 [AttributeUsage(AttributeTargets.Assembly)]
 public class GitHashAttribute : Attribute
 {
     public string Hash { get;  }
 
-    public GitHashAttribute(string hash)
-    {
-      Hash = hash;
-    }
+    public GitHashAttribute(string hash) => Hash = hash;
 
     public static string Get(Assembly assembly)
     {
-      try
-      {
-        var attr = assembly.GetCustomAttribute<GitHashAttribute>();
-        return attr.Hash;
-      }
-      catch (Exception)
-      {
-        Log.Info(Owner.Sean, "Missing git build attribute", localIfNotDeployed: true);
-        return null;
-      }
+        GitHashAttribute attr = assembly.GetCustomAttribute<GitHashAttribute>();
+        if (attr == null)
+            Log.Info(Owner.Sean, "Missing git build attribute", localIfNotDeployed: true);
+                
+        return attr?.Hash;
     }
 }

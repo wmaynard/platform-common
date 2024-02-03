@@ -37,7 +37,7 @@ If you're already familiar with `PlatformMongoService`, this will look very fami
 
 First, you'll need your model:
 
-```
+```csharp
 public class Foo : PlatformCollectionDocument
 {
     public string Bar { get; set; }
@@ -49,7 +49,7 @@ public class Foo : PlatformCollectionDocument
 
 Then you'll need your service:
 
-```
+```csharp
 public class FooService : MinqService<Foo>
 {
     public FooService() : base("foos") { }
@@ -64,7 +64,7 @@ MINQ is designed to borrow heavily from LINQ syntax so it feels familiar.  Metho
 
 Let's try some simple queries our Foo objects:
 
-```
+```csharp
 mongo
     .Where(query => query.EqualTo(foo => foo.Count, 15))
     .Limit(10)
@@ -108,7 +108,7 @@ There are a couple of noteworthy rules when working with Transactions:
 
 Let's take those previous two query examples from above, but add Transaction support to them:
 
-```
+```csharp
 mongo
     .WithTransaction(out Transaction transaction)
     .Where(query => query.LessThanOrEqualTo(foo => foo.CreatedOn, Timestamp.UnixTime))
@@ -134,7 +134,7 @@ To create indexes with MINQ, you need to use the method `mongo.DefineIndexes()`;
 
 Whenever you create a filter, you _almost always_ should have an index to cover it.  The fields you use in your filter should correspond to a separate index.  Let's say you have the following query:
 
-```
+```csharp
 mongo
     .Where(query => query
         .EqualTo(model => model.Foo, 5)
@@ -167,7 +167,7 @@ You can obtain slightly better performance with manually-specified indexes.  How
 
 You can obtain precise control over your indexes using MINQ's `DefineIndex()` or `DefineIndexes()` methods.  As a code style guideline, this should be called from within your `MinqService` constructor:
 
-```
+```csharp
 public MyMinqService() : base("foos")
 {
     mongo.DefineIndexes(
@@ -208,7 +208,7 @@ Currently not supported.
 Paged queries is a very useful tool when building a UI that needs to connect to a large data set.  As an example, when you're searching Amazon for cat toys, you don't want a server to be returning 20 million different toys at once.  Instead, you only want 25/50/100 results per page.  Use
 paging to accomplish this.  Let's say you're looking through the fourth page of cat toys with 100 results per page:
 
-```
+```csharp
 mongo
     .All()
     .Page(size: 100, number: 4, out long remaining);
@@ -226,7 +226,7 @@ Should you ever need to process data in batches, MINQ provides a way for you to 
 
 Theoretical example: we need a scheduled task that runs once per week, takes all players created since the last run, cross-references another service for some additional data, and does something with it.
 
-```
+```csharp
 long now = Timestamp.UnixTime;
 long lastRunTime = GetLastRunTime();
 SetLastRunTime(now);
@@ -260,3 +260,95 @@ Note that while Transactions are still supported for processing, this is necessa
 Before using processing, consider if there are more efficient ways to achieve what you want - using projection, or flat updates, et cetera.  However, the flexibility is there should you need it.
 
 **Important:** It's heavily discouraged to modify the collection you're querying against during processing, as this will affect the paging results.  Modifying other collections is fine.
+
+## Searching with MINQ
+
+As of platform-common-1.3.130, you can now perform searches on your collection with MINQ as a built-in feature.  Before you can use it, though, there's a little bit of setup.  First, you need to update your model to implement the `ISearchable<T>` interface:
+
+```csharp
+public class MyModel : PlatformCollectionDocument, ISearchable<MyModel>
+{
+    public string SomeString { get; set; }
+    public string OtherString { get; set; }
+    public string ImportantString { get; set; }
+    ...
+    
+    // The following are required by the ISearchable interface.
+    public long SearchWeight { get; set; }                            // The score the search assigned when weighing search terms.
+    public double SearchConfidence { get; set; }                      // A percentage indicating how relevant the result is compared to other returned models.
+    
+    // After Mongo returns records, these weights are used to calculate a model's relevance.  For accurate results, 
+    // these should match all the fields you use in the Search() call.  These weights allow you to prefer certain fields
+    // as you see fit.  Being a method, you have the flexibility to alter the weights at runtime if you don't use magic
+    // or constant values, e.g. via Dynamic Config.
+    public Dictionary<Expression<Func<Guild, object>>, int> DefineSearchWeights() => new()
+    {
+        { model => model.ImportantString, 100 },
+        { model => model.SomeString, 10 },
+        { model => model.OtherString, 1 }
+    };
+}
+```
+
+** Important Note:** Weights are only used _after_ Mongo returns results.  If your search matches 100k records, the weights will only apply to the few records returned, and won't return the most relevant results from the entire database.  If you find yourself in this situation, leverage the other features of a MINQ request to refine your search.
+
+Once your model is updated, you can use `Search()` in your MinqService:
+
+```csharp
+public class MyModelService : MinqService<MyModel>, ISearchable<MyModel>
+{
+    ...
+    public MyModel[] Search(params string[] terms) => mongo
+        .Where(query => query.GreaterThan(model => model.CreatedOn, Timestamp.OneWeekAgo))
+        .Limit(25)
+        .Cache(Interval.TwoHours)
+        .Sort(sort => sort.OrderByDescending(model => model.CreatedOn)
+        .Search(terms);
+}
+```
+
+In order of execution, this is telling platform-common:
+
+1. Only return documents that are less than one week old AND contain one of the specified search terms.
+2. If the results contain too many documents, return the most recently created documents first.
+3. Limit the results to a maximum of 25 documents.
+4. Once the query comes back, store this query as a cached search for two hours.  If this exact query is run during this time, the same exact data will be returned.
+5. Calculate the relevance of all the returned documents and return them in descending order of confidence.
+
+### How Relevance is Calculated
+
+In `ISearchable.cs`, the method `CalculateSearchWeight(ISearchable<T> result, string[] terms)` is the magic that guesses the importance of each model in the result set:
+
+1. Call `DefineSearchWeights<T>()` to get the dictionary of weights to use in the scoring algorithm.
+2. For every field specified in `Model.DefineSearchWeights()`, when a term is found in the field, add score:
+   1. Take {term length}^2.  This adds preference for longer terms.
+   2. Multiply by {term length - index of term}^2.
+   3. Multiply by the dev-specified weight.
+   4. Repeat for every occurrence of the term in the field (so `foo bar` would be less relevant than `bar foo foo bar`)
+
+### No Fuzzy Search
+
+Mongo _does_ support fuzzy search, but it comes with limitations.  A collection only supports a single text search index, and the fields the index is built on are static, requiring it to be rebuilt when you want to include a different field as part of the search.  This kind of search is just a naive check for case-insensitive substrings with a regex - however, it does allow us to create searches easily without heavy indexing.
+
+MINQ _does_ still create indexes to efficiently handle all queries, so as with every other MINQ command you use, it's best practice to use the same fields and same order wherever possible to keep indexing low.
+
+### Limitations
+
+Due to its expensive nature, MINQ Search has some initial limitations.  Future versions of common may increase them, but they are currently:
+
+* Terms are split by commas and whitespace.  A term with whitespace includes the initial value as a term: e.g. "foo bar" becomes `["foo bar", "foo", "bar"].`  Terms of length 0-2 are **ignored**.
+* A maximum of 5 terms is allowed. 
+* A maximum of 10 fields are allowed for searching.
+* A maximum of 1,000 records can be returned.
+
+Terms and fields create multiplicative queries; it's effectively building a complex "Or" clause on top of whatever your existing filter is.
+
+Because there's no way to score all results on the database with search, any time your search returns the maximum number of results, you will not be getting the most relevant results.  Narrowing the query down will help.
+
+### Caching
+
+(TODO: Docs)
+
+Depending on your use case, leveraging MINQ's caching could dramatically improve your Search performance.  However, this could also do the opposite; each cached result creates temporary copies of query responses in a separate collection.  If your search is player-facing, caching garbage input could create enormous amounts of data.
+
+As a rule of thumb, caching makes more sense for admin users or something hidden from players.

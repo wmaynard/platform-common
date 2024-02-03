@@ -25,7 +25,7 @@ public class SortChain<T> where T : PlatformDataModel
     public SortChain<T> OrderBy(Expression<Func<T, object>> field)
     {
         if (Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(OrderBy)}() called after a {nameof(ThenBy)}(); this is discouraged style");
+            Log.Warn(Owner.Default, $"Minq {nameof(OrderBy)}() called after a {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Ascending(field));
         return this;
     }
@@ -33,7 +33,7 @@ public class SortChain<T> where T : PlatformDataModel
     public SortChain<T> OrderByDescending(Expression<Func<T, object>> field)
     {
         if (Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(OrderByDescending)}() called after a {nameof(ThenBy)}(); this is discouraged style");
+            Log.Warn(Owner.Default, $"Minq {nameof(OrderByDescending)}() called after a {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Descending(field));
         return this;
     }

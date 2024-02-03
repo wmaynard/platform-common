@@ -17,6 +17,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
@@ -29,6 +30,8 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 {
     private readonly string EmptyRenderedFilter = Minq<T>.Render(Builders<T>.Filter.Empty);
     internal bool FilterIsEmpty => Minq<T>.Render(_filter) == EmptyRenderedFilter;
+
+    internal string RenderedFilter => Minq<T>.Render(_filter);
     
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
@@ -73,7 +76,12 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private void Consume()
     {
         if (Consumed)
-            throw new PlatformException("The RequestChain was previously consumed by another action.  This is not allowed to prevent accidental DB spam.");
+        {
+            RequestConsumedException<T> exception = new (this);
+            Log.Error(Owner.Default, "MINQ request already consumed; the query will return a default result.", exception: exception);
+            throw exception;
+        }
+
         Consumed = true;
         EvaluateFilter();
     }
@@ -328,7 +336,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (!condition)
             return this;
         
-        FilterChain<T> or = new FilterChain<T>();
+        FilterChain<T> or = new();
         builder.Invoke(or);
         _filter = !FilterIsEmpty
             ? Builders<T>.Filter.Or(_filter, or.Filter)
@@ -374,7 +382,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// <returns>A RequestChain object, which allows you to issue terminal commands such as Update() or ToList().</returns>
     public RequestChain<T> Where(Action<FilterChain<T>> query)
     {
-        FilterChain<T> filter = new FilterChain<T>();
+        FilterChain<T> filter = new();
         query.Invoke(filter);
         
         WarnOnFilterOverwrite(nameof(Where));
@@ -473,7 +481,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         {
             // Unfortunately this is unable to leverage Minq<T>.Render(filter), because it needs to be a BSON document,
             // not a string.
-            BsonDocument command = new BsonDocument
+            BsonDocument command = new()
             {
                 { "explain", new BsonDocument
                 {
@@ -552,8 +560,10 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FireAffectedEvent(output);
             return output;
         }
-        catch
+        catch (Exception e)
         {
+            if (e is RequestConsumedException<T> consumed)
+                Log.Error(Owner.Default, "Request has already been consumed; MINQ will return a default value.", exception: consumed);
             Transaction?.TryAbort();
             return 0;
         }
@@ -773,7 +783,8 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     {
         try
         {
-            return ToList().ToArray();
+            T[] output = ToList().ToArray();
+            return output;
         }
         catch
         {
@@ -1271,6 +1282,78 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Transaction?.TryAbort();
             return null;
         }
+    }
+    
+    /// <summary>
+    /// Searches specified fields of your model.  Your model must implement ISearchable to work with Search.
+    /// There are some limitations because searches are relatively expensive compared to other queries.  For its first iteration,
+    /// there's a maximum term limit of 5, terms must be of length 3+, no more than 10 fields can be used, and the returned
+    /// document limit is capped at 1000.
+    /// </summary>
+    /// <param name="terms">The terms to search for.  Terms must be non-null, non-whitespace.  These are naive regex with no fuzzy distance logic (Levenshtein Distance).  Mongo does support it though MINQ will not, but has many limitations; see SEARCH.md for more information.</param>
+    /// <returns>An array of models matching your search.</returns>
+    public T[] Search(string[] terms)
+    {
+        if (ShouldAbort(nameof(Search)))
+            return default;
+        
+        T searchModel = (T)Activator.CreateInstance(typeof(T));
+        if (searchModel is not ISearchable<T> searchable)
+        {
+            Log.Error(Owner.Default, $"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            return Array.Empty<T>();
+        }
+
+        Dictionary<Expression<Func<T, object>>, int> weights = searchable.DefineSearchWeights();
+        Expression<Func<T, object>>[] fields = weights.Keys.ToArray();
+        
+        if (typeof(T).IsAssignableFrom(typeof(ISearchable<T>)))
+        {
+            Log.Error(Owner.Default, $"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            return Array.Empty<T>();
+        }
+
+        if (terms.Length > ISearchable<T>.MAXIMUM_TERMS)
+            Log.Local(Owner.Default, $"Too many search terms provided; only {ISearchable<T>.MAXIMUM_TERMS} are used.", emphasis: Log.LogType.WARN);
+        if (fields.Length > ISearchable<T>.MAXIMUM_FIELDS)
+        {
+            Log.Error(Owner.Default, $"Too many search fields provided; search will return no results.", data: new
+            {
+                FieldCount = fields.Length,
+                AllowedCount = ISearchable<T>.MAXIMUM_FIELDS
+            });
+            return Array.Empty<T>();
+        }
+
+        if (_limit == default)
+            _limit = 25;
+        else if (_limit > ISearchable<T>.MAXIMUM_LIMIT)
+        {
+            Log.Warn(Owner.Default, "Search result limit exceeded and has been lowered by common.  Searches are expensive; lower your limit.");
+            _limit = ISearchable<T>.MAXIMUM_LIMIT;
+        }
+
+        ISearchable<T>.SanitizeTerms(terms, out string[] sanitizedTerms);
+
+        if (!sanitizedTerms.Any())
+        {
+            Log.Warn(Owner.Default, $"No valid search terms detected; {nameof(Search)}() will return an empty array.");
+            return Array.Empty<T>();
+        }
+        
+        T[] output = And(and => and.Or(or =>
+            {
+                foreach (string term in sanitizedTerms)
+                    foreach (Expression<Func<T, object>> field in fields)
+                        or.ContainsSubstring(field, term);
+            }))
+            .ToArray();
+        
+        ISearchable<T>.WeighSearchResults(weights, terms, (ISearchable<T>[])output);
+
+        return output
+            .OrderByDescending(model => ((ISearchable<T>)model).SearchWeight)
+            .ToArray();
     }
     #endregion Terminal Commands
 }

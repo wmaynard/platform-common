@@ -222,7 +222,7 @@ public abstract class PlatformController : Controller
                 Warning = "HealthService unavailable."
             });
 
-        var assembly = Assembly.GetEntryAssembly();
+        Assembly assembly = Assembly.GetEntryAssembly();
 
         RumbleJson health = await _health.Evaluate(this);
         health["version"] = PlatformEnvironment.Version;
