@@ -47,14 +47,19 @@ public interface ISearchable<T> where T : PlatformCollectionDocument
 
             foreach (string term in terms.Where(value.Contains))
             {
-                int index = term.IndexOf(term, StringComparison.InvariantCulture);;
+                long score = 0;
+                int index = term.IndexOf(term, StringComparison.InvariantCulture);
                 do
                 {
                     int positionWeight = (int)Math.Pow(value.Length - index, 2);
-                    output += (long)Math.Pow(term.Length, 2) * pair.Value * positionWeight;
+                    score += (long)Math.Pow(term.Length, 2) * pair.Value * positionWeight;
                     index = term.IndexOf(term, index + 1, StringComparison.InvariantCulture);
                     
                 } while (index > -1);
+                
+                output += term == value
+                    ? (long)Math.Pow(score, 2)
+                    : score;
             }
         }
 
