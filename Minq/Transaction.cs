@@ -57,7 +57,7 @@ public class Transaction
         catch (Exception e)
         {
             Status = TransactionStatus.Failed;
-            Log.Error(Owner.Default, "Unable to commit Transaction.", exception: e);
+            Log.Error(Owner.Default, "Unable to abort Transaction.", exception: e);
             Consumed = true;
             return false;
         }
