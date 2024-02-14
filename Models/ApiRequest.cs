@@ -84,7 +84,7 @@ public class ApiRequest
                 else if (code.Between(500, 599))
                     Log.Local(Owner.Default, "ApiRequest encountered a server error, but it's been handled by an OnFailure() callback.", data: data, exception: response?.Exception);
                 else
-                    Log.Local(Owner.Default, "ApiRequest encountered an error, but it's been handled by an OnFailure() callback.", data: data, exception: response?.Exception);
+                    Log.Verbose(Owner.Default, "ApiRequest encountered an error, but it's been handled by an OnFailure() callback.", data: data, exception: response?.Exception);
                 return;
             }
 

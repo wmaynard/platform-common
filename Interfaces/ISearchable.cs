@@ -33,8 +33,14 @@ public interface ISearchable<T> where T : PlatformCollectionDocument
 
         foreach (KeyValuePair<Expression<Func<T, object>>, int> pair in weights2)
         {
-            PropertyInfo info = result.GetType().GetProperty(pair.Key.GetFieldName());
-            string value = info?.GetValue(result)?.ToString()?.ToLowerInvariant();
+            string value = null;
+            
+            if (pair.Key.Body is MemberExpression prop)
+            {
+                PropertyInfo info = result.GetType().GetProperty(prop.Member.Name);
+                value = info?.GetValue(result)?.ToString()?.ToLowerInvariant();
+            }
+            
             
             if (string.IsNullOrWhiteSpace(value))
             {
