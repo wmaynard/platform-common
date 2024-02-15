@@ -67,4 +67,7 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
         });
         return 0;
     }
+
+    // TODO: Make sure Model is searchable, throw exception if not
+    public virtual Model[] Search(params string[] terms) => mongo.Search(terms);
 }
