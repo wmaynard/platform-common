@@ -295,7 +295,7 @@ public class MyModel : PlatformCollectionDocument, ISearchable<MyModel>
 Once your model is updated, you can use `Search()` in your MinqService:
 
 ```csharp
-public class MyModelService : MinqService<MyModel>, ISearchable<MyModel>
+public class MyModelService : MinqService<MyModel>
 {
     ...
     public MyModel[] Search(params string[] terms) => mongo
