@@ -52,7 +52,7 @@ public class PlatformException : Exception // TODO: Should probably be an abstra
     {
         get
         {
-            RumbleJson output = new RumbleJson();
+            RumbleJson output = new();
             foreach (PropertyInfo info in GetType().GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 output[JsonNamingPolicy.CamelCase.ConvertName(info.Name)] = info.GetValue(this);
             return output;

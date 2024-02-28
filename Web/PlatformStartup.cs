@@ -31,6 +31,7 @@ using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Data;
@@ -436,6 +437,9 @@ public abstract class PlatformStartup
         }
 
         RouteAttribute route = top.GetAttribute<RouteAttribute>();
+        
+        if (Options.WipeLocalDatabases)
+            Minq.Minq.WipeLocalDatabases();
 
         string message = $"Application successfully started: {string.Join(", ", urls)}";
 

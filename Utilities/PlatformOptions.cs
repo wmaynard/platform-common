@@ -40,6 +40,7 @@ public class PlatformOptions
     // internal bool StartupLogsSuppressed { get; private set; }
     
     internal bool AspNetServicesEnabled { get; set; }
+    internal bool WipeLocalDatabases { get; set; }
 
     internal PlatformOptions()
     {
@@ -216,6 +217,12 @@ public class PlatformOptions
         LogThrottleThreshold = suppressAfter;
         LogThrottlePeriodSeconds = period;
 
+        return this;
+    }
+
+    public PlatformOptions WipeLocalDatabasesOnStartup(bool wipe = true)
+    {
+        WipeLocalDatabases = wipe;
         return this;
     }
 

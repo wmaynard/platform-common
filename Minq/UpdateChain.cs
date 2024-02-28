@@ -16,7 +16,7 @@ public class UpdateChain<T> where T : PlatformCollectionDocument
     private UpdateDefinitionBuilder<T> Builder { get; init; }
     private List<UpdateDefinition<T>> Updates { get; init; }
 
-    internal UpdateChain()
+    public UpdateChain()
     {
         Builder = Builders<T>.Update;
         Updates = new List<UpdateDefinition<T>>();

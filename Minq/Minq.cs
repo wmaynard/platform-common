@@ -17,6 +17,7 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -38,6 +39,50 @@ namespace Rumble.Platform.Common.Minq;
  
  Source: https://ascii.co.uk/art/weasel (Ermine)
  */
+
+
+internal static class Minq
+{
+    public static void WipeLocalDatabases()
+    {
+        #if DEBUG
+        if (!PlatformEnvironment.MongoConnectionString.Contains("localhost:27017"))
+            return;
+
+        if (PlatformEnvironment.IsProd)
+        {
+            Log.Critical(Owner.Will, $"Attempted call to {nameof(WipeLocalDatabases)} with a prod configuration.  This has been ignored, but should not happen.", data: new
+            {
+                Help = $"Disable the call to {nameof(WipeLocalDatabases)} in Startup.cs if this is intentional."
+            });
+            return;
+        }
+        
+        Log.Local(Owner.Will, "Wiping local databases.");
+
+        try
+        {
+            foreach (IPlatformService svc in PlatformService.Registry.Values)
+            {
+                MethodInfo wipe = svc
+                    .GetType()
+                    .GetMethods()
+                    .FirstOrDefault(info => info.Name == "WipeDatabase"); // TODO: create a generic MinqService and get this without a magic value
+                
+                if (wipe == null)
+                    continue;
+                object result = wipe.Invoke(svc, null);
+                if (result is long and > 0)
+                    Log.Local(Owner.Will, $"{svc.GetType().FullName} deleted {result} records.", emphasis: Log.LogType.INFO);
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(Owner.Will, "Unable to wipe local databases.", exception: e);
+        }
+        #endif
+    }
+}
 
 public class Minq<T> where T : PlatformCollectionDocument
 {
@@ -386,7 +431,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         
         foreach (Action<IndexChain<T>> builder in builders)
         {
-            IndexChain<T> chain = new IndexChain<T>();
+            IndexChain<T> chain = new();
             builder.Invoke(chain);
 
             MinqIndex index = chain.Build();

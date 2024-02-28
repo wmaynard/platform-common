@@ -60,5 +60,5 @@ public class IndexChain<T> where T : PlatformCollectionDocument
     /// Converts the index chain to a MinqIndex object, used to actually create the index.
     /// </summary>
     /// <returns>A completed MinqIndex object to be created.</returns>
-    internal MinqIndex Build() => new MinqIndex(Rendered, Name, Unique);
+    internal MinqIndex Build() => new (Rendered, Name, Unique);
 }
