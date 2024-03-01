@@ -22,7 +22,7 @@ public class Alert : PlatformCollectionDocument
     public string Title { get; set; }
     
     [BsonIgnore]
-    public string PagerDutyTitle => $"{Origin}-{PlatformEnvironment.Deployment} | {EnvUrl}-{Title}";
+    public string PagerDutyTitle => $"{Origin}-{PlatformEnvironment.Deployment} | {Title}";
 
     [BsonIgnore]
     [JsonIgnore]
@@ -110,6 +110,7 @@ public class Alert : PlatformCollectionDocument
         
         Trigger.Count = Math.Max(Trigger.Count, 1);
         Expiration = CreatedOn + Trigger.Timeframe;
+        Title = $"{EnvUrl}-{Title}";
     }
     public override string ToString() => $"{Status.GetDisplayName()} | {Impact.GetDisplayName()} | {Title} | {Message}";
     
