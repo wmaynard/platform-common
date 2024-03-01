@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
@@ -20,7 +22,14 @@ public class Alert : PlatformCollectionDocument
     public string Title { get; set; }
     
     [BsonIgnore]
-    public string PagerDutyTitle => $"{PlatformEnvironment.ServiceName}-{PlatformEnvironment.Deployment} | {Title}";
+    public string PagerDutyTitle => $"{Origin}-{PlatformEnvironment.Deployment} | {EnvUrl}-{Title}";
+
+    [BsonIgnore]
+    [JsonIgnore]
+    private string EnvUrl => PlatformEnvironment.ClusterUrl
+        ?.Split(".")
+        .FirstOrDefault()
+        ?.Replace("https://", "");
     
     [BsonElement("msg")]
     public string Message { get; set; }

@@ -407,7 +407,7 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     public long UpdateAll(Action<UpdateChain<T>> action)
     {
-        RequestChain<T> req = new RequestChain<T>(this);
+        RequestChain<T> req = new(this);
         
         return req.Update(action);
     }
