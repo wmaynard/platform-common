@@ -36,7 +36,11 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_TOKEN_VALIDATION = "RUMBLE_TOKEN_VALIDATION";
     public const string KEY_LOGGLY_URL = "LOGGLY_URL";
     public const string KEY_COMPONENT = "RUMBLE_COMPONENT";
+    #if UNITTEST
+    public const string KEY_MONGODB_URI = "MONGODB_UNITTEST_URI";
+    #else
     public const string KEY_MONGODB_URI = "MONGODB_URI";
+    #endif
     public const string KEY_MONGODB_NAME = "MONGODB_NAME";
     public const string KEY_GRAPHITE = "GRAPHITE";
     public const string KEY_PAGERDUTY_TOKEN = "PAGERDUTY_TOKEN";
@@ -356,7 +360,10 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
 
     public static void Exit(string reason, int exitCode = 0)
     {
-        Log.Local(Owner.Default, $"Environment terminated: {reason}");
+        Log.Local(Owner.Default, $"Environment terminated: {reason}", emphasis: exitCode == 0
+            ? Log.LogType.GREEN
+            : Log.LogType.CRITICAL
+        );
         Environment.Exit(exitCode);
     }
 

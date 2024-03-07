@@ -25,6 +25,10 @@ public enum ErrorCode
       [Display(Name = "0020")] Obsolete = 0020,
       // 30: API Failures
       [Display(Name = "0030")] ApiFailure = 0030,
+      // 90: Unit Testing
+      [Display(Name = "0090")] FailedUnitTest = 0090,
+      [Display(Name = "0091")] CircularReference = 0091,
+      [Display(Name = "0099")] UnsuccessfulUnitTest = 0099,
 
     // 100: Authorization
     [Display(Name = "0100")] KeyValidationFailed = 0100,

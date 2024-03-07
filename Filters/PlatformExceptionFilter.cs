@@ -79,10 +79,10 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
                 MongoCommandException asCmd => new PlatformMongoException(asCmd),
                 MongoWriteException asWrite when asWrite.WriteError.Code == 40 => new WriteConflictException(ex),
                 _ when ex.Message.Contains("conflict") => new WriteConflictException(ex),
-                _ => new PlatformException("Something went wrong with MongoDB.", ex, ErrorCode.MongoGeneralError)
+                _ => new PlatformException("Something went wrong with MongoDB", ex, ErrorCode.MongoGeneralError)
             };
             message = ex.Message;
-            Log.Critical(Owner.Default, message, data: data, exception: ex);
+            Log.Critical(Owner.Default, "Something went wrong with MongoDB", data: data, exception: ex);
         }
         else
             Log.Error(Owner.Default, message: $"{ex.GetType().Name}: {message}", data: data, exception: ex);

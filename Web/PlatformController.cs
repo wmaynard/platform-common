@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
@@ -40,6 +41,8 @@ public abstract class PlatformController : Controller
     protected readonly ApiService _apiService;
     #pragma warning restore
 
+    internal readonly static ConcurrentDictionary<Type, PlatformController> All = new(); 
+
     // internal ControllerInfo RegistrationDetails => new ControllerInfo(GetType());
 
     protected PlatformController(IConfiguration config = null, IServiceProvider services = null)
@@ -71,6 +74,8 @@ public abstract class PlatformController : Controller
                 {
                     Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.", exception: e);
                 }
+
+        All.GetOrAdd(GetType(), this);
     }
 
     protected T Require<T>() where T : PlatformService => _services.GetRequiredService<T>();

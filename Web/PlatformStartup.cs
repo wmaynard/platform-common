@@ -34,6 +34,7 @@ using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
+using Rumble.Platform.Common.Testing;
 using Rumble.Platform.Data;
 using Rumble.Platform.Data.Serializers;
 using Rumble.Platform.Data.Utilities;
@@ -474,6 +475,17 @@ public abstract class PlatformStartup
             Log.Local(Owner.Default, message, emphasis: Log.LogType.WARN);
         try
         {
+            #if UNITTEST
+            try
+            {
+                TestManager.RunTests();
+                PlatformEnvironment.Exit("Tests completed successfully.", exitCode: 0);
+            }
+            catch (Exception e)
+            {
+                PlatformEnvironment.Exit($"At least one test failed; {e.Message}", exitCode: 1);
+            }
+            #endif
             Options?.OnApplicationReady?.Invoke(Options);
         }
         catch (Exception e)

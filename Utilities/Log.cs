@@ -61,7 +61,9 @@ public class Log : PlatformDataModel
         WARN = 4,
         ERROR = 5,
         CRITICAL = 6,
-        THROTTLED = -1
+        GREEN = 7,
+        THROTTLED = -1,
+        
     }
 
     private LogType Emphasis { get; set; }
@@ -275,8 +277,11 @@ public class Log : PlatformDataModel
             Loggly?.Send(this, out throttled);
         if (throttled)
             SeverityType = LogType.THROTTLED;
-        if (!(PlatformEnvironment.IsLocal || SeverityType >= LogType.ERROR))
+        
+        #if RELEASE
+        if (SeverityType < LogType.ERROR)
             return this;
+        #endif
 
         LogType type = Emphasis == LogType.NONE
             ? SeverityType
@@ -291,6 +296,7 @@ public class Log : PlatformDataModel
             LogType.ERROR => ConsoleColor.Red,
             LogType.CRITICAL => ConsoleColor.DarkRed,
             LogType.THROTTLED => ConsoleColor.DarkGray,
+            LogType.GREEN => ConsoleColor.Green,
             _ => throw new ArgumentOutOfRangeException()
         });
         

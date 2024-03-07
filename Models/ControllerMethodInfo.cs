@@ -72,9 +72,9 @@ public class ControllerMethodInfo : PlatformDataModel
         List<string> routes = new List<string>();
 
         string[] methodRoutes = methodInfo
-        .GetAttributes<RouteAttribute>()
-        .Select(route => route.Template)
-        .ToArray();
+            .GetAttributes<RouteAttribute>()
+            .Select(route => route.Template)
+            .ToArray();
 
         foreach (string baseRoute in baseRoutes) 
             routes.AddRange(methodRoutes.Select(route => System.IO.Path.Combine("/", baseRoute, route)));
