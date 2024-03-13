@@ -51,6 +51,9 @@ public class Alert : PlatformCollectionDocument
     
     [BsonElement("status")]
     public AlertStatus Status { get; set; }
+
+    [BsonElement("verbose")]
+    public string VerboseStatus => Status.GetDisplayName();
     
     
     /// <summary>
@@ -117,6 +120,7 @@ public class Alert : PlatformCollectionDocument
     public enum AlertStatus
     {
         Pending = 100,
+        PendingAndClaimed = 101,
         Sent = 200,
         TriggerNotMet = 300
     }

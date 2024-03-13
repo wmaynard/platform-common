@@ -846,6 +846,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         try
         {
+            if (_limit > 0)
+                Log.Local(Owner.Default, "Update called with a Limit; Limit is unsupported by the Mongo driver and may be unintentional.");
+            
             long output = (UsingTransaction
                 ? _collection.UpdateMany(Transaction.Session, _filter, _update)
                 : _collection.UpdateMany(_filter, _update)).ModifiedCount;
