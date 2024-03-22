@@ -441,7 +441,7 @@ public abstract class PlatformStartup
         
         if (Options.WipeLocalDatabases)
             Minq.Minq.WipeLocalDatabases();
-
+        
         string message = $"Application successfully started: {string.Join(", ", urls)}";
 
         // TD-14518
@@ -479,7 +479,9 @@ public abstract class PlatformStartup
             try
             {
                 TestManager.RunTests();
-                PlatformEnvironment.Exit("Tests completed successfully.", exitCode: 0);
+                
+                if (!PlatformEnvironment.IsLocal)
+                    PlatformEnvironment.Exit("Tests completed successfully.", exitCode: 0);
             }
             catch (Exception e)
             {

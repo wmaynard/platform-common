@@ -75,6 +75,7 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public static string PagerDutyToken => Optional(KEY_PAGERDUTY_TOKEN);
     public static string PagerDutyServiceId => Optional(KEY_PAGERDUTY_SERVICE_ID);
     public static string PagerDutyEscalationPolicy => Optional(KEY_PAGERDUTY_ESCALATION_POLICY);
+    public static string InternalUrl => string.Join(", ", ServiceUrls);
     public static bool PagerDutyEnabled => !(string.IsNullOrWhiteSpace(PagerDutyToken)
         || string.IsNullOrWhiteSpace(PagerDutyServiceId)
         || string.IsNullOrWhiteSpace(PagerDutyEscalationPolicy));

@@ -117,7 +117,7 @@ public abstract class PlatformUnitTest
         }
         
         if (ApiService.Instance == null)
-            Fail($"{nameof(ApiService)} is not ready for traffic.");
+            Abort($"{nameof(ApiService)} is not ready for traffic.");
 
         Name = GetType().Name;
     }
@@ -173,7 +173,7 @@ public abstract class PlatformUnitTest
         }
         catch (Exception e)
         {
-            Fail("Could not generate requested tokens.");
+            Abort("Could not generate requested tokens.");
         }
     }
 
@@ -243,7 +243,8 @@ public abstract class PlatformUnitTest
         StoppedOn = Timestamp.Now;
     }
 
-    private void Fail(string message) => throw new PlatformException("Test failed.");
+    private void Abort(string message) => throw new PlatformException("Test failed.");
+    protected void Fail(string message) => Assert(message, false, true);
 
     protected void AppendTestLog(string message) => Messages.Add(message);
     
@@ -262,8 +263,8 @@ public abstract class PlatformUnitTest
     {
         ApiRequest request = ApiService
             .Instance
-            .Request(RelativeUrl)
-            .OnFailure(_ => AppendTestLog("Encountered an error when making a request."));
+            .Request(Path.Combine(PlatformEnvironment.InternalUrl, RelativeUrl))
+            .OnFailure(response => AppendTestLog("Encountered an error when making a request."));
 
         if (!string.IsNullOrWhiteSpace(token))
             request.AddAuthorization(token);
