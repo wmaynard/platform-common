@@ -41,7 +41,7 @@ namespace Rumble.Platform.Common.Filters;
         THRESHOLD_MS_CRITICAL = criticalMS;
         Data = new ConcurrentDictionary<string, Metrics>();
 
-        Log.Local(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
+        Log.Verbose(Owner.Default, $"{GetType().Name} threshold data initialized.", data: new
         {
             Thresholds = new
             {

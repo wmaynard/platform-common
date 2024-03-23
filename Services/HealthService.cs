@@ -137,7 +137,7 @@ public class HealthService : PlatformTimerService
             hp += result.PointsAwarded;
 
         if (hp > 0)
-            Log.Local(Owner.Will, $"Removed {hp} HP.");
+            Log.Verbose(Owner.Will, $"Removed {hp} HP.");
 
         // One of the things we need to catch is a situation in which the load balancer is unable to hit the /health endpoints.
         // Check every 12 ticks (approximately one minute) and evaluate the health of the service autonomously.

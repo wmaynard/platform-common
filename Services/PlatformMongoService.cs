@@ -358,7 +358,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 // TODO: Create indexes given a Collection, as opposed to the below filtering.
                 MongoIndexAssistant.CreateIndexes(collection);
 
-                Log.Local(Owner.Will, $"Creating indexes for {collection?.CollectionNamespace}");
+                Log.Verbose(Owner.Will, $"Creating indexes for {collection?.CollectionNamespace}");
             }
         }
         catch (Exception e)

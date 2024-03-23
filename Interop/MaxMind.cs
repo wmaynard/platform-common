@@ -106,7 +106,7 @@ public static class MaxMind
             GetObjectResponse response = task.Result;
             response.WriteResponseStreamToFileAsync(Filename, append: false, CancellationToken.None).Wait();
             DownloadComplete = true;
-            Log.Local(Owner.Will, "Downloaded latest MaxMind DB.");
+            Log.Verbose(Owner.Will, "Downloaded latest MaxMind DB.");
             RetryTimer?.Dispose();
             return true;
         }

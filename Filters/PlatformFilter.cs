@@ -62,7 +62,7 @@ public abstract class PlatformFilter : IFilterMetadata
   
     protected PlatformFilter()
     {
-        Log.Local(Owner.Default, $"{GetType().Name} initialized.");
+        Log.Verbose(Owner.Default, $"{GetType().Name} initialized.");
 
         TokenAuthEndpoint = PlatformEnvironment.TokenValidation;
     }

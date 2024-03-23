@@ -149,12 +149,11 @@ public abstract class PlatformStartup
             Log.Info(Owner.Default, "Swarm mode is enabled.  Some features, such as Loggly and Graphite integration, are disabled for load testing.");
         #endif
 
-        Log.Local(Owner.Will, "PlatformOptions loaded.");
-        Log.Info(Owner.Will, "Service started.", localIfNotDeployed: true);
+        Log.Verbose(Owner.Will, "PlatformOptions loaded.");
         Configuration = configuration;
         MongoConnection = PlatformEnvironment.MongoConnectionString;
 
-        Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}");
+        Log.Local(Owner.Will, $"MongoConnection: `{PasswordlessMongoConnection}", emphasis: Log.LogType.GREEN);
         if (!Options.EnabledFeatures.HasFlag(CommonFeature.MongoDB))
         {
             Log.Local(Owner.Default, "MongoDB has been disabled in options.  MongoConnection will be set to null.");
@@ -199,7 +198,7 @@ public abstract class PlatformStartup
                 config.Filters.Add(new PlatformMongoTransactionFilter());
             foreach (Type t in Options.CustomFilters)
             {
-                Log.Local(Owner.Will, $"Adding in a custom filter: {t.Name}");
+                Log.Verbose(Owner.Will, $"Adding in a custom filter: {t.Name}");
                 config.Filters.Add((IFilterMetadata)Activator.CreateInstance(t));
             }
         }
@@ -214,7 +213,7 @@ public abstract class PlatformStartup
         if (Options.EnabledFeatures.HasFlag(CommonFeature.MongoDB))
         {
             BsonSerializer.RegisterSerializer(new BsonGenericConverter());
-            Log.Local(Owner.Default, "BSON converters configured.");
+            Log.Verbose(Owner.Default, "BSON converters configured.");
         }
 
         Log.Verbose(Owner.Default, "Adding CORS to services");
@@ -244,10 +243,10 @@ public abstract class PlatformStartup
 
         InitSingletonServices();
 
-        Log.Local(Owner.Default, "Adding forwarded headers");
+        Log.Verbose(Owner.Default, "Adding forwarded headers");
         services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor; });
         
-        Log.Local(Owner.Default, "Service configuration complete.");
+        Log.Verbose(Owner.Default, "Service configuration complete.");
     }
 
     /// <summary>
@@ -345,7 +344,7 @@ public abstract class PlatformStartup
         // method call that purpose needs.
         if (!WebServerEnabled)
         {
-            Log.Local(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
+            Log.Verbose(Owner.Default, "Configuring app to use compression, map controllers, and enable CORS");
             app
                 .UseRewriter(new RewriteOptions()
                 .Add(new BaseRouteRule(baseRoute)))

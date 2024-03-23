@@ -37,7 +37,7 @@ public abstract class PlatformService : IService, IPlatformService
                 Type = GetType()
             });
 
-        Log.Local(Owner.Default, $"Creating {GetType().Name}");
+        Log.Verbose(Owner.Default, $"Creating {GetType().Name}");
     }
 
     // TODO: This is the same code as in PlatformController's service resolution.

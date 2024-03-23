@@ -108,7 +108,7 @@ public class CacheService : PlatformTimerService
         if (removals.Count == 0)
             return;
         
-        Log.Local(Owner.Default, $"Removed {removals} objects from the cache.");
+        Log.Verbose(Owner.Default, $"Removed {removals} objects from the cache.");
         OnObjectsRemoved?.Invoke(this, removals);
         
     }
