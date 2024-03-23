@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
 using MongoDB.Bson;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
@@ -120,6 +121,14 @@ public abstract class PlatformUnitTest
             Abort($"{nameof(ApiService)} is not ready for traffic.");
 
         Name = GetType().Name;
+
+        FieldInfo[] fields = GetType()
+            .GetFields(BindingFlags.Default | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(field => field.FieldType.IsAssignableTo(typeof(PlatformService)))
+            .ToArray();
+        
+        foreach (FieldInfo field in fields)
+            field.SetValue(this, PlatformService.Registry[field.FieldType]);
     }
 
     protected void GetTestResults(Type test, out RumbleJson json)
@@ -218,7 +227,7 @@ public abstract class PlatformUnitTest
         }
         catch (Exception e)
         {
-            AppendTestLog("Test failed.");
+            AppendTestLog($"Test failed: {e.Message}");
             Status = TestResult.Failure;
             TerminalException = e;
         }
@@ -325,7 +334,8 @@ public abstract class PlatformUnitTest
     /// <exception cref="NotImplementedException"></exception>
     protected void Request(TokenInfo token, RumbleJson payload, out RumbleJson response, out int code) => Request(token?.Authorization, payload, out response, out code);
     
-
+    protected void Request(TokenInfo token, out RumbleJson response, out int code) => Request(token?.Authorization, null, out response, out code);
+    protected void Request(string token, out RumbleJson response, out int code) => Request(token, null, out response, out code);
 
     #region Pretty Printing
     internal static string SummaryHeader => PadForSummary(SUMMARY_NAME, SUMMARY_STATUS, SUMMARY_ASSERTION, SUMMARY_GRADE, SUMMARY_RESULT);
@@ -405,4 +415,14 @@ public abstract class PlatformUnitTest
         if (Parameters.AbortOnFailedAssert || abortOnFail)
             throw new PlatformException("Assert statement did not evaluate to true; test failed.");
     }
+    
+    public string GenerateStandardToken(string accountId, Audience audience = Audience.All) => PlatformService
+        .Require<ApiService>()
+        .GenerateToken(
+            accountId: accountId,
+            screenname: "PlatformUnitTest",
+            email: "foo@example.com",
+            discriminator: 1234,
+            audiences: audience
+        );
 }

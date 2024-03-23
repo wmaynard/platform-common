@@ -92,6 +92,25 @@ internal static class TestManager
             0 => Log.LogType.CRITICAL,
             _ => Log.LogType.VERBOSE
         };
+        
+        // TEST LOGS
+        Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
+        Log.Local(Owner.Default, "TEST LOGS", emphasis: Log.LogType.INFO);
+        Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
+
+        List<string> detailedLogs = new();
+        foreach (PlatformUnitTest test in tests.OrderBy(t => t.StoppedOn))
+        {
+            detailedLogs.Add(test.Messages.First());
+            detailedLogs.AddRange(test
+                .Messages
+                .Skip(1)
+                .Select(message => $"    {message}"));
+        }
+        foreach(string message in detailedLogs)
+            Log.Local(Owner.Default, message);
+        
+        // TEST COVERAGE
         Log.Local(Owner.Default, DASHES, emphasis: coverageEmphasis);
         Log.Local(Owner.Default, $"TEST COVERAGE - {(int)percent} %", emphasis: coverageEmphasis);
         Log.Local(Owner.Default, DASHES, emphasis: coverageEmphasis);
@@ -110,22 +129,7 @@ internal static class TestManager
         else
             Log.Local(Owner.Default, "Unable to provide test coverage data.");
         
-        Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
-        Log.Local(Owner.Default, "TEST LOGS", emphasis: Log.LogType.INFO);
-        Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
-
-        List<string> detailedLogs = new();
-        foreach (PlatformUnitTest test in tests.OrderBy(t => t.StoppedOn))
-        {
-            detailedLogs.Add(test.Messages.First());
-            detailedLogs.AddRange(test
-                .Messages
-                .Skip(1)
-                .Select(message => $"    {message}"));
-        }
-        foreach(string message in detailedLogs)
-            Log.Local(Owner.Default, message);
-        
+        // TEST SUMMARY
         Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
         Log.Local(Owner.Default, "TEST SUMMARY", emphasis: Log.LogType.INFO);
         Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
