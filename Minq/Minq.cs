@@ -45,8 +45,10 @@ internal static class Minq
 {
     public static void WipeLocalDatabases()
     {
-        #if DEBUG
-        if (!PlatformEnvironment.MongoConnectionString.Contains("localhost:27017"))
+        #if RELEASE
+        return;
+        #else
+        if (!(PlatformEnvironment.MongoConnectionString.Contains("localhost:27017") || PlatformEnvironment.MongoConnectionString.Contains("unittestuser")))
             return;
 
         if (PlatformEnvironment.IsProd)
@@ -180,10 +182,10 @@ public class Minq<T> where T : PlatformCollectionDocument
             };
 
             if (!existing
-                    .Select(db => db.TryGetValue("key", out BsonValue output) ? output : null)
-                    .Where(value => value != null)
-                    .Any(value => value == desired.GetValue("key")))
-            {
+                .Select(db => db.TryGetValue("key", out BsonValue output) ? output : null)
+                .Where(value => value != null)
+                .Any(value => value == desired.GetValue("key"))
+            )
                 CachedQueries.Indexes.CreateOne(new CreateIndexModel<CachedResult>(
                     keys: Builders<CachedResult>.IndexKeys.Combine(
                         Builders<CachedResult>.IndexKeys.Ascending(cache => cache.FilterAsString),
@@ -194,7 +196,6 @@ public class Minq<T> where T : PlatformCollectionDocument
                         Background = true
                     }
                 ));
-            }
             CacheIndexesExist = true;
         }
         catch (Exception e)

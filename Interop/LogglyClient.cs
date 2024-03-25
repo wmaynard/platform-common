@@ -26,6 +26,11 @@ public class LogglyClient
     public void Send(Log log, out bool throttled)
     {
         throttled = false;
+        
+        #if UNITTEST
+        Log.Local(Owner.Default, "While running a Unit Test build, Loggly integration is disabled.", emphasis: Log.LogType.VERBOSE);
+        return;
+        #endif
         if (Disabled)
             return;
 

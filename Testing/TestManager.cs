@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
 using MongoDB.Bson;
+using MongoDB.Driver.Linq;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
@@ -99,7 +100,7 @@ internal static class TestManager
         Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
 
         List<string> detailedLogs = new();
-        foreach (PlatformUnitTest test in tests.OrderBy(t => t.StoppedOn))
+        foreach (PlatformUnitTest test in tests.Where(t => t.Status != TestResult.Success).OrderBy(t => t.StoppedOn))
         {
             detailedLogs.Add(test.Messages.First());
             detailedLogs.AddRange(test
@@ -107,6 +108,8 @@ internal static class TestManager
                 .Skip(1)
                 .Select(message => $"    {message}"));
         }
+        if (!detailedLogs.Any())
+            detailedLogs.Add("No detailed logs printed because all tests were successful.");
         foreach(string message in detailedLogs)
             Log.Local(Owner.Default, message);
         
@@ -135,7 +138,7 @@ internal static class TestManager
         Log.Local(Owner.Default, DASHES, emphasis: Log.LogType.INFO);
         Log.Local(Owner.Default, PlatformUnitTest.SummaryHeader, emphasis: Log.LogType.INFO);
         string[] messages = tests
-            .OrderBy(test => test.StoppedOn)
+            .OrderBy(test => test.Name)
             .Select(test => test.Summarize())
             .ToArray();
         foreach(string message in messages)
@@ -147,7 +150,7 @@ internal static class TestManager
 
         int passed = tests.Count(test => test.Status == TestResult.Success);
         int failed = tests.Length - passed;
-        Log.Local(Owner.Will, $"Passed: {passed} | Failed: {failed}", emphasis: failed == 0
+        Log.Local(Owner.Will, $"Time Taken: {tests.Sum(test => test.SecondsTaken)}s | Passed: {passed} | Failed: {failed}", emphasis: failed == 0
             ? Log.LogType.GREEN
             : Log.LogType.ERROR
         );

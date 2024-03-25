@@ -66,6 +66,10 @@ public abstract class PlatformUnitTest
     
     internal long StartedOn { get; set; }
     internal long StoppedOn { get; set; }
+
+    public long SecondsTaken => StoppedOn == 0
+        ? 0
+        : StoppedOn - StartedOn;
     
     
     protected readonly PlatformController Controller;
@@ -350,7 +354,7 @@ public abstract class PlatformUnitTest
         if (longestTestName.Contains('.'))
             longestTestName = longestTestName[(longestTestName.IndexOf('.') + 1)..];
         
-        name = name.PadLeft(Math.Max(SUMMARY_NAME.Length, longestTestName.Length), ' ');
+        name = name.PadRight(Math.Max(SUMMARY_NAME.Length, longestTestName.Length), ' ');
         
         status = status
             .PadLeft(Math.Max(SUMMARY_STATUS.Length, 
@@ -373,7 +377,7 @@ public abstract class PlatformUnitTest
         string grade = AssertionsPassed > 0
             ? Math.Floor(100 * (float) AssertionsPassed / (float) AssertionCount).ToString()
             : "0";
-        string result = AssertionCount == AssertionsPassed && AssertionCount > 0
+        string result = Status == TestResult.Success && AssertionCount == AssertionsPassed && AssertionCount > 0
             ? RESULT_PASS
             : RESULT_FAIL;
 

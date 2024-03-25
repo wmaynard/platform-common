@@ -244,6 +244,15 @@ public class ApiService : PlatformService
             })
             .Patch();
 
+    #if UNITTEST
+    public string GenerateToken(string accountId, Audience audiences = Audience.All) => GenerateToken(
+        accountId: accountId,
+        screenname: "UnitTest",
+        email: "unittest@example.com",
+        discriminator: 1234,
+        audiences: audiences
+    );
+    #endif
     public string GenerateToken(string accountId, string screenname, string email, int discriminator, Audience audiences = Audience.All)
         => GenerateToken(accountId, screenname, email, discriminator, audiences, out _);
     public string GenerateToken(string accountId, string screenname, string email, int discriminator, Audience audiences, out TokenInfo token)
