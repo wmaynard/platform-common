@@ -63,6 +63,7 @@ public abstract class PlatformUnitTest
     internal Exception CleanupException { get; private set; }
     internal Type[] Dependencies { get; set; }
     internal string[] DependencyNames { get; set; }
+    internal bool RequestUsed { get; set; }
     
     internal long StartedOn { get; set; }
     internal long StoppedOn { get; set; }
@@ -243,6 +244,7 @@ public abstract class PlatformUnitTest
     {
         try
         {
+            Assert($"{nameof(Request)}() has been called at least once.", RequestUsed);
             AppendTestLog($"Beginning cleanup.");
             Cleanup();
             AppendTestLog($"Cleanup complete.");
@@ -274,6 +276,7 @@ public abstract class PlatformUnitTest
     /// TODO: Ensure a request happens exactly once per repeat attempt.
     protected void Request(string token, RumbleJson payload, out RumbleJson response, out int code)
     {
+        RequestUsed = true;
         ApiRequest request = ApiService
             .Instance
             .Request(Path.Combine(PlatformEnvironment.InternalUrl, RelativeUrl))
@@ -428,5 +431,15 @@ public abstract class PlatformUnitTest
             email: "foo@example.com",
             discriminator: 1234,
             audiences: audience
+        );
+    
+    public static string GenerateToken(string accountId, Audience audiences = Audience.All) => PlatformService
+        .Require<ApiService>()
+        .GenerateToken(
+            accountId: accountId,
+            screenname: "UnitTest",
+            email: "unittest@example.com",
+            discriminator: 1234,
+            audiences: audiences
         );
 }
