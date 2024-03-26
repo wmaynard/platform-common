@@ -477,14 +477,19 @@ public abstract class PlatformStartup
             #if UNITTEST
             try
             {
-                TestManager.RunTests();
-                
+                TestManager.RunTests(out float coverage);
+
                 if (!PlatformEnvironment.IsLocal)
-                    PlatformEnvironment.Exit("Tests completed successfully.", exitCode: 0);
+                {
+                    if (coverage >= 100)
+                        PlatformEnvironment.Exit("Tests completed successfully.", exitCode: 0);
+                    else
+                        PlatformEnvironment.Exit("All tests successful, but not all endpoints are covered.", exitCode: 1);
+                }
             }
             catch (Exception e)
             {
-                PlatformEnvironment.Exit($"At least one test failed; {e.Message}", exitCode: 1);
+                PlatformEnvironment.Exit($"At least one test failed; {e.Message}", exitCode: 10);
             }
             #endif
             Options?.OnApplicationReady?.Invoke(Options);

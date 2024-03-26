@@ -26,7 +26,7 @@ namespace Rumble.Platform.Common.Testing;
 
 internal static class TestManager
 {
-    internal static void RunTests()
+    internal static void RunTests(out float coverage)
     {
         Type[] types = PlatformUnitTest.AllTestTypes;
 
@@ -77,7 +77,7 @@ internal static class TestManager
         }
         PrintLogs(tests);
         
-        
+        CalculateTestCoverage(out Dictionary<string, int> _, out coverage);
     }
 
     private static void PrintLogs(params PlatformUnitTest[] tests)
