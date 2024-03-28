@@ -328,7 +328,8 @@ public class ApiService : PlatformService
                             { KEY_LAST_TOKEN_GENERATED, lastGenerated },
                             { "url", response.RequestUrl },
                             { "code", response.StatusCode }
-                        })
+                        }),
+                        confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518529597/platform-common+Token+Service+Bad+Response"
                     );
             })
             .Post(out RumbleJson json, out code);
@@ -363,12 +364,13 @@ public class ApiService : PlatformService
         catch (Exception)
         {
             Alert(
-                title: "Token Generation Failure",
-                message: "Tokens are not able to be generated from the ApiService.",
+                title: "Token Service Bad Response",
+                message: "Token Service did not return a valid token.",
                 countRequired: 15,
                 timeframe: 600,
                 owner: Owner.Will,
-                impact: ImpactType.ServiceUnusable
+                impact: ImpactType.ServiceUnusable,
+                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518529597/platform-common+Token+Service+Bad+Response"
             );
             
             throw;
@@ -479,7 +481,7 @@ public class ApiService : PlatformService
     /// <param name="impact">What kind of impact the issue has that necessitates the alert.</param>
     /// <param name="data">Any additional data you want to attach to the alert.  In Slack, this comes through as a code block.</param>
     /// <param name="confluenceLink">The link to the Engineering Alert Runbook for your specific Alert.</param>
-    public Alert Alert(string title, string message, int countRequired, int timeframe, Owner owner = Owner.Default, ImpactType impact = ImpactType.Unknown, RumbleJson data = null, string confluenceLink = null)
+    public Alert Alert(string title, string message, int countRequired, int timeframe, string confluenceLink, Owner owner = Owner.Default, ImpactType impact = ImpactType.Unknown, RumbleJson data = null)
     {
         if (string.IsNullOrWhiteSpace(confluenceLink))
             Log.Warn(owner, "Confluence link was not provided for an alert", data: new

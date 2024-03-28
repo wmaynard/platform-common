@@ -97,7 +97,8 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
                 countRequired: PlatformEnvironment.IsDev ? 120 : 15,
                 timeframe: 600,
                 owner: Owner.Will,
-                impact: ImpactType.ServicePartiallyUsable
+                impact: ImpactType.ServicePartiallyUsable,
+                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518496790/platform-common+JSON+Parse+Failure"
             );
         }
     }

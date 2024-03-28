@@ -416,7 +416,8 @@ public abstract class PlatformStartup
                 countRequired: 15,
                 timeframe: 600,
                 owner: Owner.Will,
-                impact: ImpactType.ServicePartiallyUsable
+                impact: ImpactType.ServicePartiallyUsable,
+                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518169188/platform-common+some-service+unable+to+start."
             );
             Environment.Exit(exitCode: 1);
         }

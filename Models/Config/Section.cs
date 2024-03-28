@@ -191,7 +191,7 @@ public class Section : PlatformCollectionDocument
     /// <returns></returns>
     public static Diff[] GetDiff(Dictionary<string, Section[]> dict, string limiter = null)
     {
-        List<Tuple<string, string, string>> flattened = new List<Tuple<string, string, string>>();
+        List<Tuple<string, string, string>> flattened = new();
         
         foreach (KeyValuePair<string, Section[]> pair in dict)
             flattened.AddRange(Flatten(pair.Key, pair.Value));

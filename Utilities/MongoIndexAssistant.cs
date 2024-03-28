@@ -124,7 +124,8 @@ public static class MongoIndexAssistant
                     countRequired: PlatformEnvironment.IsDev ? 120 : 15,
                     timeframe: 600,
                     owner: Owner.Will,
-                    impact: ImpactType.PerformanceNotOptimized
+                    impact: ImpactType.PerformanceNotOptimized,
+                    confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518496774/platform-common+Mongo+Index+Creation+Failure"
                 );
             }
         }
