@@ -201,7 +201,6 @@ public abstract class PlatformUnitTest
     /// <returns></returns>
     internal PlatformUnitTest TryExecute()
     {
-        GenerateTokens();
         Initialize();
         AppendTestLog("Initialized.");
         
@@ -212,6 +211,7 @@ public abstract class PlatformUnitTest
             int target = Math.Max(1, Parameters.Repetitions);
             do
             {
+                GenerateTokens();
                 string runCount = target > 1
                     ? $"[{runs} of {target}] "
                     : "";
