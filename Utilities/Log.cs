@@ -279,8 +279,8 @@ public class Log : PlatformDataModel
             SeverityType = LogType.THROTTLED;
         
         #if RELEASE
-        if (SeverityType < LogType.ERROR)
-            return this;
+        OpenObserve.Send(this);
+        return this;
         #endif
 
         LogType type = Emphasis == LogType.NONE

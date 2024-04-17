@@ -142,7 +142,7 @@ public abstract class PlatformStartup
         LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
         LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
         PlatformEnvironment.RegistrationName = Options.RegistrationName;
-        PlatformEnvironment.PrintToConsole();
+        // PlatformEnvironment.PrintToConsole();
 
         #if RELEASE
         if (PlatformEnvironment.SwarmMode)
