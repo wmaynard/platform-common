@@ -196,13 +196,12 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             update: Builders<QueueConfig>.Update.Set(config => config.OnCompleteTime, -1)
         ).ModifiedCount > 0;
     }
-    
+
     private string[] GetWaitlist() => _config
         .Find(config => true)
-        .Project(Builders<QueueConfig>.Projection.Expression(config => config.Waitlist))
         .FirstOrDefault()
-        ?.ToArray()
-        ?? new string[] { };
+        ?.Waitlist
+        ?? Array.Empty<string>();
 
     /// <summary>
     /// If we have an active waitlist, run a query on outstanding tasks to see which tracked tasks have been completed.
@@ -246,6 +245,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     private void RemoveWaitlistOrphans()
     {
         string[] waitlist = GetWaitlist();
+        if (!waitlist.Any())
+            return;
         List<string> ids = _work
             .Find(Builders<QueuedTask>.Filter.In(task => task.Id, waitlist))
             .Project(Builders<QueuedTask>.Projection.Expression(task => task.Id))
@@ -568,7 +569,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 Builders<QueueConfig>.Filter.Lte(config => config.LastTrackingTime, Timestamp.Now - 1_800),
                 Builders<QueueConfig>.Filter.SizeGt(config => config.Waitlist, 0)
             ),
-            update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, new HashSet<string>())
+            update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, Array.Empty<string>())
         ).ModifiedCount;
         
         if (affected > 0)
@@ -694,7 +695,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         
         [BsonElement(KEY_WAITLIST)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]
-        public IEnumerable<string> Waitlist { get; set; }
+        public string[] Waitlist { get; set; }
         
         [BsonElement(KEY_LAST_TRACK_TIME)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 2)]
@@ -702,7 +703,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         [AdditionalIndexKey(GROUP_KEY_WAITLIST_ELEMENT, key: $"{KEY_WAITLIST}.0", priority: 1)]
         public long LastTrackingTime { get; set; }
 
-        public QueueConfig() => Waitlist = new HashSet<string>();
+        public QueueConfig() => Waitlist = Array.Empty<string>();
     }
     
     [BsonIgnoreExtraElements]
