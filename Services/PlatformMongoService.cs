@@ -513,7 +513,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 if (colon > -1)
                     command = $" ({msg[..colon]})";
             }
-            Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.", exception: e);
+            Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.  Try logging into Portal on dev to rule out a whitelist problem.", exception: e);
             PlatformEnvironment.Exit("Unable to connect to database.");
         }
     }
