@@ -73,9 +73,6 @@ environment.json
   "GITLAB_ENVIRONMENT_URL":  "https://dev.nonprod.tower.cdrentertainment.com/",
   "MONGODB_URI": "mongodb://localhost:27017/petShop?retryWrites=true&w=majority&minPoolSize=2",
   "PLATFORM_COMMON": {
-    "CONFIG_SERVICE_URL": {
-      "*": "https://config-service.cdrentertainment.com/"
-    },
     "GAME_GUKEY": {
       "*": "{REDACTED}"
     },

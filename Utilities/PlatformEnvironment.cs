@@ -29,7 +29,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     public const string KEY_LOGGLY_ROOT = "LOGGLY_BASE_URL";
     private const string LOCAL_SECRETS_JSON = "environment.json";
 
-    public const string KEY_CONFIG_SERVICE = "CONFIG_SERVICE_URL";
     public const string KEY_GAME_ID = "GAME_GUKEY";
     public const string KEY_RUMBLE_SECRET = "RUMBLE_KEY";
     public const string KEY_DEPLOYMENT = "RUMBLE_DEPLOYMENT";
@@ -59,7 +58,6 @@ public static class PlatformEnvironment // TODO: Add method to build a url out f
     internal static RumbleJson VarDump => !IsProd      // Useful for diagnosing issues with config.  Should never be used in production.
         ? new RumbleJson { { "environment", Variables.Copy() } }
         : new RumbleJson();
-    public static string ConfigServiceUrl => Optional(KEY_CONFIG_SERVICE, fallbackValue: "https://config-service.cdrentertainment.com/");
     public static string GameSecret => Optional(KEY_GAME_ID);
     public static string RumbleSecret => Optional(KEY_RUMBLE_SECRET);
     public static string Deployment => Optional(KEY_DEPLOYMENT);
@@ -428,7 +426,6 @@ need fixing or fields that may be candidates for obsolescence / removal.");
                 });
         }
         
-        test(KEY_CONFIG_SERVICE, ConfigServiceUrl);
         test(KEY_GAME_ID, GameSecret);
         test(KEY_RUMBLE_SECRET, RumbleSecret);
         test(KEY_DEPLOYMENT, Deployment);
