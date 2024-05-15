@@ -182,11 +182,10 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (!createIfNotFound && model.Id == null)
             throw new PlatformException(message: "Model.Id is null; update will be unsuccessful without upsert.");
         ReplaceOptions options = new() { IsUpsert = createIfNotFound };
-        string id = model.Id ?? ObjectId.GenerateNewId().ToString();
         if (session != null)
-            _collection.ReplaceOne(session, filter: m => model.Id == id, replacement: model, options: options);
+            _collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model, options: options);
         else
-            _collection.ReplaceOne(filter: m => model.Id == id, replacement: model, options: options);
+            _collection.ReplaceOne(filter: m => model.Id == m.Id, replacement: model, options: options);
     }
 
     public virtual Model[] Find(Expression<Func<Model, bool>> filter) => _collection.Find(filter).ToList().ToArray();
