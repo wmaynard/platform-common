@@ -5,9 +5,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -26,28 +28,34 @@ public class SlackMessageClient
     // public string Channel { get; private set; }
     public string Token { get; private set; }
 
-    private Task UserLoading { get; set; }
-
     public SlackMessageClient(string channel, string token)
     {
         Channels = new HashSet<string> { channel };
         Token = token.StartsWith("Bearer")
             ? token
             : $"Bearer {token}";
-        Users = new List<SlackUser>();
-
-        UserLoading = LoadUsers();
+        
+        LoadUsers().Wait();
     }
 
-    public List<SlackUser> Users { get; init; }
+    private List<SlackUser> _users = new();
+    private int _loadAttempts = 0;
 
-    public SlackUser[] UserSearch(params Owner[] owners)
+    public List<SlackUser> Users
     {
-        UserLoading.Wait();
-        return owners
-            .Select(owner => UserSearch(OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())
-            .ToArray();
+        get
+        {
+            if (_users?.Any() ?? false)
+                return _users;
+            LoadUsers().Wait();
+            return _users;
+        }
     }
+
+    public SlackUser[] UserSearch(params Owner[] owners) => owners
+        .Select(owner => UserSearch(OwnerInformation.Lookup(owner).AllFields).FirstOrDefault())
+        .ToArray();
+    
     /// <summary>
     /// 
     /// </summary>
@@ -55,8 +63,10 @@ public class SlackMessageClient
     /// <returns></returns>
     public SlackUser[] UserSearch(params string[] terms)
     {
-        UserLoading.Wait();
-        return Users?
+        if (!Users.Any())
+            return Array.Empty<SlackUser>();
+        
+        return Users
             .OrderByDescending(user => user.Score(terms))
             .Where(user => user.Score(terms) > 0)
             .ToArray()
@@ -65,17 +75,38 @@ public class SlackMessageClient
 
     private async Task LoadUsers()
     {
+        if (_users.Any())
+            return;
         Log.Info(Owner.Will, "Loading workplace Slack user data.");
 
+        int ms = 0;
+        while (ApiService.Instance == null)
+            do
+            {
+                Log.Local(Owner.Will, "ApiService not ready, delaying");
+                new ApiService();
+                Thread.Sleep(ms += 250);
+            } while (ApiService.Instance == null && ms < 5_000);
+
+        if (ApiService.Instance == null)
+            return;
+
+        RumbleJson[] json = Array.Empty<RumbleJson>();
         await ApiService.Instance
             .Request(GET_USER_LIST)
             .AddAuthorization(Token)
-            .OnSuccess((_, response) =>
+            .OnSuccess(response =>
             {
-                foreach (RumbleJson memberData in response.AsRumbleJson.Require<RumbleJson[]>(key: "members"))
-                    Users.Add(memberData);
-                Log.Local(Owner.Default, "Slack member data loaded.");
-            }).GetAsync();
+                json = response?.Optional<RumbleJson[]>("members") ?? Array.Empty<RumbleJson>();
+            })
+            .OnFailure(response =>
+            {
+                Log.Local(Owner.Will, "Failed to load Slack user list", emphasis: Log.LogType.CRITICAL);
+            })
+            .GetAsync();
+        foreach (RumbleJson memberData in json)
+            Users.Add(memberData);
+        Log.Local(Owner.Default, "Slack member data loaded.");
     }
 
     private async Task<RumbleJson> SendToSlack(SlackMessage message)
