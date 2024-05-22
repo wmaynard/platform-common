@@ -494,8 +494,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         }
         catch (Exception e)
         {
-            
-            Log.Error(Owner.Default, "Unable to complete queuedTask!", data: e.Data);
+            Log.Error(Owner.Default, "Unable to complete queuedTask!", data: task.Data, exception: e);
             try
             {
                 if (!FailTask(task))
