@@ -55,6 +55,8 @@ public class Alert : PlatformCollectionDocument
     [BsonElement("verbose")]
     public string VerboseStatus => Status.GetDisplayName();
     
+    [BsonElement("severity")]
+    public AlertSeverity Severity { get; set; }
     
     /// <summary>
     /// The link to the playbook doc guiding the responder.

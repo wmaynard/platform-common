@@ -251,7 +251,7 @@ public class SlackDiagnostics
     /// <param name="title">The title of the message.  This is displayed in a header font and should be relatively short.</param>
     /// <param name="message">Any extra detail you want to include.  For longer messages, you can also use AddMessage().</param>
     /// <returns>The SlackDiagnostics object for chaining.</returns>
-    public static SlackDiagnostics Log(string title, string message) => new SlackDiagnostics(title, message);
+    public static SlackDiagnostics Log(string title, string message) => new (title, message);
 
     private struct Cache
     {
