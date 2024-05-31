@@ -106,6 +106,11 @@ public class Alert : PlatformCollectionDocument
         if (Trigger == null)
             errors.Add("A trigger definition is required.");
 
+        if (!Enum.GetValues<AlertSeverity>().Contains(Severity))
+            Severity = AlertSeverity.CodeRed;
+        
+        Severity = (AlertSeverity)Math.Min((int)AlertSeverity.CodeRed, Math.Max((int)AlertSeverity.CodeYellow, (int)Severity));
+
         Trigger ??= new Trigger
         {
             Count = 1, 
