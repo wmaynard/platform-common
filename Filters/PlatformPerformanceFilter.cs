@@ -228,10 +228,11 @@ namespace Rumble.Platform.Common.Filters;
         /// </summary>
         private void Flush()
         {
-            Log.Verbose(Owner.Default, "Platform execution times recorded.", data: new
-            {
-                Metrics = this
-            });
+            if (!string.IsNullOrWhiteSpace(Endpoint) && !Endpoint.EndsWith("/health"))
+                Log.Verbose(Owner.Default, "Platform execution times recorded.", data: new
+                {
+                    Metrics = this
+                });
             Reset();
         }
 
