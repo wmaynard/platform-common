@@ -171,8 +171,10 @@ namespace Rumble.Platform.Common.Filters;
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         private long FailedMeasurements { get; set; }
-        [JsonInclude, JsonPropertyName("RecentExecutionTimes")]
+        
+        [JsonIgnore]
         public List<long> Times { get; private set; }
+        
         [JsonInclude]
         public string Endpoint { get; private set; }
 
@@ -208,7 +210,7 @@ namespace Rumble.Platform.Common.Filters;
                     .Sum(kvp => kvp.Value);
                 int total = ResultCodes.Sum(kvp => kvp.Value);
 
-                return$"{100 * ok / (float)total} %";
+                return $"{100 * ok / (float)total} %";
             }
         }
 
@@ -226,7 +228,7 @@ namespace Rumble.Platform.Common.Filters;
         /// </summary>
         private void Flush()
         {
-            Log.Info(Owner.Default, "Platform execution times recorded.", data: new
+            Log.Verbose(Owner.Default, "Platform execution times recorded.", data: new
             {
                 Metrics = this
             });
