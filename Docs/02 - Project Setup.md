@@ -95,7 +95,7 @@ environment.json
       "*": "https://slack.com/api/users.list"
     },
     "SLACK_LOG_BOT_TOKEN": {
-      "*": "xoxb-4937491542-3072841079041-s1VFRHXYg7BFFGLqtH5ks5pp"
+      "*": "xoxb-deadbeefdeadbeefdeadbeef"
     },
     "SLACK_LOG_CHANNEL": {
       "*": "C031TKSGJ4T"

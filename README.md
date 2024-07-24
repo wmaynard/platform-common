@@ -18,6 +18,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) 
 
 # Introduction
 
+**Note: This readme file is a little dated in favor of [the newer intro](Docs/01%20-%20Introduction.md) and some now-missing internal documentation.**
+
 This library has a single purpose: make service development less painful.  By inheriting from the classes in this project, we can better enforce standards for code quality, inputs and outputs, and more rapidly get new services up and running.
 
 Since this library is used with every C# platform project, be very mindful when making potentially breaking changes.  Especially since it's a young project, this will be unavoidable, but make sure any changes are communicated clearly to respective project owners.
@@ -348,7 +350,7 @@ There are two flavors that we use: `SerializerBase<T>` for BSON and `JsonConvert
 | `JsonShortConverter`     | Handles **short** conversions.  Necessary for proper `GenericData` serialization.                                                          |
 | `JsonTypeConverter`      | Serializes `Type` values to and from strings for proper `GenericData` serialization.                                                       |
 
-### Using `GenericData`
+### Using `RumbleJson`
 
 As of this writing, neither `System.Text.Json` nor `Newtonsoft` can create actual objects from JSON without a model to use as a contract.  This causes problems when storing data in MongoDB.  Sometimes the frontend developers will need a flexible structure to send data to Mongo, and it would be difficult to maintain a model on both the frontend and the backend.
 
@@ -447,12 +449,6 @@ Whenever you make changes to `platform-csharp-common`, you'll need to bump the N
 4. After GitLab's job has finished, update your `platform-csharp-common` NuGet package from your other service.  Be careful: if you are several versions behind, there may be side effects.
 
 You can check the status of GitLab's jobs either through `{project}` > CI/CD > Pipelines or by monitoring the `#platform-ops` channel in Slack.
-
-# Future Updates, Optimizations, and Nice-to-Haves
-
-* The Async class needs a few updates to be more helpful.
-	* [Will] I pulled most of the class from a personal project I worked on years ago, but in that time .NET has deprecated `Thread.Abort()` and as a result, Async doesn't currently have a way of forcefully stopping a thread.
-* SlackMessages need to be split into multiple messages if limits are exceeded.  Similarly, rate-limiting may be an issue later down the line.
 
 # Troubleshooting
 
