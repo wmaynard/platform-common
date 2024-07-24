@@ -1,0 +1,40 @@
+name: Build & Publish Nuget
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+          include-prerelease: true
+          source-url: https://nuget.pkg.github.com/wmaynard/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.PAT }}
+
+      - name: .NET build
+        run: dotnet build --configuration Release
+      
+      - name: Push package to Github
+        run: |
+          cd bin/Release
+          dotnet nuget push *.nupkg --skip-duplicate --api-key "${{ secrets.PAT }}" --source https://nuget.pkg.github.com/wmaynard/index.json
+          
+      - name: Delete old packages
+        uses: actions/delete-package-versions@v3
+        with:
+          owner: 'wmaynard'
+          repo: 'platform-common'
+          package-name: 'rumble-platform-common'
+          token: ${{ secrets.PAT }}
+          min-versions-to-keep: 10
