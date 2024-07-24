@@ -4,8 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using DnsClient;
 using DnsClient.Protocol;
-using RCL.Logging;
-using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Enums;
 
 namespace Rumble.Platform.Common.Utilities;
 

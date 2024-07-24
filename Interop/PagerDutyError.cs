@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Text.Json.Serialization;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Interop;
 

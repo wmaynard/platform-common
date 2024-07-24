@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Data.Exceptions;
+using Rumble.Platform.Common.Utilities.JsonTools.Exceptions;
 
 namespace Rumble.Platform.Common.Web;
 

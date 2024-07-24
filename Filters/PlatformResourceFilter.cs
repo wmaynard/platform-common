@@ -5,14 +5,13 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
-using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Utilities.JsonTools;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Common.Filters;
 

@@ -1,16 +1,12 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Web;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Filters;
 

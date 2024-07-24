@@ -5,21 +5,17 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
-using RCL.Logging;
-using RCL.Services;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformService : IService, IPlatformService
+public abstract class PlatformService : IPlatformService
 {
     internal static ConcurrentDictionary<Type, IPlatformService> Registry { get; private set; }
     

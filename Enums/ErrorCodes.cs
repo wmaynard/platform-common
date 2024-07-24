@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using RCL.Services;
 
 namespace Rumble.Platform.Common.Enums;
 

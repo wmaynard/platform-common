@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
@@ -17,9 +16,9 @@ using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Utilities.JsonTools;
+using Rumble.Platform.Common.Utilities.JsonTools.Exceptions;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Data;
-using Rumble.Platform.Data.Exceptions;
 
 namespace Rumble.Platform.Common.Services;
 

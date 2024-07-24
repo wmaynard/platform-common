@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;

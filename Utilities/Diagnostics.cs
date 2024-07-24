@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Timers;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 
 namespace Rumble.Platform.Common.Utilities;
 

@@ -30,7 +30,7 @@
 	  <PackageReference Include="AWSSDK.S3" Version="3.7.201.12" />
 	  <PackageReference Include="MaxMind.Db" Version="3.0.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
-	  <PackageReference Include="RumbleCore" Version="1.0.35" />
+	  <PackageReference Include="MongoDB.Bson" Version="2.20.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="2.20.0" />
 	  <PackageReference Include="MongoDB.Driver.Core" Version="2.20.0" />
 	  <PackageReference Include="StackExchange.Redis" Version="2.2.79" />

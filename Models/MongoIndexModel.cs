@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models;
 

@@ -2,11 +2,10 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using RCL.Services;
 
 namespace Rumble.Platform.Common.Utilities;
 
-public class HttpClientService : IService, IDisposable
+public class HttpClientService : IDisposable
 {
     private HttpClient _httpClient = null;
     

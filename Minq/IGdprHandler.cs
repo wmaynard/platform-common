@@ -1,4 +1,3 @@
-using RCL.Logging;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 

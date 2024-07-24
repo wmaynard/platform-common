@@ -1,6 +1,5 @@
 using System;
-using System.Runtime.CompilerServices;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Attributes;

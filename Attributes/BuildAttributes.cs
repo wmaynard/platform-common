@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.Reflection;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Attributes;

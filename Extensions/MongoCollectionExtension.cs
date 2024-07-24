@@ -5,14 +5,13 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Extensions;
 

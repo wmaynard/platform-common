@@ -1,10 +1,7 @@
 using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using MongoDB.Bson;
-using RCL.Logging;
 using Rumble.Platform.Common.Exceptions.Mongo;
-using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Extensions;
 

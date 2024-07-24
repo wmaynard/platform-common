@@ -5,8 +5,7 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Data;
-using StackExchange.Redis;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models;
 

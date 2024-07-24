@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -34,7 +34,7 @@ public class Log : PlatformDataModel
 
     public static Owner DefaultOwner
     {
-        get => _defaultOwner ?? RCL.Logging.Owner.Default;
+        get => _defaultOwner ?? Enums.Owner.Default;
         set
         {
             if (_defaultOwner != null)
@@ -459,7 +459,7 @@ public class Log : PlatformDataModel
             Local(owner, mongo.Message, emphasis: LogType.ERROR);
 #endif
             
-        Owner actual = owner == RCL.Logging.Owner.Default
+        Owner actual = owner == Enums.Owner.Default
             ? DefaultOwner
             : owner;
 

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -21,18 +21,10 @@ public class OwnerInformation
     /// This class is primarily used to search for Owners when sending slack messages / pinging people.  Without this, there's a risk of pinging the wrong person.
     /// As a perfect example, without David's entry here, Slack might ping Kirch or DLo instead.
     /// </summary>
-    private static readonly Dictionary<Owner, OwnerInformation> Directory = new Dictionary<Owner, OwnerInformation>()
+    private static readonly Dictionary<Owner, OwnerInformation> Directory = new()
     {
-        { Owner.Alex, new OwnerInformation("Alex", "Dunn")},
-        { Owner.Austin, new OwnerInformation("Austin", "Takechi") },
-        { Owner.Chris, new OwnerInformation("Chris", "March") },
-        { Owner.David, new OwnerInformation("David", "Bethune")},
-        { Owner.Eitan, new OwnerInformation("Eitan", "Levy") },
-        { Owner.Eric, new OwnerInformation("Eric", "Sheris") },
-        { Owner.Ernesto, new OwnerInformation("Ernesto", "Rojo") },
-        { Owner.Sean, new OwnerInformation("Sean", "Chapel") },
-        { Owner.Will, new OwnerInformation("Will", "Maynard") },
-        { Owner.Ryan, new OwnerInformation("Ryan", "Shackelford") }
+         { Owner.Sean, new OwnerInformation("Sean", "Chapel") },
+         { Owner.Will, new OwnerInformation("Will", "Maynard") }
     };
 
     internal static OwnerInformation Lookup(Owner owner) => owner == Owner.Default

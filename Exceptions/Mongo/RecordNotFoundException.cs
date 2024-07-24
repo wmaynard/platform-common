@@ -1,5 +1,5 @@
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Exceptions.Mongo;
 

@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
-using Pipelines.Sockets.Unofficial.Arenas;
-using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;

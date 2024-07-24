@@ -1,9 +1,8 @@
 using System;
 using System.Timers;
-using RCL.Logging;
-using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Services;
 
@@ -28,7 +27,6 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T>, ID
             catch (Exception e)
             {
                 Log.Error(Owner.Default, $"{GetType().Name}.OnElapsed failed.", exception: e);
-                
             }
             Resume();
         };

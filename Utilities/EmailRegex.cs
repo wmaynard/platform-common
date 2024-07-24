@@ -1,7 +1,7 @@
 using System;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 
 namespace Rumble.Platform.Common.Utilities;
 
