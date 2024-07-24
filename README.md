@@ -40,19 +40,17 @@ Since this library is used with every C# platform project, be very mindful when 
 
 # Adding The Library
 
-1. Create a personal access token (PAT) on gitlab: https://gitlab.cdrentertainment.com/-/profile/personal_access_tokens
-2. In Rider, open the NuGet window (`View` > `Tool Windows` > `NuGet`).
-3. In the NuGet window, open the `Sources` tab.
-4. Add a new feed:
-	1. URL: `https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json`
-	2. Username: Your gitlab username, e.g. `william.maynard`
-	3. Password: Your PAT from Step 1.
-5. Right-click on the project you want to add the library to.
-6. Click `Manage NuGet Packages`.
-7. Search for `platform-csharp-common`.  If everything is configured correctly, you should see the current version with `gitlab` as the source.
-8. Select it, then click the `+` button in the right panel to add the library to the project.
+1. Create a personal access token (PAT) on [github](https://github.com/settings/tokens).
+2. In Terminal, run the following command with appropriate replacements:
+```
+dotnet nuget add source --username {USERNAME} --password {PAT} --store-password-in-clear-text --name wmaynard/platform-common "https://nuget.pkg.github.com/wmaynard/index.json
+```
+3. Search for `rumble-platform-common`.  If everything is configured correctly, you should see the current version with `wmaynard/platform-common` as the source.
+4. Select it, then click the `+` button in the right panel to add the library to the project.
 
-Gitlab official documentation: https://docs.gitlab.com/ee/user/packages/nuget_repository/
+#### **Important:** Do not use Rider to add to your nuget config.  At the time of this writing, a PAT added this way can read the packages, but not install them.
+
+Github official documentation: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry
 
 # Core Concepts
 
