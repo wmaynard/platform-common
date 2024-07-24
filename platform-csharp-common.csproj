@@ -13,7 +13,7 @@
 	  <Configurations>Debug;Release;Local;UnitTest</Configurations>
 	  <Platforms>AnyCPU</Platforms>
 	  <TargetFramework>net8.0</TargetFramework>
-	  <PackageId>platform-common</PackageId>
+	  <PackageId>rumble-platform-common</PackageId>
 	  <Authors>Will Maynard</Authors>
 	  <Description>A framework for rapidly building .NET microservices.</Description>
 	  <Copyright>Will Maynard</Copyright>
