@@ -1,6 +1,20 @@
-# platform-csharp-common
+# platform-common
 
 A shared library for Rumble platform service development.
+
+## Acknowledgment
+
+Platform Common was originally created for Rumble Entertainment (which later became R Studios), a mobile gaming company.  Platform Common became the foundational framework for dozens of microservices for the game Towers & Titans, replacing a legacy Java / Groovy stack.  The primary focus is to prototype and iterate as quickly as possible.
+
+R Studios unfortunately closed its doors in July 2024.  This project has been released as open source with permission.
+
+As of this writing, there are still existing references to Rumble's resources, such as Confluence links, but they don't have any significant impact.  Some documentation will also be missing until it can be recreated here, since with the company closure any feature specs and explainer articles originally written for Confluence / Slack channels were lost.
+
+While Rumble is shutting down, I'm grateful for the opportunities and human connections I had working there.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
 
 # Introduction
 
