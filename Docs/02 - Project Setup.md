@@ -134,7 +134,6 @@ This is some under-the-hood magic to give us automatic version numbers, useful f
 With .NET 5, this step was unnecessary; however, .NET 6 changed the default project structure.  This is solved easily enough: right-click on your project and add `Startup.cs`.  From here, we will build out our service configuration.
 
 ```csharp
-using RCL.Logging;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.PetShopService;
@@ -155,7 +154,6 @@ Let's make an example change to the configuration.  Not all services have the sa
 We can accomplish this by continuing the method chain for `PlatformOptions`:
 
 ```csharp
-using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Web;
 
